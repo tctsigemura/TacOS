@@ -1,0 +1,59 @@
+#
+# TacOS Source Code
+#    Tokuyama kousen Educational Computer 16 bit Version
+#
+# Copyright (C) 2011-2016 by
+#                      Dept. of Computer Science and Electronic Engineering,
+#                      Tokuyama College of Technology, JAPAN
+#
+#   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+# 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+# コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+# 布することを無償で許諾する．
+#
+#   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+# 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+# も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+# る損害に関しても，その責任を負わない．
+
+#
+# GNUmakefile
+#
+# 2015.08.31         : c-- コンパイラの -K オプションに対応(重村)
+# 2015.06.04	      : SUBDIRS に tty を追加
+# 2014.05.07         : 村田開発開始
+# 2013.01.04         : kernel.map を作成するように変更
+# 2012.03.02         : TaC7 用に書き換え + boot.bin + sioboot.bin を追加
+# 2011.11.27         : MacOS X に対応(cpp 問題)
+# 2011.05.11         : 初期バージョン
+
+#　ディレクトリを移動する際のログを出力しない
+MAKEFLAGS=--no-print-directory
+
+# make 対象のサブディレクトリ  crt0 が含まれる util を最初にすること！！
+SUBDIRS:=util kernel fs tty mm pm
+
+# OBJS に SUBDIRS で生成された各 mod.o ファイルをディレクトリパス付きで代入
+OBJS=$(foreach dir, $(SUBDIRS), $(dir)/mod.o )
+
+
+# clean を実行した後 kernel.bin を実行
+all : clean kernel.bin
+
+# ここでは以下を行う
+# (1) 各サブディレクトリで make を実行し
+# (2) 全ての mod.o を結合して kernel.o を生成
+# (3) kernel.o のサイズを表示
+# (4) kernel.o を 0x0000 番地にロードした kernel.bin を生成
+# (5) メモリマップを kernel.map に格納
+kernel.bin :
+	$(foreach dir, $(SUBDIRS), ${MAKE} --directory=$(dir); )
+	ld-- kernel.o ${OBJS} > kernel.sym
+	size-- kernel.o
+	objbin-- 0x0000 kernel.bin kernel.o | sort --key=1 > kernel.map
+
+
+clean :
+	rm -f kernel.bin kernel.map kernel.s *.o *.sym *.lst  *~ 
+	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir) clean; )
+

@@ -1,0 +1,536 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2011 - 2016 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * fs/fatSys.cmm : FAT16 ファイルシステムのシステムコール処理部分
+ *
+ * 2016.01.06 : コードレビューを反映
+ * 2015.12.02 : ルートディレクトリもオープンできるように、sysOpenDir() を修正
+ * 2015.12.01 : ファイルシステム全体を見直し
+ * 2015.09.02 : インクルードファイルの見直し(重村)
+ * 2015.04.24 : クローズ忘れファイルを探索する chkCloseForg 関数を追加
+ * 2015.03.10 : FILE 構造体に,ファイルをオープンしたプロセスの PID を格納する
+ *              フィールドを追加
+ * 2014.11.25 : seek システムコールを実装
+ * 2014.11.11 : アクセスモード(主に OPEN,READ,WRITE),
+ *              close システムコール内でバッファのフラッシュを追加
+ * 2014.11.03 : write システムコールを実装
+ * 2014.10.21 : FILE 構造体にファイルの名前と拡張子を格納するように変更
+ * 2014.10.09 : エラーナンバーを返却するように修正
+ * 2014.10.06 : remove システムコールを実装
+ * 2014.10.03 : creat システムコールを実装
+ * 2014.08.27 : MM を実装したため、malloc、free を使用する方法に戻した
+ * 2014.06.03 : 村田開発開始、malloc を使用しないよう変更
+ * 2011.05.23 : boot.cmm を基に作成
+ *
+ * $Id$
+ *
+ */
+
+#include <util.h>
+#include <mm.h>
+#include <syscall.h>
+#include "fsDef.h"                              // 全体に共通の定義
+#include "blkFile.h"                            // 下位モジュール
+#include "fatSys.h"                             // 外部公開
+#include "dirAccess.h"
+#include "file.h"
+
+// FAT ファイルシステムは EXE ファイルと違い、リトルエンディアンであることに注意
+// 新規ファイルの場合は、最初に何かを書き込んだタイミングでクラスタを割り当てる
+
+// ファイルの形式
+// abcdefghtxt\0
+// 012345678901
+
+// mkDir()を使用して作成したディレクトリの中を mac で見ると、
+//「fseventsd-uuid」というファイルシステムのログファイルができることがある。
+// http://okwave.jp/qa/q8522953.html
+
+//----------------------------------------------------------------------------
+// STRUTIL : ファイル名を操作するための文字列機能クラス
+//----------------------------------------------------------------------------
+
+// cmpFname : ファイル名比較関数(s1とs2を比較する)
+// 引数 s1  : 比較する文字列
+//      s2  : 比較する文字列
+//      len : 有効な文字数
+int cmpFname(char[] s1, char[] s2) {
+  for(int i=0; i<11; i=i+1) {
+    int t = ord(toUpper(s1[i])) - ord(toUpper(s2[i]));
+    if (t!=0) return t;
+  }
+  return 0;
+}
+
+// isUseableAsName : ファイル名として使用できる文字か
+//   使用できる文字は　0~9　A~Z a~z ! # $ % & ' ( )  - @ ^ _ { } ~　である
+//   (ファイル名の格納形式のためスペース(' ')も true で返す
+boolean isUseableAsName(char c) {
+  return (ord('0') <= ord(c) && ord(c) <= ord('9')) ||  // 0..9
+         (ord('A') <= ord(c) && ord(c) <= ord('Z')) ||  // A..Z
+         (ord('a') <= ord(c) && ord(c) <= ord('z')) ||  // a..z
+         (ord('#') <= ord(c) && ord(c) <= ord(')')) ||  // #$%&'()
+         c==' ' || c=='!' || c=='-' || c=='@' ||        // [SP]!-@
+         c=='^' || c=='_' || c=='{' || c=='}' || c=='~';// ^_{}~
+}
+
+// validName : ファイル名に使用できない文字が含まれていないか調べる
+// 返り値    : true=不正な文字が含まれていない 、false=不正な文字が含まれている
+// 引数 s    : ファイル名
+boolean validName(char[] s) {
+  for (int i=0; s[i]!='\0'; i=i+1)              // ファイル名の最初から最後まで
+    if (!isUseableAsName(s[i])) return false;   //   使えない文字を使用している
+  return true;
+}
+
+// lastIdx : 文字列 s 中において、文字 c が最後に出現する位置を返す
+// 返り値  : 文字 c が最後に出現した位置(<0:出現しなかった)
+// 引数 s  : 探索対象文字列
+//      c  : 探索する文字 
+int lastIdx(char[] s, char c){
+  int r = -1;                                   // 最後に出現する c の位置
+  for (int i=0; s[i]!='\0'; i=i+1)              // s の最初から最後まで
+    if (s[i]==c) r=i;                           //   最後の c の位置を記録する
+  return r;
+}
+
+// getFStr    : n 文字以内のファイル名を str に取り出す
+//            : ファイル名が長い時は後半を無視，短い時はスペースを補う
+// 引数 path  : パス
+//      p...q : path の着目位置
+//      str   : 格納場所
+//      ofs   : str の格納開始位置
+//      n     : 最大文字数
+int getFStr(char[] path, int p, int q, char[] str, int ofs, int n) {
+  int i = 0;
+  char c;
+  while (p<q && (c=path[p])!='.' && c!='/') {   // 区切り文字以外の間
+    if (i<n) {                                  // 制限字数未満ならば
+      str[ofs+i] = toUpper(c);                  //   文字を取り出す
+      i = i + 1;  
+    }                                           // 制限文字数を超えたら
+    p = p + 1;                                  //   読み捨てる
+  }
+  for (;i<n; i=i+1)                             // 余った部分は' '
+    str[ofs+i] = ' ';
+  str[ofs+i] = '\0';                            // デバッグ時のために
+  return p;
+}
+
+// getFname   : パスからファイル名と拡張子を取り出し"abcdefghtxt"形式で格納する
+// 引数 path  : パス名
+//      p..q  : path の着目位置
+//      fname : ファイル名
+int getFname(char[] path, int p, int q, char[] fname) {
+  p = getFStr(path, p, q, fname, 0, 8);         // ファイル名を取り出す
+  if (p<q && path[p]=='.') p = p + 1;           // '.'を読み飛ばす
+  p = getFStr(path, p, q, fname, 8, 3);         // 拡張子を取り出す
+  return p;
+}
+
+//----------------------------------------------------------------------------
+// SRCHDIR : パスを解析しながらファイルを探索する
+//----------------------------------------------------------------------------
+DirEnt curEnt = {0 , 0, "            ", 0, 0, 0, 0}; // 着目中の DIR エントリ
+char[] fname  = array(12);                      // ファイル名を記録する
+
+// srchDir   : ファイルをディレクトリから探し、ファイルの情報を curEnt に格納
+// 返り値    : true=見つかった、false=見つからなかった
+// 引数 name : 探すファイルの名前
+boolean srchDir(char[] name) {
+  int r;
+  do {
+    if ((r=readDirEnt(curEnt))==1    &&         // 有効なエントリで
+        (curEnt.attr & 0x0a)==0      &&         //   通常ファイルかディレクトリ
+                                                //   system,volumeLabel,vfat以外
+        cmpFname(curEnt.name, name)==0)         //     ファイル名が一致するなら
+      return true;                              //       ファイルが見つかった
+  } while (r!=0 && nextDirEnt(curEnt, false));  // 有効なエントリが続く間
+  return false;                                 // 見つからなかった
+}
+
+// srchPath  : パスの解析を n 文字目まで行う
+// 引数 path : 解析するパス
+//      n    : 解析を行う文字数
+boolean srchPath(char[] path, int n) {
+  // ルート・ディレクトリを見つけた状態にする
+  curEnt.dirClst = ROOTDIR;                     // ルートの親はルート
+  curEnt.dirEnt  = 0;                           // 最初のエントリ
+  strCpy(curEnt.name, "/");                     // 名称は "/"
+  curEnt.attr    = 0x10;                        // 属性はディレクトリ
+  curEnt.clst    = ROOTDIR;                     // ルート・ディレクトリ
+  curEnt.lenH    = 0x0000;                      // ルート・ディレクトリサイズは
+  curEnt.lenL	 = 0x4000;                      // 16kiB 固定
+
+  // n 文字目までパスを解析
+  for (int p=0; ;) {                            // 渡されたパスについて
+    while (p<n && path[p]=='/') p = p + 1;      //   余計な '/' を読み飛ばす
+    if (p>=n) break;                            //   パス解析完了
+
+    // 階層を進む
+    if ((curEnt.attr&0x10)!=0x10) return false;// 普通ファイルの中には進めない
+    curEnt.dirClst = curEnt.clst;              // 次の階層の DIR FILE を設定
+    curEnt.dirEnt  = 0;                        // エントリ番号を初期化
+
+    // ディレクトリファイル内でファイル名を探索する
+    p = getFname(path, p, n, fname);            // パスからファイル名を取り出す
+    if (!srchDir(fname)) return false;          // ファイルが見つからない
+  }
+  return true;                                  // ファイルが見つかった
+}
+
+//----------------------------------------------------------------------------
+// システムコール : 各種システムコールの処理
+//----------------------------------------------------------------------------
+File[] files = array(FILEMAX);                  // File オブジェクトの一覧
+
+// FDS 内の空きエントリを探索する
+int newIdx(PCB pcb) {
+  for (int idx=0; idx<P_FILE_MAX; idx=idx+1)    // FDS 内の空きを探索する
+    if (pcb.fds[idx] == -1) return idx;         //   空きが見つかった
+  return -1;
+}
+
+// files 内の空きエントリを探索する
+int newFd() {
+  for (int fd=0; fd<FILEMAX; fd=fd+1)           // files 内の空きを探索する
+    if (files[fd] == null) return fd;           //   空きが見つかった
+  return -1;
+}
+
+// ファイルが既にオープンされていないか確認する
+boolean isOpened(int dirClst, int dirEnt) {
+  for (int i=0; i<FILEMAX; i=i+1) {             // システム内の
+    File f = files[i];                          //   File オブジェクトについて
+    if (f!=null && f.dirClst==dirClst &&        //   同じ DIR エントリがないか
+        f.dirEnt==dirEnt)                       //     調べる
+      return true;
+  } 
+  return false;                                 // オープンされていない
+}
+
+// open システムコール
+public int sysOpen(char[] path, int mode, PCB pcb) {
+  int idx = newIdx(pcb);                        // FDS のインデクス
+  if (idx<0) return EMFILE;                     // プロセスごとのオープン数超過
+  int fd = newFd();                             // ファイル記述子
+  if (fd<0)  return ENFILE;                     // システム全体のオープン数超過
+
+  if (!srchPath(path,strLen(path)))             // ファイルを探索する
+    return ENOENT;                              //   見つからなかったらエラー
+  if (isOpened(curEnt.dirClst,curEnt.dirEnt))   // ファイルがオープン済みなら
+    return EOPENED;                             //   エラー
+  boolean isDir = (curEnt.attr&0x10)!=0;        // 見つけたファイルは DIR か？
+  if (isDir && mode!=READ_MODE) return EMODE;   // DIR かつ READ でない
+
+  // File オブジェクトを生成する
+  File f = malloc(sizeof(File));                // File オブジェクトを生成
+  if (f==null) return ENOMEM;                   // メモリ不足
+  char[] fb = malloc(BLKSIZ);                   // バッファを生成
+  if (fb==null) { free(f); return ENOMEM; }     // メモリ不足
+
+  // File オブジェクトを初期化する
+  f.isDir   = isDir;                            // ディレクトリファイル
+  f.mode    = mode;                             // オープンモード
+  f.lenH    = curEnt.lenH;                      // ファイルサイズ(上位16bit)
+  f.lenL    = curEnt.lenL;                      // ファイルサイズ(下位16bit)
+  f.clst    = curEnt.clst;                      // ファイルの先頭クラスタ番号
+  f.dirClst = curEnt.dirClst;                   // DIR FILE の先頭クラスタ番号
+  f.dirEnt  = curEnt.dirEnt;                    // DIR エントリのエントリ番号
+  f.fileBuf = fb;                               // バッファを記録
+  f.isEob = f.fileIsDirty = false;              // フラグを下ろす
+
+  // f.posXX は seekFile() で初期化される
+  if (mode==APPEND_MODE)                        // APPEND_MODE なら
+    seekFile(f, f.lenH, f.lenL);                //   ファイルの最後に移動
+  else                                          // READ_MODE か WRITE_MODE なら
+    seekFile(f, 0, 0);                          //   ファイルの先頭に移動
+
+#ifdef DEBUG
+printF("******** %s *********\n",curEnt.name);
+if (f.isDir)
+  printF("  isDir   = DIR\n");
+else
+  printF("  isDir   = FILE\n");
+printF("  mode    = %d\n",f.mode);
+printF("  lenH    = %d\n",f.lenH);
+printF("  lenL    = %d\n",f.lenL);
+printF("  clst    = %04x\n",f.clst);
+printF("  dirClst = %04x\n",f.dirClst);
+printF("  dirEnt  = %d\n",f.dirEnt);
+printF("  posH    = %d\n",f.posH);
+printF("  posL    = %d\n",f.posL);
+printF("  posClst = %04x\n",f.posClst);
+printF("  posSct  = %d\n",f.posSct);
+/*
+halt();
+for (int j=0; j<BLKSIZ; j=j+1) {                        // ブロックサイズ分
+  if (j%16==0)  printF("\n%04x ",j);                    // 1行を 16Byte で出力
+                printF("%02x ",ord(f.fileBuf[j]));      // セクタの値出力
+  }
+  printF("\n");
+*/
+printF("***********************************************\n");
+halt();
+#endif
+
+  files[fd] = f;                                // ファイル一覧に登録
+  pcb.fds[idx] = fd;                            // FDS にファイル記述子を登録
+  return idx;                                   // FDS のインデクスを返す
+}
+
+// chkIdx : idx と fd が適切な値がチェックする
+// 返り値 : nullでない:正常な File オブジェクト、null:エラー
+File chkIdx(PCB pcb, int idx) {
+  if (idx<0 || P_FILE_MAX<idx) return null;     // 不正な IDX
+  int fd = pcb.fds[idx];                        // fd を取り出す
+  if (fd<0 || FILEMAX<fd)      return null;     // 不正な FD
+  return files[fd];                             // File オブジェクト
+}
+
+// close システムコール
+public int sysClose(int idx, PCB pcb) {
+  File f = chkIdx(pcb, idx);                    // IDX と FD が正しい値か確認
+  if (f==null) return EBADF;                    // エラー
+
+  if (f.mode!=READ_MODE) {                      // WRITE_MODE か APPEND_MODE 
+    flushBuf(f);                                //   バッファをフラッシュする
+    flushDirEnt();                              //   念のため dirCache も
+    flushFat();                                 //   念のため fatCache も
+  }
+  free(f.fileBuf);                              // ファイル用のバッファを解放
+  free(f);                                      // File オブジェクトを解放
+  files[pcb.fds[idx]] = null;                   // files のエントリを初期化
+  pcb.fds[idx] = -1;                            // FDS のエントリを初期化
+  return 0;
+}
+
+// read システムコール
+public int sysRead(PCB pcb, int idx, char[] buf, int len) {
+  File f = chkIdx(pcb, idx);                    // IDX と FD が正しい値か確認
+  if (len<0)             return EINVAL;         // 引数が不正
+  if (f==null)           return EBADF;          // エラー
+  if (f.mode!=READ_MODE) return EMODE;          // 読み込みモードでない
+  if (!f.isDir && f.clst==UNASSIGN) return 0;   // 新規ファイルは読まない
+                  // !isDir && clst==0 作成直後のファイル（新規ファイル）
+                  // !isDir && clst!=0 データ書き込み済みのファイル
+                  // isDir && clst==0 存在しない
+                  // isDir && clst!=0 通常DIRはsysMkDir()でクラスタを割付け済み
+  int i,r;
+  for(i=0; i<len; i=i+1) {
+    if ((r=getByteFile(f))<0) break;
+    buf[i] = chr(r);
+  }
+  return i;                                     // 読み込んだバイト数を返す
+}
+
+// ファイルが伸びたとき DirEnt を更新する
+void growDirEnt(File f) {
+  curEnt.dirClst = f.dirClst;                   // DIR FILE の クラスタ番号と
+  curEnt.dirEnt  = f.dirEnt;                    //   エントリ番号を指定し
+  readDirEnt(curEnt);                           // DirEnt を読む
+  curEnt.clst    = f.clst;                      // 初回割り当て時に意味を持つ
+  curEnt.lenH    = f.lenH;                      // ファイル長(H)を更新する
+  curEnt.lenL    = f.lenL;                      // ファイル長(L)を更新する
+  writeDirEnt(curEnt);                          // DirEnt を書き戻す
+}
+
+// write システムコール
+public int sysWrite(PCB pcb, int idx, char[] buf, int len) {
+  File f = chkIdx(pcb, idx);                    // IDX と FD が正しい値か確認
+  if (len<0)              return EINVAL;        // 引数が不正
+  if (f==null || f.isDir) return EBADF;         // エラー
+  if (f.mode==READ_MODE)  return EMODE;         // 読み込みモードならエラー
+
+  boolean grow = false;                         // ファイルが伸びた
+  int i;                                        // 書き込んだバイト数
+  for (i=0; i<len; i=i+1) {                     // len 回
+    int r=putByteFile(f, buf[i]);               //   1Byte ずつ書き込む
+    if (r<0) break;                             //   書き込みエラー
+    grow = grow || r==1;                        //   ファイルが伸びたか
+  }
+
+  if (grow) growDirEnt(f);                      // ファイルが伸びたなら
+                                                //   DIR エントリ を書き換える
+  if (i!=len && i==0) return ENOSPC;            // 全く書き込めなかったらエラー
+  return i;                                     // 書き込めたときは長さを返す
+}
+
+// 新しいファイル/ディレクトリを登録できるディレクトリエントリを作る
+int mkDirEnt(char[] path) {
+  int lastSla = lastIdx(path, '/');             // path 中で最後の '/' 位置
+
+  // dirName が適切かチェックする
+  if (!srchPath(path, lastSla) ||               // dirName が存在しないか
+      (curEnt.attr&0x10)==0) return EPATH;      // dirName がディレクトリでない
+
+  // baseName が適切かチェックする
+  getFname(path,lastSla+1,strLen(path),fname);  // baseName を取り出す
+  if (!validName(fname)) return ENAME;          // 使えない文字を使用している
+
+  // 階層を進み同じ名前のファイルがすでに存在していないかチェックする
+  curEnt.dirClst = curEnt.clst;                 // 次の階層の DIR FILE を設定
+  curEnt.dirEnt  = 0;                           // エントリ番号を初期化
+  if (srchDir(fname)) return EEXIST;            // 同じ名前のファイルが既にある
+
+  // ディレクトリ先頭から空きエントリを探す
+  curEnt.dirEnt  = 0;                           // 最初のエントリから始めて
+  if (!newDirEnt(curEnt)) return ENOSPC;        // 空き領域がなければエラー
+
+  // ファイルとディレクトリ共通で初期化できる部分は初期化しておく
+  // (初期化していないのは curEnt.attr と curEnt.clst だけ)
+  strCpy(curEnt.name, fname);                   // baseName をコピー
+  curEnt.lenH = 0;                              // ファイルサイズ(上位16bit)
+  curEnt.lenL = 0;                              // ファイルサイズ(下位16bit)
+
+  return 0;
+}
+
+// creat システムコール
+public int sysCreat(char[] path) {
+  int r;
+  if ((r=mkDirEnt(path))<0) return r;           // 新しいエントリをつくる
+  curEnt.attr = 0x20;                           // アーカイブ bit だけ ON
+  curEnt.clst = UNASSIGN;                       // クラスタ割当なしを表現する
+  writeDirEnt(curEnt);                          // DIR エントリを書き込む
+  flushDirEnt();                                // 念のためにフラッシュ
+  flushFat();                                   // 念のためにフラッシュ
+  return 0;
+}
+
+// mkDir システムコール
+public int sysMkDir(char[] path) {
+  // baseName の DIR エントリを書き込む
+  int r;
+  if ((r=mkDirEnt(path))<0) return r;           // 新しいエントリをつくる
+  curEnt.attr = 0x10;                           // ディレクトリを表す属性
+  if ((curEnt.clst=initDirEnt(UNASSIGN))==UNASSIGN)// クラスタを割り当てて初期化
+    return ENOSPC;                              //   領域不足 
+  writeDirEnt(curEnt);                          // DIR エントリを書き込む
+
+  // baseName のデータ領域の先頭に '.' エントリを書き込む
+  int dirNameClst = curEnt.dirClst;             // dirName の先頭クラスタ# 記憶
+  if (dirNameClst==ROOTDIR) dirNameClst=0x0000; // ROOT_DIR の本来のクラスタ#
+  curEnt.dirClst = curEnt.clst;                 // baseName に割り当てたクラスタ
+  curEnt.dirEnt  = 0;                           // データ領域の先頭
+  strCpy(curEnt.name, ".          ");           // '.'エントリ
+//curEnt.attr = 0x10;                           // ディレクトリを表す属性
+//curEnt.lenH = 0;                              // ファイルサイズ(上位16bit)
+//curEnt.lenL = 0;                              // ファイルサイズ(下位16bit)
+  writeDirEnt(curEnt);                          // DIR エントリを書き込む
+
+  // baseName のデータ領域の2エントリ目に '..' エントリを書き込む
+  curEnt.dirEnt  = 1;                           // データ領域の2エントリ目
+//strCpy(curEnt.name, "..         ");           // '..'エントリ
+  curEnt.name[1]='.';
+//curEnt.attr = 0x10;                           // ディレクトリを表す属性
+  curEnt.clst = dirNameClst;                    // dirName の先頭クラスタ#
+//curEnt.lenH = 0;                              // ファイルサイズ(上位16bit)
+//curEnt.lenL = 0;                              // ファイルサイズ(下位16bit)
+  writeDirEnt(curEnt);                          // DIR エントリを書き込む
+
+  flushDirEnt();                                // 念のためにフラッシュ
+  flushFat();                                   // 念のためにフラッシュ
+  return 0;
+}
+
+// delFile : ファイルの本体を削除する
+void delFile() {
+  delClstChain(curEnt.clst);                    // クラスタチェーンを解放する
+  curEnt.name[0] = '\xe5';                      // エントリを「削除」に変更
+  writeDirEnt(curEnt);                          // DIR エントリを書き込む 
+  flushDirEnt();                                // 念のためにフラッシュ
+  flushFat();                                   // 念のためにフラッシュ
+}
+
+// remove システムコール
+public int sysRemove(char[] path) {
+  if (!srchPath(path, strLen(path))) return EPATH; // path が見つからなかった
+  if ((curEnt.attr&0x10)!=0) return EFATTR;     // ディレクトリならエラー
+  if (isOpened(curEnt.dirClst, curEnt.dirEnt))  // ファイルがオープン
+    return EOPENED;                             //   されていたらエラー
+  delFile();                                    // ファイルの本体を削除
+  return 0;
+}
+
+// isEmpDir : ディレクトリが空になっているか調べる
+// 返り値   : true:ディレクトリが空　false:空でない
+DirEnt dir = {0 , 0, "            ", 0, 0, 0, 0};
+boolean isEmpDir() {
+  dir.dirClst = curEnt.clst;                    // baseName の先頭クラスタ#
+  dir.dirEnt  = 1;                              // baseName の2番エントリ("..")
+  for (int r=1; nextDirEnt(dir, false)&&r!=0;)  // エントリが続くなら
+    if ((r=readDirEnt(dir))==1) return false;   //   有効なエントリなら false
+  return true;
+}
+
+// rmDir システムコール
+public int sysRmDir(char[] path) {
+  if (!srchPath(path, strLen(path))) return EPATH; // path が 見つからなかった
+  if ((curEnt.attr&0x10)==0) return EFATTR;     // ディレクトリ以外ならエラー
+  if (isOpened(curEnt.dirClst, curEnt.dirEnt))  // ファイルがオープン
+    return EOPENED;                             //   されていたらエラー
+  if (!isEmpDir()) return ENOTEMP;              // ディレクトリが空でない
+  delFile();                                    // ファイルの本体を削除
+  return 0;
+}
+
+// seek システムコール
+int[] pos32 = {0, 0};                           // 一時領域
+int[] len32 = {0, 0};                           // 一時領域
+int[] one32 = {0, 1};                           // 32bit 定数の 1
+public int sysSeek(PCB pcb, int idx, int posH, int posL) {
+  File f = chkIdx(pcb, idx);                    // IDX と FD が正しい値か確認
+  if (f==null) return EBADF;                    // エラー
+
+  ld32(pos32, posH,   posL);                    // ファイルの現在位置
+  ld32(len32, f.lenH, f.lenL);                  // ファイルのサイズ
+  if (_uCmp32(pos32, len32)<=0) {               // ファイルサイズ以内の移動なら
+    seekFile(f, posH, posL);                    //   単純に移動するだけ
+  } else if (f.mode!=READ_MODE) {               // ファイルが伸びる移動なら
+    seekFile(f, f.lenH, f.lenL);                //   EOF に移動し
+    while(_uCmp32(pos32, len32)>0) {            //   目的の位置まで
+      if (putByteFile(f, '\x00')<0)             //     0x00 を書き込む
+        break;                                  //       書き込みエラー
+      _add32(len32, one32);                     //     長さを伸ばす
+    }
+    growDirEnt(f);                              //   DIR エントリを更新する
+    if (_uCmp32(pos32, len32)>0) return ENOSPC; //   書き込みエラーの場合
+  } else {
+    return EINVAL;                              // READ ではファイルは伸びない
+  }
+  return 0;
+}
+
+/*
+// DirEnt の出力
+printF("*********************\n");
+printF("dirClst=%04x\n",curEnt.dirClst);
+printF("dirEnt =%d\n",curEnt.dirEnt);
+printF("name   =%s\n",curEnt.name);
+printF("attr   =%02x\n",curEnt.attr);
+printF("clst   =%04x\n",curEnt.clst);
+printF("lenH   =%d\n",curEnt.lenH);
+printF("lenL   =%d\n",curEnt.lenL);
+printF("*********************\n");
+halt();
+*/

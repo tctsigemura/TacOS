@@ -1,0 +1,294 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2011 - 2016 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * fs/blkFile.cmm : ブロック(セクタ単位)で操作する簡単なファイルを提供する
+ *
+ * 2016.01.06 : コードレビューを反映
+ * 2015.12.01 : ファイルシステム全体を見直し
+ * 2015.09.02 : インクルードファイルの見直し(重村)
+ * 2015.08.19 : 1ワード書き込みルーチンを util.h に移植
+ * 2015.02.26 : mkDir システムコールに関する部分を除去
+ *              (ディレクトリ作成フォルダへ移動)
+ * 2015.02.09 : 二重化してある FAT 両方に書き込みを行うように変更
+ * 2014.11.25 : seek システムコールを実装、
+ *              write システムコールで現在の参照位置から書き込むように変更
+ * 2014.11.11 : write システムコールに追記、バッファリング機能を追加
+ * 2014.11.06 : BLKFILE 構造体にファイル毎のバッファとポインタを追加
+ * 2014.11.04 : mkDir システムコールを実装
+ * 2014.11.03 : write システムコールを実装
+ * 2014,10.09 : SysErrVal.h をインクルード、エラーナンバーを返却するように修正
+ * 2014.10.07 : FAT キャッシュをライトスルーで管理
+ * 2014.10.06 : remove システコールを実装
+ * 2014.10.03 : creat システムコールを実装
+ * 2014.08.27 : MM を実装したため、malloc、free を使用する方法に戻した
+ * 2014.06.04 : readSct においてbuf が必ず偶数バイトに確保されるように変更
+ * 2014.06.03 : 村田開発開始、malloc を使用しないように変更
+ * 2012.05.15 : パーティションのアクティブフラグは無視する
+ * 2011.05.23 : Boot-- をもとに新規作成
+ *
+ * $Id$
+ *
+ */
+
+// FAT ファイルシステムは EXE ファイルと違い、リトルエンディアンであることに注意
+// FAT 領域は1セクタ分キャッシュする。
+// ライトスルー方式のためキャッシュしている FAT セクタのアドレスを記録する。
+
+#include <util.h>
+#include <syscall.h>
+#include <mm.h>
+#include "fsDef.h"
+#include "mmcspi.h"
+#include "blkFile.h"
+
+#define ENDCLST      0xfff6                 // ユーザが使用できるクラスタ#の最後
+#define ROOTSCT_MAX  32                     // FAT16 の ROOT_DIR は32セクタ固定
+
+// 一時領域:プロセスとして動作するので一時領域はファイル毎に作らなくてよい
+int[] sTmp  = {0, 0};                       // セクタアドレス用
+int[] dTmp  = {0, 0};                       // データ用
+
+//----------------------------------------------------------------------------
+// BPB : ファイルシステム基本情報
+//----------------------------------------------------------------------------
+int sctPrClst;                              // 1クラスタ当たりのセクタ数
+int sctPrFAT;                               // 1FAT 当たりのセクタ数
+int[] bpbLba  = { 0, 0 };                   // BPB 領域の開始 LBA
+int[] fatLba  = { 0, 0 };                   // FAT 領域の開始 LBA
+int[] rootLba = { 0, 0 };                   // ルートディレクトリの開始 LBA
+int[] dataLba = { 0, 0 };                   // データ領域の開始 LBA
+
+// MBR を読み込み最初のアクティブな FAT パーティションの BPB を求める
+//　アクティブフラグは自分で立てない限りブート不可のまま
+void readMBR() {
+  char[] buf = malloc(BLKSIZ);              // 1セクタ分のバッファを確保
+  readSct(0,0,buf);                         // MBR を読み込む
+
+  for (int i=446; i<510; i=i+16) {          // パーティションテーブルについて
+//  int active = ord(buf[i]);               // アクティブフラグ
+    int fType  =ord(buf[i+4]);              // ファイルシステムタイプ
+
+    if(/*(active & 0x80)!=0 &&*/fType==0x06){ //アクティブなFAT16パーティション
+      ld32(bpbLba,wordLE(buf,i+10),wordLE(buf,i+8));// パーティションの開始 LBA
+      free(buf);                            // バッファを解放して
+      return;                               // 戻る
+    }
+  }
+  panic("readMBR");                         // 最後まで行くとエラー
+}
+
+// BPB から、いくつかの情報を読み取る
+void readBPB() {
+  char[] buf = malloc(BLKSIZ);              // 1セクタ分のバッファを確保
+
+  readSct(bpbLba[0], bpbLba[1], buf);       // BPB を読み込む
+  if (wordLE(buf,11) != 512)                // セクタ長は 512 バイトだけサポート
+    panic("BLKSIZ!=512");
+
+  sctPrClst = ord(buf[13]);                 // クラスタあたりのセクタ数
+
+  // FAT 開始位置(セクタ)の計算
+  ld32(fatLba, 0, wordLE(buf,14));          // fat <= 予約セクタ数
+  _add32(fatLba, bpbLba);                   // fat <= fat + bpb
+
+  // ルートディレクトリ位置(セクタ)の計算
+  sctPrFAT = wordLE(buf, 22);               // sctPrFAT <= FATあたりセクタ数
+  if (sctPrFAT == 0)                        // sctPrFAT==0 は FAT32
+    panic("FAT32?");
+
+  ld32(rootLba, 0, ord(buf[16]));           // root <= FAT数
+  _add32(_mul32(rootLba, sctPrFAT), fatLba);// root <= root * sctPtFAT + fat
+  
+  // データの開始位置(セクタ)の計算
+  ld32(dataLba, 0, wordLE(buf, 17) / 16);   // data <= ルートディレクトリサイズ
+  _add32(dataLba, rootLba);                 // data <= data + root
+
+  // 総クラスタ数をチェックする
+  /*
+  int totalSct = wordLE(buf, 19);           // 総セクタ数の格納方法は2種類
+  if (totalSct != 0)
+    ld32(dTmp, 0, totalSct);
+  else
+    ld32(dTmp, wordLE(buf, 34), wordLE(buf, 32));
+
+  _div32(dTmp, sctPrClst);                  // クラスタ数に変換
+  if (dTmp[0]<0x1000)
+    panic("FAT12?");
+  */
+  free(buf);                                // バッファを解放
+}
+
+// ファイルシステムを初期化する
+public void blkInit() {
+  initMmcSpi();                             // ドライバの初期化
+  readMBR();                                // MBR を読む
+  readBPB();                                // BPB を読む
+}
+
+//----------------------------------------------------------------------------
+// FAT : FAT を管理する
+//----------------------------------------------------------------------------
+char[] fatCache = array(BLKSIZ);            // FAT のキャッシュ領域
+int fatLbaH = -1;                           // キャッシュ中のセクタの上位 LBA
+int fatLbaL = -1;                           // キャッシュ中のセクタの下位 LBA
+boolean fatIsDirty = false;                 // キャッシュのダーティフラグ
+
+// flushFat : キャッシュの内容をメインとサブ FAT に書き込む 
+public void flushFat(){
+  if (fatIsDirty) {                         // ダーティフラグが立っていたら
+    writeSct(fatLbaH, fatLbaL, fatCache);   //   キャッシュをメイン FAT に書く
+    ld32(dTmp, fatLbaH, fatLbaL);           //   キャッシュアドレスをロード
+    ld32(sTmp, 0, sctPrFAT);                //   1FAT のセクタ数を32bit に
+    _add32(dTmp,sTmp);                      //   サブ FAT のアドレスにして
+    writeSct(dTmp[0], dTmp[1], fatCache);   //   サブ FAT に書き込む
+    fatIsDirty = false;                     //   フラグを下ろす
+  }
+}
+
+// readFat   : FAT を読み、次のクラスタ番号を返す
+// 返り値    : 次のクラスタ番号
+// 引数 clst : 現在のクラスタ番号
+int readFat(int clst) {
+  // clst が指すセクタアドレスに変換する
+  int s = (clst >> 8) & 0xff;               // クラスタ内セクタ番号
+  ld32(sTmp, 0, s);                         // セクタ番号を 32bit にする
+  _add32(sTmp, fatLba);                     // FAT の開始アドレスを加える
+
+  if(sTmp[0]!=fatLbaH || sTmp[1]!=fatLbaL){ //  キャッシュにあるものと違うなら
+    flushFat();                             //    キャッシュをフラッシュ
+    readSct(sTmp[0], sTmp[1], fatCache);    //    セクタをキャッシュに読み込む
+    fatLbaH = sTmp[0];                      //    キャッシュ中のアドレスを更新
+    fatLbaL = sTmp[1];                      //    キャッシュ中のアドレスを更新
+  }
+
+  int offs = (clst & 0xff)<<1;              // セクタ内オフセット
+  return wordLE(fatCache, offs);            // FAT から次のクラスタ番号を求める
+}
+
+// writeFat  : キャッシュに値を書き込む
+// 引数 clst : 値を書き込むクラスタ番号
+//       val : 書き込む値
+void writeFat(int clst, int val) {
+  readFat(clst);                            // キャッシュを clst が指すセクタに
+  int offs = (clst & 0xff)<<1;              // セクタ内オフセット
+  stWordLE(fatCache, offs, val);            // クラスタ番号を書き込む
+  fatIsDirty = true;                        // ダーティフラグを立てる
+}
+
+//----------------------------------------------------------------------------
+// BLKFILE : ブロック(クラスタ番号,セクタ番号で操作)を管理する
+//----------------------------------------------------------------------------
+boolean badBlk(Blk blk) {                   // blk の値は正しいかチェックする
+  return (blk.clst==UNASSIGN || _uCmp(ENDCLST, blk.clst)<0) ||
+         (blk.clst==ROOTDIR  && _uCmp(ROOTSCT_MAX, blk.sct)<=0);
+}
+
+// readBlk  : 1セクタ読み出す
+// 引数 blk : 読み込み対象の(クラスタ番号、セクタ番号) 
+//      buf : データを読み出すバッファ
+public void readBlk(Blk blk, char[] buf) {
+  if (badBlk(blk)) panic("readBlk");        // 読めない場所を読もうとしている
+  
+  if (blk.clst==ROOTDIR) {                  // ルートディレクトリ
+    ld32(dTmp, rootLba[0], rootLba[1]);     //   ルートディレクトリの先頭
+    ld32(sTmp, 0, blk.sct);                 //   ルートディレクトリ内
+    _add32(dTmp, sTmp);                     //     セクタ番号を足す
+  } else {                                  // ルートディレクトリ以外
+    ld32(dTmp, 0, blk.clst-2);              //   クラスタ番号を
+    _mul32(dTmp, sctPrClst);                //     セクタ番号に変換し
+    _add32(dTmp, dataLba);                  //       データ領域開始位置を足す
+    ld32(sTmp, 0, blk.sct);                 //   クラスタ内
+    _add32(dTmp, sTmp);                     //     セクタ番号を足す
+  }
+  readSct(dTmp[0], dTmp[1], buf);           // セクタを読み込む 
+}
+
+// writeBlk  : 1セクタ書き込む
+// 引数  blk : 読み込み対象の(クラスタ番号、セクタ番号) 
+//       buf : 書き込む内容が格納されているバッファ(512Byte)
+public void writeBlk(Blk blk, char[] buf) {
+  if (badBlk(blk)) panic("writeBlk");       // 書けない場所に書こうとしている
+
+  if (blk.clst==ROOTDIR) {                  // ルートディレクトリ
+    ld32(dTmp, rootLba[0], rootLba[1]);     //   ルートディレクトリの先頭
+    ld32(sTmp, 0, blk.sct);                 //   ルートディレクトリ内
+    _add32(dTmp, sTmp);                     //     セクタ番号を足す
+  } else {                                  // ルートディレクトリ以外
+    ld32(dTmp, 0, blk.clst-2);              //   クラスタ番号を
+    _mul32(dTmp, sctPrClst);                //     セクタ番号に変換し
+    _add32(dTmp, dataLba);                  //       データ領域開始位置を足す
+    ld32(sTmp, 0, blk.sct);                 //   クラスタ内
+    _add32(dTmp, sTmp);                     //     セクタ番号を足す
+  }
+  writeSct(dTmp[0], dTmp[1], buf);          // セクタを書き込む
+}
+
+// nextBlk  : 次のセクタを求める
+// 返り値   : true(blk を更新している)、false(EOF のため blk を更新していない)
+// 引数 blk : 読み込み対象直前の(クラスタ番号、セクタ番号) 
+public boolean nextBlk(Blk blk) {
+  int clst = blk.clst;
+  int sct  = blk.sct + 1;                   // セクタを進める
+  if (clst==ROOTDIR) {                      // ルートディレクトリの場合
+    if (sct>=ROOTSCT_MAX) return false;     //   固定長のセクタ以上なら EOF
+  } else if (sct>=sctPrClst) {              // クラスタの最後まで来たら
+    clst = readFat(clst);                   //   クラスタを進める
+    if (_uCmp(clst,ENDCLST)>0) return false; //     終端番号なら EOF
+    sct = 0;                                //   セクタ番号はリセット
+  }
+  blk.clst = clst;
+  blk.sct  = sct;
+  return true;
+}
+
+// allocClst : クラスタを割り当てる
+// 返り値    : !=0(新しいクラスタ番号)  ==0(空きクラスタ番号がない)
+// 引数 clst : 現在のクラスタチェーンの終端(UNASSIGNの場合は初回クラスタ割当)
+public int allocClst(int clst) {
+  if (clst==ROOTDIR) return UNASSIGN;       // ルートディレクトリ
+  int entPrFat = sctPrFAT * 256;            // FAT エントリ数 (=0xea00)
+
+  // FAT から空きエントリを探索し、クラスタチェーンを拡張する
+  for (int newClst=0x0002; _uCmp(newClst,entPrFat)<=0; newClst=newClst+1) {
+    if (readFat(newClst)==UNASSIGN) {       // newClst が指すエントリは空か？
+      writeFat(newClst, 0xffff);            //   空きエントリに終端番号を書く
+      if (clst!=UNASSIGN)                   //   初回割り当てでなければ
+        writeFat(clst, newClst);            //     クラスタチェーンを拡張する
+      return newClst;                       //   拡張したクラスタ番号を返す
+    } 
+  }
+  return UNASSIGN;                          // 空きエントリが見つからなかった
+}
+
+// delClstChain : クラスタチェーンを先頭からたぐり、未使用で上書きする
+// 引数 clst    : 削除するクラスタチェーンの先頭クラスタ番号
+public void delClstChain(int clst) {
+  if (clst==UNASSIGN) return;               // 未割り当てなら何もしない 
+  if (clst==ROOTDIR||_uCmp(ENDCLST,clst)<0) // ROOTDIR かユーザ領域以上を
+    panic("delClstChain");                  //   指していたらバグ
+  int lastClst = clst;
+  do {
+    int nextClst = readFat(lastClst);       //  次のクラスタを求める
+    writeFat(lastClst, UNASSIGN);           //  UNASSIGN(0x0000)で上書きする
+    lastClst = nextClst;
+  } while (_uCmp(lastClst, ENDCLST)<=0);    //  チェーンが続く間
+}

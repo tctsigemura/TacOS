@@ -1,0 +1,57 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2011 - 2016 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * fs/blkFile.h : blkFile.cmm の外部インタフェース
+ *
+ * 2016.01.19 : LdBK, StBK を ldBlk, stBlk に変更
+ * 2015.12.30 : LdBk, StBk を追加(重村)
+ * 2015.12.03 : entToBlk() を dirAccess.cmm に移植
+ * 2015.12.01 : ファイルシステム全体を見直し
+ * 2015.09.02 : インクルードファイルを見直し(重村)
+ * 2015.03.10 : P_OPENMAX を process.h から移植
+ * 2014.11.25 : seek システムコールを実装
+ * 2014.11.04 : mkdir システムコールを実装
+ * 2014.11.03 : write システムコールを実装
+ * 2014.10.06 : remove システムコールを実装
+ * 2014.10.03 : creat システムコールを実装
+ * 2014.06.03 : コピー
+ * 2011.05.23 : Boot-- をもとに新規作成
+ *
+ * $Id$
+ *
+ */
+
+struct Blk {                                // データブロックを表す構造体
+  int clst;                                 // ブロックのクラスタ番号
+  int sct;                                  // ブロックのセクタ番号
+};
+
+public void blkInit();
+public void readBlk(Blk blk, char[] buf);
+public void writeBlk(Blk blk, char[] buf);
+public boolean nextBlk(Blk blk);
+public int allocClst(int clst);
+public void delClstChain(int clst);
+public void flushFat();
+
+#define ldBlk(dst,c,s) ((dst).clst=(c),(dst).sct=(s))
+#define stBlk(c,s,src) ((c)=(src).clst,(s)=(src).sct)

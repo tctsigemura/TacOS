@@ -1,0 +1,53 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2011 - 2016 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * fs/fatSys.h : fatSys.cmm の外部インタフェース
+ *
+ * 2015.12.01 : ファイルシステム全体を見直し
+ * 2015.11.17 : chkCloseForg() を廃止、sysMkDir() と sysRmDir() を追加
+ * 2015.09.02 : コメントなどの体裁を調整(重村)
+ * 2015.04.24 : クローズ忘れファイルを探索する chkCloseForg() を追加
+ * 2015.03.10 : sysOpen() の引数に要求クライアントの pid を追加
+ * 2014.11.25 : seek システムコールを実装
+ * 2014.11.04 : mkDir システムコールを実装
+ * 2014.11.03 : write システムコールを実装
+ * 2014.10.06 : remove システムコールを実装
+ * 2014.10.03 : creat システムを実装
+ * 2014.06.03 : 村田開発開始
+ * 2011.05.28 : 一応完成
+ * 2011.05.23 : Boot-- をもとに新規作成
+ *
+ * $Id$
+ *
+ */
+
+#include <process.h>
+
+public int sysOpen(char[] path, int mode, PCB pcb);
+public int sysClose(int idx, PCB pcb);
+public int sysRead(PCB pcb, int idx, char[] buf, int len);
+public int sysWrite(PCB pcb, int idx, char[] buf, int len);
+public int sysCreat(char[] path);
+public int sysRemove(char[] path);
+public int sysSeek(PCB pcb, int idx,  int posH, int posL);
+public int sysMkDir(char[] path);
+public int sysRmDir(char[] path);

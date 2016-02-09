@@ -1,0 +1,145 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2011-2016 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * shell/shell.cmm : シェルプログラム
+ *
+ * 2016.01.13 : コマンドプログラムの生成方法を修正
+ * 2015.12.07 : コマンドプログラムを bin フォルダから探すように変更
+ * 2015.09.01 : コマンド実行後の sta の値のチェックを追加
+ * 2015.07.16 : rm コマンドと cp コマンドを実装
+ * 2015.07.01 : コマンド行引数の取得を追加
+ * 2015.06.17 : 既存の kbdMain をコピー、ユーザプロセスとして動作するように改良
+ *
+ * $Id$
+ *
+ */
+
+#include <syslib.h>
+#include <lib.h>
+
+#define LMAX 80                                         // 1行最大 80 文字
+
+// s[ptr] からの空白区切り文字列を d に取り出す
+int getStr(char[] s, int ptr, char[] d) {
+  while (s[ptr]==' ')
+    ptr = ptr + 1;
+
+  int i=0;
+  while (s[ptr]!='\0' && s[ptr]!=' ') {
+    d[i] = s[ptr];
+    i = i + 1;
+    ptr = ptr + 1;
+  }
+
+  d[i] = '\0';
+  return ptr;
+}
+
+// 文字列比較
+int strCmp(char[] s1, char[] s2) {
+   int i = 0;
+   while (s1[i]==s2[i] && s1[i]!='\0')
+     i = i + 1;
+   return ord(s1[i])-ord(s2[i]);
+}
+
+// 文字列の長さを計算する('\0' はカウントしない)
+public int strLen(char[] s) {
+  int len = 0;
+  while (s[len]!='\0')                              // 終端記号まで
+    len = len + 1;
+  return len;                                       // 長さを返す
+}
+
+// 文字列のコピー(s2 を s1 にコピーする)
+void strCpy(char[] s1, char[] s2) {
+  int i;
+  for (i=0; s2[i]!='\0'; i=i+1)
+    s1[i]=s2[i];
+  s1[i]='\0';
+}
+
+char[] tbuf = array(LMAX+1);                            // 一時領域
+
+// コマンド行引数の数を数える
+int cntArgc(char[] s) {
+  int argc = 0;                                         // 返り値
+  int i=0;
+  while (s[i]!='\0') {                                  // 終端記号が来るまで
+    i = getStr(s, i, tbuf);                             //   コマンド行引数抽出
+    argc = argc+1;                                      //   argcを加算
+  }
+  return argc;
+}
+
+// 文字列の連結(src に dst を連結する)
+void strCat(char[] src, char[] dst) {
+  int i;
+  for (i=0; src[i]!='\0'; i=i+1) ;                     // src の終端まで
+  for (int j=0; (src[i]=dst[j])!='\0'; j=j+1)          // src の続きから
+    i=i+1;                                             //   dst をコピーする
+}
+
+// メインルーチン
+char[] buf = array(LMAX+1);                             // キー入力文字列格納用
+char[][] argv;
+char[] cmd = array(17);                                 // "bin/abcdefgh.exe"
+int[]  sta = array(1);                                  // リターンコード格納用
+public int main() {
+  printf("TaC-OS Modoki Shell\n");
+  for (;;) {
+    printf("$ ");                                       // プロンプトのつもり
+    conRead(buf, LMAX+1);                               // 入力文字列を取得
+
+    // argc を計算
+    int argc = cntArgc(buf);                            // コマンド行引数の数
+    argv = malloc((argc+1) * 2);
+
+    // argv を生成
+    int p = 0;                                          // tbuf の参照位置
+    int j = 0;                                          // argv のインデックス
+    while (buf[p]!='\0') {
+      p = getStr(buf, p, tbuf);                         // argv[i] を取得
+      argv[j] = malloc(strLen(tbuf)+1);
+      strCpy(argv[j], tbuf);
+      j = j + 1;
+    }
+    argv[j] = null;
+
+    // 入力に応じたプログラムを生成する
+    if (argv[0][0]=='\n')                               // Enter だけなら
+      ;                                                 //   何もしない
+    else {
+      strCpy(cmd, "bin/");                              // コマンドのパスを生成
+      strCat(cmd, argv[0]);
+      strCat(cmd, ".exe");
+      if      (exec(cmd, argv)<0) perror(cmd);          // コマンドを生成
+      else if (wait(sta)<0)       perror(cmd);          // コマンドの終了を待つ
+    }
+
+    if (sta[0]<0) _perror(argv[0], sta[0]);             // 異常終了のエラー表示
+    for (int i=0; i<argc; i=i+1)                        // argv を解放
+      free(argv[i]);
+    free(argv);
+  }
+  return 0;
+}
