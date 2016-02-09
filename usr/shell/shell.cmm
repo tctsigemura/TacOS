@@ -105,7 +105,7 @@ char[][] argv;
 char[] cmd = array(17);                                 // "bin/abcdefgh.exe"
 int[]  sta = array(1);                                  // リターンコード格納用
 public int main() {
-  printf("TaC-OS Modoki Shell\n");
+  printf("TacOS Modoki Shell\n");
   for (;;) {
     printf("$ ");                                       // プロンプトのつもり
     conRead(buf, LMAX+1);                               // 入力文字列を取得
