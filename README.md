@@ -7,19 +7,48 @@ TacOSは徳山高専で開発した教育用のオペレーティングシステ
 
 ## 動作環境
 TacOSはTaC(Tokuyama Advanced Educational Computer)と呼ばれる実機上で動作します。
-TaCはFPGA(Xilinx Spartan-6)に組み込まれたオリジナルCPUと64kBのアドレス空間
-を持った原始的なパーソナルコンピュータです。
-VGAディスプレイ、PS/2キーボード、マイクロSDカードを接続することで
-1980年代前半の8bitパソコン程度の能力を発揮します。
+TaCはFPGA(Xilinx Spartan-6)に組み込まれた原始的なパーソナルコンピュータです。
+VGAディスプレイ、PS/2キーボード、
+マイクロSDカードを接続することで
+1980年代前半の8bitパソコン程度（？）の能力を発揮します。
+
+TaCのCPUは、49MHzで動作する、
+メモリ空間64kiBのオリジナル16bitCPUです。
+8bit版のTeCとアセンブリ言語レベルではそっくりになっているので、TeCで機械語の勉強をした人はすぐに理解することが可能です。
+
+TaCはマイクロSDカードにインストールしたTacOSをブートすることが可能です。
+
 ### TaCの入手
-TaCは[竹上電気商会](http://www.e-takegami.jp/)で販売しています。
+TaCは[竹上電気商会](http://www.e-takegami.jp/)で販売しているTeC7の16bitモードのことです。
+TeC7に
+[最新の設計データ](https://github.com/tctsigemura/TeC7)
+を書き込む必要があります。
+
 ### TaCの設計図
-VHDLで記述されたTaCの設計図（？）は、
-http://github.com/tctsigemura/TeC7 で公開しています。
+VHDLで記述されたTaCの設計図（？）は、[tctsigemura/TeC7](https://github.com/tctsigemura/TeC7)で公開しています。
 
 ## できること
-TacOSのアプリケーションプログラムはC--言語で記述します。
-アプリケーション開発環境はMacやLinuxで動作します。
-もうすぐGitHubで公開する予定です。
+### ソースコードの勉強
+TacOSのソースコードを読んで勉強することができます。
+TacOSは、
+マイクロカーネル方式の読みやすい構造を持っています。
+TacOSは、
+[C--言語](https://github.com/tctsigemura/C--)で
+記述されています。
+ビルドするとメモリマップがファイルに出力されます。
+TaCのコンソールパネルからブレークポイントを設定したり、
+ステップ実行させたりしながらOSの内部をトレースできます。
 
-作成したアプリケーションははFAT16マイクロSDカードに書き込んでTaCにセットします。
+### アプリケーションの実行
+TacOSのアプリケーションプログラムは
+[C--言語](https://github.com/tctsigemura/C--)で記述します。
+C--言語の開発環境はMacやLinuxで動作します。
+C--言語で記述したアプリケーションは、
+FAT16マイクロSDカードに書き込んでTaCで実行することができます。
+
+### アプリケーションの開発
+近い将来、
+[C--言語](https://github.com/tctsigemura/C--)の
+言語処理系がTacOSに移植される予定です。
+移植が完了したら、TaC上でTaCのアプリケーションを開発する
+ことが可能になります。
