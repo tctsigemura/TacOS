@@ -74,8 +74,8 @@ void mmInit() {                                 // プログラム起動前の�
 // メモリ管理本体
 //-----------------------------------------------------------------------------
 // メモリを割り付ける
-int mmAlloc(int s) {                            // メモリ割り当て
-  s = (s + MBSIZE + 1) & ~1;                    // 制御データ分大きい偶数に
+int mmAlloc(int siz) {                          // メモリ割り当て
+  int s = (siz + MBSIZE + 1) & ~1;              // 制御データ分大きい偶数に
   MemBlk p = memPool;                           // 直前の領域
   MemBlk m = p.next;                            // 対象となる領域
 
@@ -90,11 +90,10 @@ int mmAlloc(int s) {                            // メモリ割り当て
       return 0;                                 //   ようにする
     p.next = m.next;                            // リストから外す
   } else {                                      // 領域を分割する価値がある
-    int ss = m.size - s;                        // ss は最低でも MBSIZE より大
-    MemBlk q = _addrAdd(m, s);                  // 残り領域
-    q.next = m.next;
-    q.size = ss;
-    p.next = q;
+    MemBlk n = _addrAdd(m, s);                  // 残り領域
+    n.next = m.next;
+    n.size = m.size - s;
+    p.next = n;
     m.size = s;
   }
   m.next = MAGIC;                               // マジックナンバー格納
@@ -132,9 +131,6 @@ int mmFree(void[] mem) {                        // 領域解放
       p.size = p.size + m.size;
       p.next = m.next;
     }
-  } else if (m==null) {                         // ヒープの最後の部分
-    p.next = q;
-    q.next = null;
   } else if (ql==m) {                           // 直後の領域に隣接している
     q.size = q.size + m.size;
     q.next = m.next;
