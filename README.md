@@ -1,5 +1,6 @@
 # TacOS
-<<<<<<< HEAD
+Tokuyama advanced educational computer's Operating System
+---
 
 TacOSは徳山高専で開発した教育用のオペレーティングシステムです。
 受講者にソースコードを読んでもらうことを第１の目的にしています。
