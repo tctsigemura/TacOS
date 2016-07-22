@@ -285,7 +285,7 @@ public int printf(char[] fmt, ...) {
 }
 
 // ------------------------------- エラー処理 ------------------------------
-#define ERRMAX (-25)                            // エラー番号の最大絶対値の負数
+#define ELAST (-33)                             // エラー番号範囲
 char[][] errList = {                            // エラーメッセージリスト
   null,                                         // エラー番号 0 は存在しない
   "Invalid file name",                          // -1  ファイル名が不正
@@ -311,12 +311,20 @@ char[][] errList = {                            // エラーメッセージリ�
   "Zero division",                              // -21 ゼロ割り算
   "Privilege violation",                        // -22 特権例外
   "Illegality instruction",                     // -23 不正命令
-  "Stack overflow"                              // -24 スタックオーバーフロー
+  "Stack overflow",                             // -24 スタックオーバーフロー
+  "stdio: Bad open mode",                       // -25 モードと使用方法が矛盾
+  "stdio: Bad file pointer",                    // -26 不正な fp が使用された
+  "fgetc: EOF was ignored",                     // -27 fgetc前にEOFチェック必要
+  "fopen: EUNFILE",                             // -28 プロセス毎のオープン超過
+  "fclose: Standard i/o should not be closed",  // -29 標準 io はクローズ不可
+  "fprintf: Invalid conversion",                // -30 書式文字列に不正な変換
+  "malloc: Insufficient memory",                // -31 ヒープ領域が不足
+  "free: Bad address"                           // -32 malloc した領域ではない
 };
 
 public void _perror(char[] s, int err) {
   if (err>=0)     return;                       // 0以上なら何もしない
-  if (err<ERRMAX) {                             // err の値が不正なら
+  if (err<=ELAST) {                             // err の値が不正なら
     putstr("Invalid err\n");                    //   エラーメッセージを出力
     return;
   }
