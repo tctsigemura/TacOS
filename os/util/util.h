@@ -62,6 +62,29 @@ public void putCh(char c);
 public void putStr(char[] str);
 public void panic(char[] msg, ...);
 
+
+/*
+ * SIO 等で使用できるリングバッファと管理ルーチン
+ */
+
+// リングバッファ型
+struct RingBuf {
+  char[] buf;                             // バッファ
+  int    head, tail;                      // ポインタ
+};
+
+
+#define  BSIZE   256
+// リングバッファは空か
+#define ISEmpty(buf) ((buf).head==(buf).tail)
+// リングバッファは満か
+#define ISFull(buf) (nextIdx((buf).head)==(buf).tail)
+
+public int nextIdx(int idx);
+public int prevIdx(int idx);
+public boolean putBuf(RingBuf buf, char c);
+public char getBuf(RingBuf buf);
+
 #define isDigit(c) (ord('0')<=ord(c) && ord(c)<=ord('9'))
 #define isLower(c) (ord('a')<=ord(c) && ord(c)<=ord('z'))
 #define isUpper(c) (ord('A')<=ord(c) && ord(c)<=ord('Z'))

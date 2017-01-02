@@ -54,4 +54,4 @@ public int conRead(void[] buf, int len);
  */
 public int conWrite(void[] buf);
 
-
+public int getPS2();

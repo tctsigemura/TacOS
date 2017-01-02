@@ -22,6 +22,7 @@
 /*
  * tty/scConv.cmm : スキャンコード文字コードへのコンバータ
  *
+ * 2016.11.11 : カーソルキーのスキャンコードに対応するコードを追加修正（隅田）
  * 2015.06.04 : 村田開発開始、include を変更
  * 2012.05.15 : TeC7 用に I/O アドレスなど変更
  * 2011.05.20 : 新規作成(TaC)
@@ -49,25 +50,25 @@ char[] scTbl = {/* +0      +1      +2      +3      +4      +5      +6      +7*/
      /* 0x50 */ '\x00', '\x5f', '\x3a', '\x00', '\x40', '\x5e', '\x00', '\x00',
      /* 0x58 */ '\x00', '\x00', '\x0d', '\x5b', '\x00', '\x5d', '\x00', '\x00',
      /* 0x60 */ '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x08', '\x00',
-     /* 0x68 */ '\x00', '\x00', '\x5c', '\x00', '\x00', '\x00', '\x00', '\x00',
-     /* 0x70 */ '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x1b', '\x00',
+     /* 0x68 */ '\x00', '\x00', '\x5c', '\x82', '\x00', '\x00', '\x00', '\x00',
+     /* 0x70 */ '\x00', '\x00', '\x81', '\x00', '\x83', '\x80', '\x1b', '\x00',
      /* 0x78 */ '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00', '\x00'
 };
 
 // コンバータ
-public char scConv(char c) {
+public int scConv(char c) {
   boolean shift = (ord(c) >= 0x80);
-  char retVal = scTbl[ord(c) & 0x007f];
+  int retVal = ord(scTbl[ord(c) & 0x007f]);
   if (shift) {
-    if      (isLower(retVal)) retVal = chr(ord(retVal) - 0x20);
-    else if (isDigit(retVal)) retVal = chr(ord(retVal) - 0x10);
-    else if (ord(',')<=ord(retVal) && ord(retVal)<=ord('/'))
-      retVal = chr(ord(retVal) + 0x10);
-    else if (ord('[')<=ord(retVal) && ord(retVal)<=ord('^'))
-      retVal = chr(ord(retVal) + 0x20);
-    else if (retVal==';') retVal = '+';
-    else if (retVal==':') retVal = '*';
-    else if (retVal=='@') retVal = '`';
+    if      (isLower(chr(retVal))) retVal = retVal - 0x20;
+    else if (isDigit(chr(retVal))) retVal = retVal - 0x10;
+    else if (ord(',')<=retVal && retVal<=ord('/'))
+      retVal = retVal + 0x10;
+    else if (ord('[')<=retVal && retVal<=ord('^'))
+      retVal = retVal + 0x20;
+    else if (retVal==ord(';')) retVal = ord('+');
+    else if (retVal==ord(':')) retVal = ord('*');
+    else if (retVal==ord('@')) retVal = ord('`');
   }
   return retVal;
 }
