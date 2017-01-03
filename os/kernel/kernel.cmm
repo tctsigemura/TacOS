@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2016 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2016.10.28 : comサーバを追加
  * 2016.01.19 : 例外発生時に、ユーザモード中だったかのチェックを修正
  * 2016.01.06 : ソース、コメントの体裁を整える
  * 2015.11.17 : newProc() で FDS の登録を追加、カーネルプロセスの FDS 確保を追加
@@ -65,7 +66,7 @@
  *              getLink() 追加
  * 2014.05.26 : newProc() 変更, IPC 変更
  * 2014.05.19 : IPC に関する部分(link の生成, send(), receive())を追加
- * 2014.05.12 : process.h のインクルードを karnel.h に移動　
+ * 2014.05.12 : process.h のインクルードを karnel.h に移動
  * 2014.05.08 : malloc を使用しないように、newProc() と newSem() の改良
  * 2014.05.07 : 村田開発開始
  * 2013.03.05 : CPU レジスタの初期化で G0,G1,G2 を省略しないように変更
@@ -87,6 +88,7 @@
 #include <pm.h>
 #include <fs.h>
 #include <tty.h>
+#include <com.h>
 #include "dispatcher.h"
 #include "init.h"
 #include "trap.h"
@@ -161,7 +163,7 @@ public void freeSem(int s) {
 //   カウンタの値 > 0 : カウンタから1減らす
 //   カウンタの値 = 0 : 現在実行中のプロセスを実行可能列から外し、
 //                      待ち状態にしてセマフォの待ち行列に登録し、
-//　  　　　　             ディスパッチャを呼び出す 
+//　  　　　　             ディスパッチャを呼び出す
 public void semP(int sd) {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   if (sd<0 || SEM_MAX<=sd || !semTbl[sd].inUse)     // 不正なセマフォ番号
@@ -184,7 +186,7 @@ public void semP(int sd) {
 // (kernel 内部専用、割込み禁止で呼出す)
 boolean iSemV(int sd) {
   if (sd<0 || SEM_MAX<=sd || !semTbl[sd].inUse)     // 不正なセマフォ番号
-    panic("iSemV(%d)", sd);  
+    panic("iSemV(%d)", sd);
 
   boolean ret = false;                              // 起床するプロセスなし
   Sem s = semTbl[sd];                               // 操作するセマフォ
@@ -202,10 +204,10 @@ boolean iSemV(int sd) {
 }
 
 // セマフォの V 操作
-//   待ちプロセス無し : カウンタを1増やす    
+//   待ちプロセス無し : カウンタを1増やす
 //   待ちプロセス有り : 待ち行列からプロセスを1つ外して実行可能にした後、
 //                      ディスパッチャを呼び出す
-public void semV(int sd) {  
+public void semV(int sd) {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   if (iSemV(sd))                                    // V 操作し必要なら
     dispatch();                                     //   プロセスを切り替える
@@ -250,7 +252,7 @@ int nextPid() {
   boolean flg = true;                               // PID 重複チェック用フラグ
   int pid = lastPid;                                // PID 候補
 
-  while (flg) {                                     // 
+  while (flg) {                                     //
     pid = pid + 1;                                  // 新しい PID 候補
     if (pid<0) pid = 0;                             // Overflow したら 0 に戻す
     flg = false;                                    // 重複は無いだろう
@@ -356,7 +358,7 @@ public PCB waitChild() {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   PCB p = srchChild();                              // 子プロセスを探す
   if (p!=null && p.stat!=P_ZOMBIE) {                // 子プロセスあるが
-    curProc.evtCnt = -1;                            //   ゾンビではない 
+    curProc.evtCnt = -1;                            //   ゾンビではない
     semP(curProc.evtSem);                           //  子プロセス待ち状態
     p = srchChild();                                //  子プロセスを探す
     if (p==null || p.stat!=P_ZOMBIE)                //  ゾンビな子が居ないのに
@@ -385,7 +387,7 @@ public void zmbProc() {
   // もし親プロセスが先に wait していたら起こす
   if (curProc.parent.evtCnt == -1)                  // 親が wait していたら
     iSemV(curProc.parent.evtSem);                   //   V 操作で起こす
-  
+
   // 自身の PCB を後片付けしプロセスを終了
   freeSem(curProc.evtSem);                          // セマフォを返却し
   delProc(curProc);                                 // 実行可能列から外す
@@ -403,6 +405,7 @@ MakePCB(mmMem, P_KERN_STKSIZ);                      // MM  の PCB とスタッ�
 MakePCB(fsMem, P_KERN_STKSIZ);                      // FS  の PCB とスタック領域
 MakePCB(pmMem, P_KERN_STKSIZ);                      // PM  の PCB とスタック領域
 MakePCB(ttyMem, P_KERN_STKSIZ);                     // TTY の PCB とスタック領域
+MakePCB(comMem, P_KERN_STKSIZ);                     // COM の PCB とスタック領域
 MakePCB(initMem, P_KERN_STKSIZ);                    // INITの PCB とスタック領域
 MakePCB(idleMem, P_KERN_STKSIZ);                    // IDLEの PCB とスタック領域
 MakePCB(sentnel, 0);                                // readyQueue の番兵領域
@@ -427,9 +430,10 @@ void procInit() {
   newProc(addrof(mmMain),0,0,EI|KERN,_AtoA(mmMem),null); // MM
   newProc(addrof(fsMain),1,0,EI|KERN,_AtoA(fsMem),null); // FS
   newProc(addrof(pmMain),2,0,EI|KERN,_AtoA(pmMem),pmFds);// PM
-  newProc(addrof(ttyMain),3,0,EI|KERN,_AtoA(ttyMem),null); // TTY
+  newProc(addrof(comMain),3,0,EI|KERN,_AtoA(comMem),null); // COM
+  newProc(addrof(ttyMain),4,0,EI|KERN,_AtoA(ttyMem),null); // TTY
   initProc = _AtoA(initMem);                        // INIT の PCB を記録
-  newProc(addrof(initMain),4,0,EI|KERN,initProc,null); // INIT
+  newProc(addrof(initMain),5,0,EI|KERN,initProc,null); // INIT
   newProc(addrof(idle),P_LOW_PRI+1,0,EI|KERN,_AtoA(idleMem),null); // IDLE
 
   // 各カーネルプロセスを実行可能にする(readyQueue に登録する)
@@ -437,6 +441,7 @@ void procInit() {
   schProc(_AtoA(fsMem));                            // FS
   schProc(_AtoA(pmMem));                            // PM
   schProc(_AtoA(ttyMem));                           // TTY
+  schProc(_AtoA(comMem));                           // COM
   schProc(initProc);                                // INIT
   schProc(_AtoA(idleMem));                          // IDLE
 
@@ -446,7 +451,7 @@ void procInit() {
   printF("  %d[%d]  ->",g.pid,g.enice);
   for(PCB d=g.next; d!=g; d=d.next)
      printF("  %d[%d]  ->",d.pid,d.enice);
-  printF("\n");  
+  printF("\n");
 #endif
 }
 
@@ -630,7 +635,7 @@ public void printq() {
   printF("  %d[%d]  ->",g.pid,g.enice);
   for (PCB d=g.next; d!=g; d=d.next)
     printF("  %d[%d]  ->",d.pid,d.enice);
-  printF("\n");  
+  printF("\n");
 
   g=semTbl[linkTbl[mmLink].s1].queue;
   printF(" MM   s1:%d  ->",g.pid);

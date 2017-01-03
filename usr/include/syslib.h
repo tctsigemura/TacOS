@@ -31,7 +31,7 @@
  * 2015.07.17 : 定数を定義
  * 2015.06.03 : malloc() と free() はカーネルプロセス用のため削除
  * 2015.05.12 : 新規作成
- * 
+ *
  *$Id$
  *
  */
@@ -122,7 +122,7 @@ public int rmDir(char[] path);
  *   名前   : open
  *   戻り値 : int (ファイル番号(>=0)、-1=エラー)
  *   引数   : char[] path ファイルへのパス
- *            int mode ファイルのオープンモード(READ/WRITE/APPEND)  
+ *            int mode ファイルのオープンモード(READ/WRITE/APPEND)
  *   解説   : ファイルをオープンし、ファイル番号を返す
  */
 public int open(char[] path, int mode);
@@ -191,3 +191,10 @@ public int conRead(void[] buf, int len);
  */
 public int conWrite(void[] buf);
 
+public int comTec(int port, int value);
+
+public int putSIO(int c);
+
+public int getSIO();
+
+public int getPS2();

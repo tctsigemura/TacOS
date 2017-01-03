@@ -22,6 +22,7 @@
 /*
  * shell/shell.cmm : シェルプログラム
  *
+ * 2016.11.11 : 履歴機能の追加
  * 2016.01.13 : コマンドプログラムの生成方法を修正
  * 2015.12.07 : コマンドプログラムを bin フォルダから探すように変更
  * 2015.09.01 : コマンド実行後の sta の値のチェックを追加
@@ -91,6 +92,87 @@ int cntArgc(char[] s) {
   return argc;
 }
 
+char[] cc = array(2);
+
+void putCh(char c){
+  cc[0] = c;
+  cc[1] = '\0';
+  conWrite(cc);
+}
+
+#define BACKUPLEN 4
+char[][] bufBackup = array(BACKUPLEN, LMAX+1);                         // キー入力文字列バックアップ用
+int backupPoint = -1;
+
+// readConsole (キーボード入力された文字列をユーザ領域に渡す)
+int readConsole(char[] buf, int len) {
+  int ch = 0;
+  int kbdCnt = 0;                                       // buf のインデクス
+  len = len - 1;                                        // '\0' の格納領域を確保
+  for (;;) {
+    while( (ch=getPS2())==0 )                             // 1文字入力
+      ;
+    if (ch==0x80) {
+      if(backupPoint<BACKUPLEN-1 && strLen(bufBackup[backupPoint+1])>0){
+        backupPoint = backupPoint+1;
+        for(int i=0;i<kbdCnt;i=i+1){
+          putCh('\x08');                                    //   カーソル位置を左に
+          putCh(' ');                                       //   空白を出力
+          putCh('\x08');                                    //   カーソル位置を左に
+        }
+        strCpy(buf, bufBackup[backupPoint]);
+        kbdCnt = strLen(buf);
+        for(int i=0;i<kbdCnt;i=i+1)
+          putCh(buf[i]);
+        }
+    }else if(ch==0x81){
+      if(backupPoint>0){
+        backupPoint = backupPoint-1;
+        for(int i=0;i<kbdCnt;i=i+1){
+          putCh('\x08');                                    //   カーソル位置を左に
+          putCh(' ');                                       //   空白を出力
+          putCh('\x08');                                    //   カーソル位置を左に
+        }
+        strCpy(buf, bufBackup[backupPoint]);
+        kbdCnt = strLen(buf);
+        for(int i=0;i<kbdCnt;i=i+1)
+          putCh(buf[i]);
+        }else{
+          for(int i=0;i<kbdCnt;i=i+1){
+          putCh('\x08');                                    //   カーソル位置を左に
+          putCh(' ');                                       //   空白を出力
+          putCh('\x08');                                    //   カーソル位置を左に
+        }
+        buf[0] = '\0';
+        kbdCnt = 0;
+        }
+    }else{
+      char c = chr(ch);
+      if (kbdCnt>=len || c=='\r' || c=='\n') {            // 指定長以上か改行なら
+        buf[kbdCnt] = '\0';
+        putCh('\n');
+        if(strLen(buf)>0){
+          backupPoint=-1;
+          for(int i=BACKUPLEN-1; i>0; i=i-1)
+            strCpy(bufBackup[i], bufBackup[i-1]);
+          strCpy(bufBackup[0], buf);
+        }
+        break;
+      } else if (0x20<=ord(c) && ord(c)<=0x7e && kbdCnt<len) { // 表示可能な文字
+        buf[kbdCnt] = c;
+        putCh(c);
+        kbdCnt = kbdCnt + 1;
+      } else if (c=='\x08'&& kbdCnt>0) {                  // バックスペースなら
+        putCh('\x08');                                    //   カーソル位置を左に
+        putCh(' ');                                       //   空白を出力
+        putCh('\x08');                                    //   カーソル位置を左に
+        kbdCnt = kbdCnt - 1;
+      }
+    }
+  }
+  return kbdCnt;
+}
+
 // 文字列の連結(src に dst を連結する)
 void strCat(char[] src, char[] dst) {
   int i;
@@ -106,9 +188,12 @@ char[] cmd = array(17);                                 // "bin/abcdefgh.exe"
 int[]  sta = array(1);                                  // リターンコード格納用
 public int main() {
   printf("TacOS Modoki Shell\n");
+  buf[0]='\0';
+  for(int i=0;i<BACKUPLEN;i=i+1)
+    bufBackup[i][0]='\0';
   for (;;) {
     printf("$ ");                                       // プロンプトのつもり
-    conRead(buf, LMAX+1);                               // 入力文字列を取得
+    readConsole(buf, LMAX+1);                           // 入力文字列を取得
 
     // argc を計算
     int argc = cntArgc(buf);                            // コマンド行引数の数
@@ -128,6 +213,8 @@ public int main() {
     // 入力に応じたプログラムを生成する
     if (argv[0][0]=='\n')                               // Enter だけなら
       ;                                                 //   何もしない
+    else if(strLen(argv[0])>8)
+      conWrite("Command name is too long.\n");
     else {
       strCpy(cmd, "bin/");                              // コマンドのパスを生成
       strCat(cmd, argv[0]);

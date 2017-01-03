@@ -22,6 +22,7 @@
 /*
  * pm/pm.cmm : プロセスマネージャ(PM)の本体、プロセスの生成と管理を行う
  *
+ * 2016.10.07 : マジックナンバーによってプロセスの実行モードを変更できるように修正（隅田）
  * 2016.01.12 : copyArgs() の argc を廃止
  * 2016.01.02 : sleep システムコールを追加
  * 2015.12.01 : readTextData() を修正
@@ -42,7 +43,7 @@
  *              ヘッダから取得するように変更
  * 2015.05.27 : IPC のセマフォ使用化による変更
  *              (ランデブ内クライアント PCB 取得、exit ルーチン）
- * 2015.05.22 : exit と wait を修正(すぐに結果を返し、wait ルーチンを繰り返す) 
+ * 2015.05.22 : exit と wait を修正(すぐに結果を返し、wait ルーチンを繰り返す)
  * 2015.05.08 : システムコールの種類を示す #define を syscall.h に移植
  * 2015.04.30 : wait システムコールを実装
  * 2015.04.27 : exit システムコールを実装
@@ -123,6 +124,7 @@ void closeByte() {
 //   EXE ファイルは FAT ファイルシステムと違い、ビッグエンディアンである
 
 // EXE ファイルのヘッダから読みだしたデータ
+int magic;                                          // マジック番号
 int textSiz;                                        // TEXT セグメントサイズ
 int dataSiz;                                        // DATA セグメントサイズ
 int bssSiz;                                         // BSS  セグメントサイズ
@@ -131,8 +133,9 @@ int stkSiz;                                         // ユーザスタックサ�
 
 // EXE ファイルのヘッダから上記のデータを読み出す
 int readHeader() {
-  int magic   = getWord();                          // マジック番号
-  if (magic != MAGIC) return EMAGIC;                // マジック番号が不正
+  magic       = getWord();                          // マジック番号
+  if (magic != USERMAGIC && magic != KERNMAGIC)     // マジック番号が不正
+    return EMAGIC;
   textSiz     = getWord();                          // TEXT セグメントサイズ
   dataSiz     = getWord();                          // DATA セグメントサイズ
   bssSiz      = getWord();                          // BSS  セグメントサイズ
@@ -236,7 +239,7 @@ halt();
 
   if ((r=readTextData())==0)                       // テキストとデータを読み
     r=relocate();                                  //   再配置する
-  closeByte();                                     // ファイルをクローズ   
+  closeByte();                                     // ファイルをクローズ
 
   if (r!=0) {                                      // エラーが発生していれば
     free(_ItoA(text));                             //   メモリを解放する
@@ -260,13 +263,16 @@ halt();
   }
   int[] fds = _ItoA(_AtoI(pcb)+sizeof(PCB)+P_KERN_STKSIZ);
 
-  newProc(text, p.enice, usp, EI|USER, pcb, fds);  // PCB 等初期化
-  pcb.memBase = _ItoA(text);                       // メモリ空間アドレス
-  pcb.memLen  = end - text;                        // メモリ空間サイズ
-  pcb.parent  = p;                                 // 親プロセスを設定
-  schProc(pcb);                                    // プロセスを実行可能に
-  return pcb.pid;                                  // PID を返す
-} 
+  if(magic == USERMAGIC)
+    newProc(text, p.enice, usp, EI|USER, pcb, fds);  // USERモードとしてPCB 等初期化
+  else
+    newProc(text, p.enice, usp, EI|KERN, pcb, fds);  // KERNモードとしてPCB 等初期化
+  pcb.memBase = _ItoA(text);                         // メモリ空間アドレス
+  pcb.memLen  = end - text;                          // メモリ空間サイズ
+  pcb.parent  = p;                                   // 親プロセスを設定
+  schProc(pcb);                                      // プロセスを実行可能に
+  return pcb.pid;                                    // PID を返す
+}
 
 //-----------------------------------------------------------------------------
 // プロセスマネージャーの本体(ここで各システムコールを実行する)
@@ -274,7 +280,7 @@ halt();
 
 int pmSysCall(int op, int prm1, int prm2, int prm3, PCB client) {
   int r = -1;
-  if (op==EXEC) { 
+  if (op==EXEC) {
     r = sysExec(_ItoA(prm1), _ItoA(prm2), client);  // exec(path,argv,parent)
   } else
     r = -1;                                         // どれでもなければエラー

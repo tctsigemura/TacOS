@@ -26,7 +26,7 @@
 MAKEFLAGS=--no-print-directory
 
 # サブディレクトリ
-SUBDIRS:=lib cat dump ls shell touch rm mkdir rmdir
+SUBDIRS:=cat clear cp dump ls mkdir mv rm rmdir shell tac tec teditor terminal touch tsend7 twrite7
 
 all :
 	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir); )
