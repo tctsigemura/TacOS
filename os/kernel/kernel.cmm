@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2017.01.11 : サーバ名を変更（comサーバ -> sioサーバ）
  * 2016.10.28 : comサーバを追加
  * 2016.01.19 : 例外発生時に、ユーザモード中だったかのチェックを修正
  * 2016.01.06 : ソース、コメントの体裁を整える
@@ -88,7 +89,7 @@
 #include <pm.h>
 #include <fs.h>
 #include <tty.h>
-#include <com.h>
+#include <sio.h>
 #include "dispatcher.h"
 #include "init.h"
 #include "trap.h"
@@ -405,7 +406,7 @@ MakePCB(mmMem, P_KERN_STKSIZ);                      // MM  の PCB とスタッ�
 MakePCB(fsMem, P_KERN_STKSIZ);                      // FS  の PCB とスタック領域
 MakePCB(pmMem, P_KERN_STKSIZ);                      // PM  の PCB とスタック領域
 MakePCB(ttyMem, P_KERN_STKSIZ);                     // TTY の PCB とスタック領域
-MakePCB(comMem, P_KERN_STKSIZ);                     // COM の PCB とスタック領域
+MakePCB(sioMem, P_KERN_STKSIZ);                     // SIO の PCB とスタック領域
 MakePCB(initMem, P_KERN_STKSIZ);                    // INITの PCB とスタック領域
 MakePCB(idleMem, P_KERN_STKSIZ);                    // IDLEの PCB とスタック領域
 MakePCB(sentnel, 0);                                // readyQueue の番兵領域
@@ -430,7 +431,7 @@ void procInit() {
   newProc(addrof(mmMain),0,0,EI|KERN,_AtoA(mmMem),null); // MM
   newProc(addrof(fsMain),1,0,EI|KERN,_AtoA(fsMem),null); // FS
   newProc(addrof(pmMain),2,0,EI|KERN,_AtoA(pmMem),pmFds);// PM
-  newProc(addrof(comMain),3,0,EI|KERN,_AtoA(comMem),null); // COM
+  newProc(addrof(sioMain),3,0,EI|KERN,_AtoA(sioMem),null); // SIO
   newProc(addrof(ttyMain),4,0,EI|KERN,_AtoA(ttyMem),null); // TTY
   initProc = _AtoA(initMem);                        // INIT の PCB を記録
   newProc(addrof(initMain),5,0,EI|KERN,initProc,null); // INIT
@@ -441,7 +442,7 @@ void procInit() {
   schProc(_AtoA(fsMem));                            // FS
   schProc(_AtoA(pmMem));                            // PM
   schProc(_AtoA(ttyMem));                           // TTY
-  schProc(_AtoA(comMem));                           // COM
+  schProc(_AtoA(sioMem));                           // SIO
   schProc(initProc);                                // INIT
   schProc(_AtoA(idleMem));                          // IDLE
 

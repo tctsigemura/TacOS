@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,8 @@
 /*
  *　kernel/syscall.h : システムコールに関するデータを含むファイル
  *
+ * 2017.01.11 : COMTEC を削除
+ * 2016.10.28 : COMTEC，PUTSIO，GETSIO，GETPS2 を追加
  * 2016.01.12 : E2BIG を削除
  * 2016.01.11 : システムコール番号の順番を変更(malloc と free を最後に)
  * 2016.01.02 : SLEEP を追加
@@ -51,7 +53,7 @@
  *
  */
 
-// kernel.cmm fatSys.cmm blkFile.cmm pm.cmm mem.cmm tty.cmm com.cmm でインクルード
+// kernel.cmm fatSys.cmm blkFile.cmm pm.cmm mem.cmm tty.cmm sio.cmm でインクルード
 
 #ifndef _syscall_h
 #define _syscall_h
@@ -72,12 +74,11 @@
 #define SEEK            12
 #define CONREAD         13
 #define CONWRITE        14
-#define COMTEC          15
-#define PUTSIO          16
-#define GETSIO          17
-#define GETPS2          18
-#define MALLOC          19
-#define FREE            20
+#define PUTSIO          15
+#define GETSIO          16
+#define GETPS2          17
+#define MALLOC          18
+#define FREE            19
 
 // システムコールのエラー番号
 #define ENAME           (-1)      // ファイル名が不正

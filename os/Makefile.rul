@@ -31,7 +31,7 @@ CMFLAGS+=-K
 # プリプロセッサ
 # -Iオプション: インクルードの探索先(各サブディレクトリからの相対パス)
 CPP=cc -E -std=c99 -nostdinc ${CPFLAGS} \
-        -I../util -I../kernel -I../fs -I../tty -I../com -I../mm -I../pm - <
+        -I../util -I../kernel -I../fs -I../tty -I../sio -I../mm -I../pm - <
 
 # make するソースのサフィックス（拡張子） の一覧
 .SUFFIXES: .o .cmm .s

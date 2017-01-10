@@ -2,7 +2,7 @@
 ;  TacOS Source Code
 ;     Tokuyama kousen Advanced educational Computer.
 ;
-;  Copyright (C) 2011 - 2016 by
+;  Copyright (C) 2011 - 2017 by
 ;                       Dept. of Computer Science and Electronic Engineering,
 ;                       Tokuyama College of Technology, JAPAN
 ;
@@ -20,6 +20,7 @@
 ;
 ; kernel/trap.s : SVC ハンドラ(トラップ)
 ;
+; 2017.01.11 : comTec システムコールを削除
 ; 2016.10.28 : comTec, putSIO, getSIO, getPS2 システムコールを追加
 ; 2016.01.11 : システムコール番号のエラーチェックを変更
 ; 2016.01.06 : .sysNumErr を修正
@@ -59,14 +60,13 @@
 ;12     seek
 ;13     conRead
 ;14     conWrite
-;15     comTec
-;16     putSIO
-;17     getSIO
-;18     getPS2
-;19     malloc
-;20     free
+;15     putSIO
+;16     getSIO
+;17     getPS2
+;18     malloc
+;19     free
 
-.nSys   equ     19          ; システムコール数を定義
+.nSys   equ     18          ; システムコール数を定義
 
 ; .sysTbl ラベルは dw と同じ行に書くこと(同じセグメントのラベルにするため)
 .sysTbl dw      _exec       ; 0  exec
@@ -84,11 +84,10 @@
         dw      _seek       ; 12 seek
         dw      _conRead    ; 13 conRead
         dw      _conWrite   ; 14 conWrite
-        dw      _comTec     ; 15 comTec
-        dw      _putSIO     ; 16 putSIO
-        dw      _getSIO     ; 17 getSIO
-        dw      _getPS2     ; 18 getPS2
-; MM の malloc(#19)と free(#20)は OS 内部専用システムコールなので SVC で扱わない
+        dw      _putSIO     ; 15 putSIO
+        dw      _getSIO     ; 16 getSIO
+        dw      _getPS2     ; 17 getPS2
+; MM の malloc(#18)と free(#19)は OS 内部専用システムコールなので SVC で扱わない
 
 ; ---------------------------- SVC ハンドラ(トラップ) -------------------------
 ; システムコール番号でインデックスされたシステムコールテーブル(sysTbl)から、

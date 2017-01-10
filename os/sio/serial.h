@@ -20,7 +20,7 @@
  */
 
 /*
- * com/serial.h : serial.cmm の外部インタフェース
+ * sio/sserial.h : serial.cmm の外部インタフェース
  *
  * 2016.11.03 : 新規作成
  *

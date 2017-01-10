@@ -20,7 +20,7 @@
  */
 
 /*
- * com/com.cmm : シリアルサーバの本体、シリアル入力の受付とシリアル出力をする
+ * sio/sio.cmm : シリアルサーバの本体、シリアル入力の受付とシリアル出力をする
  *
  * 2016.10.28 : 新規作成
  *
@@ -31,18 +31,8 @@
 #include <util.h>
 #include <kernel.h>
 #include <syscall.h>
-#include "com.h"
+#include "sio.h"
 #include "serial.h"
-
-// -------------------------- comTec システムコール --------------------------
-
-// comTec システムコールの本体 (TeCとの通信の行う)
-int sysComTec(int port, int value) {
-  if(!(port>=0x28 && port<=0x2d)) return -1; // I/Oポートサクセス禁止エリア
-  if(value<0 || value>0xff) return -2; // 値がおかしい
-  out(port,value);
-  return 0;
-}
 
 // -------------------------- putSIO システムコール --------------------------
 
@@ -62,10 +52,8 @@ int sysGetSIO() {
 // ----------------------------- 要求待ち受け部 -------------------------------
 
 // 端末サーバの本体(ここで各システムコールを実行する)
-int comSysCall(int op, int prm1, int prm2) {
-  if (op==COMTEC) {
-    op = sysComTec(prm1, prm2);                          // comTec(port, value)
-  }else if (op==PUTSIO) {
+int sioSysCall(int op, int prm1, int prm2) {
+  if (op==PUTSIO) {
     op = sysPutSIO(prm1);                                // putSIO(c)
   }else if (op==GETSIO) {
     op = sysGetSIO();                                    // getSIO(c)
@@ -74,13 +62,13 @@ int comSysCall(int op, int prm1, int prm2) {
 }
 
 // クライアントとランデブする
-public void comMain() {
+public void sioMain() {
   serialInit();
-  comLink = newLink();                                  // リンクを生成する
+  sioLink = newLink();                                  // リンクを生成する
   while (true) {                                        // システムコールを待つ
-    Link l = receive(comLink);                          // システムコールを受信
-    int r = comSysCall(l.op, l.prm1, l.prm2);           // システムコールを指示
-    send(comLink, r);                                   // 結果を返す
+    Link l = receive(sioLink);                          // システムコールを受信
+    int r = sioSysCall(l.op, l.prm1, l.prm2);           // システムコールを指示
+    send(sioLink, r);                                   // 結果を返す
   }
 }
 
@@ -88,20 +76,15 @@ public void comMain() {
 // システムコールインターフェイス
 //   クライアントプロセスが以下のルーチンを呼出しサーバと IPC する
 //----------------------------------------------------------------------------
-// comTec システムコール
-public int comTec(int port, int value) {
-  int r = sndrec(comLink, COMTEC, port, value, 0);
-  return r;
-}
 
 // putSIO システムコール
 public int putSIO(int c){
-  int r = sndrec(comLink, PUTSIO, c, 0, 0);
+  int r = sndrec(sioLink, PUTSIO, c, 0, 0);
   return r;
 }
 
 // getSIO システムコール
 public int getSIO(){
-  int r = sndrec(comLink, GETSIO, 0, 0, 0);
+  int r = sndrec(sioLink, GETSIO, 0, 0, 0);
   return r;
 }

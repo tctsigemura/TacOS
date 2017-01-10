@@ -17,12 +17,12 @@
 # る損害に関しても，その責任を負わない．
 #
 #
-# com/Makefile : com の Makefile
+# sio/Makefile : sio の Makefile
 #
 # 2016.10.28         : 初期バージョン
 #
 # $Id$
 #
-OBJS=com.o serial.o
+OBJS=sio.o serial.o
 
 include ../Makefile.rul

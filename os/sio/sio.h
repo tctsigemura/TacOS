@@ -20,17 +20,16 @@
  */
 
 /*
- * com/com.h : com.cmm の外部インタフェース
+ * sio/sio.h : sio.cmm の外部インタフェース
  *
  * 2016.10.28 新規作成
  *
  * $Id$
  */
 
-public int comLink;                                 // 端末サーバへのリンク番号
+public int sioLink;                                 // 端末サーバへのリンク番号
 
-public void comMain();                              // 待ち受けルーチン
+public void sioMain();                              // 待ち受けルーチン
 
-public int comTec(int port, int value);             // TeCとの通信を行う
 public int putSIO(int c);                           // シリアル出力ルーチン
 public int getSIO();                                // シリアル入力ルーチン

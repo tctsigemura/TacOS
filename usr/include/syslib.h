@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * include/syslib.h : lib/syslib.s の外部インタフェース
  *
+ * 2017.01.11 : comTec システムコールを削除
  * 2016.10.28 : comTec，putSIO，getSIO，getPS2 システムコールを追加
  * 2016.01.05 : errno を追加
  * 2016.01.02 : sleep システムコールを追加
@@ -191,8 +192,6 @@ public int conRead(void[] buf, int len);
  *   解説   : 文字列をディスプレイに出力する
  */
 public int conWrite(void[] buf);
-
-public int comTec(int port, int value);
 
 /*----------------------------------------------------------------------------
  *   名前   : putSIO
