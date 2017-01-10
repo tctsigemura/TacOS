@@ -25,7 +25,7 @@
 # $Id$
 #
 
-Mode=USER
+Mode=IOPR
 
 # プリプロセッサ
 CPP=cc -E -std=c99 -nostdinc ${CPFLAGS} -I../include - <
@@ -34,11 +34,9 @@ CPP=cc -E -std=c99 -nostdinc ${CPFLAGS} -I../include - <
 LIB=../lib/library.o
 
 # モード
-ifeq (${Mode},KERN)
-  cmmMode=-K
-  exeMode=KERN
+ifeq (${Mode},IOPR)
+  exeMode=IOPR
 else
-  cmmMode=
   exeMode=USER
 endif
 
@@ -51,7 +49,7 @@ endif
 
 # .cmm -> .s
 .cmm.s:
-	${CPP} $*.cmm| c-- ${cmmMode} > $*.s
+	${CPP} $*.cmm| c-- > $*.s
 
 # 必要ならライブラリを作る
 ${LIB} :

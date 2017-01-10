@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2016 by
+ * Copyright (C) 2016 - 2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * terminal/terminal.cmm : シリアル端末プログラム
  *
+ * 2017.01.11 : comTeCシステムコールを廃止、IO特権モード用のプログラムに修正
  * 2016.12.28 : 標準ライブラリ用のプログラムに変換
  * 2016.10.04 : 新規開発
  *
@@ -29,12 +30,13 @@
  *
  */
 
-#include <stdio.hmm>
-#include <syslib.hmm>
+#include <syslib.h>
+#include <io.h>
+#include <lib.h>
 
 char[] c = array(2);
 public int main(int argc, char[][] argv){
-  comTec(0x2c,0x0006);
+  out(0x2c,0x0006);
   conWrite("Console:TeC\n");
   c[1] = '\0';
   for(;;){
@@ -46,7 +48,7 @@ public int main(int argc, char[][] argv){
       int k = getPS2();
       if(k == 0x1b){ // Escキー
         conWrite("\n");
-        comTec(0x2c,0x0004);
+        out(0x2c,0x0004);
         break;
       }
       if (k != 0x00){

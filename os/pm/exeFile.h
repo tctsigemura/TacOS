@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * pm/exeFile.h : 実行ファイルフォーマットに関するデータを含むファイル
  *
+ * 2016.01.11 : マジックナンバーの種類を変更（KERNMAGIC 廃止，IOPRMAGIC 追加）
  * 2016.10.07 : 実行ファイル（EXE ファイル）のマジックナンバーの種類を追加
  * 2015.09.08 : ファイルフォーマットに関するコメント追加
  * 2015.08.20 : 新規作成
@@ -31,7 +32,7 @@
  */
 
 #define USERMAGIC  0x0108
-#define KERNMAGIC  0x0109
+#define IOPRMAGIC  0x0109
 #define HDRSIZ  12
 
 /* 実行ファイル(EXE ファイル)のヘッダを構造体で表現すると

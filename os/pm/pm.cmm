@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * pm/pm.cmm : プロセスマネージャ(PM)の本体、プロセスの生成と管理を行う
  *
+ * 2016.01.11 : マジックナンバーの種類を変更（KERNMAGIC 廃止，IOPRMAGIC 追加）
  * 2016.10.07 : マジックナンバーによってプロセスの実行モードを変更できるように修正
  * 2016.01.12 : copyArgs() の argc を廃止
  * 2016.01.02 : sleep システムコールを追加
@@ -134,7 +135,7 @@ int stkSiz;                                         // ユーザスタックサ�
 // EXE ファイルのヘッダから上記のデータを読み出す
 int readHeader() {
   magic       = getWord();                          // マジック番号
-  if (magic != USERMAGIC && magic != KERNMAGIC)     // マジック番号が不正
+  if (magic != USERMAGIC && magic != IOPRMAGIC)     // マジック番号が不正
     return EMAGIC;
   textSiz     = getWord();                          // TEXT セグメントサイズ
   dataSiz     = getWord();                          // DATA セグメントサイズ
@@ -266,7 +267,7 @@ halt();
   if(magic == USERMAGIC)
     newProc(text, p.enice, usp, EI|USER, pcb, fds);  // USERモードとしてPCB 等初期化
   else
-    newProc(text, p.enice, usp, EI|KERN, pcb, fds);  // KERNモードとしてPCB 等初期化
+    newProc(text, p.enice, usp, EI|IOPR, pcb, fds);  // IO特権モードとしてPCB 等初期化
   pcb.memBase = _ItoA(text);                         // メモリ空間アドレス
   pcb.memLen  = end - text;                          // メモリ空間サイズ
   pcb.parent  = p;                                   // 親プロセスを設定

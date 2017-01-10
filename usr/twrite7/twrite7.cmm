@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2016 by
+ * Copyright (C) 2016 -2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * twrite7/twrite7.cmm : twrite7 プログラム
  *
+ * 2017.01.11 : comTeCシステムコールを廃止、IO特権モード用のプログラムに修正
  * 2016.12.28 : 標準ライブラリ用のプログラムに変換
  * 2016.10.04 : 新規開発
  *
@@ -29,12 +30,18 @@
  *
  */
 
-#include <stdio.hmm>
-#include <errno.hmm>
-#include <ctype.hmm>
-#include <syslib.hmm>
+#include <syslib.h>
+#include <io.h>
+#include <lib.h>
 
 int[] mc = array(0xdc+1);
+char[] c = array(1);
+
+char toUpper(char c) {
+  if (ord('a')<=ord(c) && ord(c)<=ord('f'))
+    c = chr( ord(c) - 0x20 );
+  return c;
+}
 
 int htoi(char c) {
   int h = 0;
@@ -45,40 +52,42 @@ int htoi(char c) {
     h = ord(c)-ord('0');
   }else{
     printf("Value error : \"%s\"\n", c);
-    _exit(1);
+    exit(1);
   }
   return h;
 }
 
 void gethex(char[] file){
-  FILE fp = fopen(file, "r");
-  if(fp==null) _exit(errno); // エラー表示をシェルに任せる
+  int fp = open(file, READ);
+  if(fp==-2) {
+    printf("No such file : %s\n", file);
+    exit(1);
+  }
   int i = 0, cnt = 0;
-  while(!feof(fp)){
-    char c = fgetc(fp);
-    if(c!='\n' && c!='\r' && c!=' ' && c!=chr(0x09)){  // 改行,スペース,tabでなければ
+  while(read(fp,c,1)>0){  // エラーもしくはEOFなら読み取り終了
+    if(c[0]!='\n' && c[0]!='\r' && c[0]!=' ' && c[0]!=chr(0x09)){  // 改行,スペース,tabでなければ
       if(i>=0xdc){
         printf("TeC : No enough memory\n");
-        _exit(1);
+        exit(1);
       }
       if(cnt>=4){
-        mc[i] = mc[i]*16 + htoi(c);
+        mc[i] = mc[i]*16 + htoi(c[0]);
         if(cnt%2!=0) i  = i+1;
       }
       cnt = cnt+1;
     }
   }
   mc[i] = 0xffff;
-  fclose(fp);
+  close(fp);
 }
 
 void output(int p, int v){
-  comTec(p,v);
+  out(p,v);
   sleep(25);
 }
 
 void tecInit(){
-  comTec(0x2c,0x000c);
+  out(0x2c,0x000c);
   output(0x2a,0x0080);
   output(0x2a,0x0000);
   for(int i=0;i<6;i=i+1){
@@ -105,6 +114,6 @@ public int main(int argc, char[][] argv){
   printf("Console:TeC\n");
   tecInit();
   twrite();
-  comTec(0x2c,0x0004);
+  out(0x2c,0x0004);
   return 0;
 }

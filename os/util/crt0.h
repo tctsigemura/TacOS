@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer
  *
- * Copyright (C) 2008-2016 by
+ * Copyright (C) 2008-2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * util/crt0.h :crt0.s の外部インターフェイス
  *
+ * 2017.01.11 : IO特権モードを追加
  * 2016.01.20 : _fp() を追加
  * 2016.01.19 : Ld32 と St32 を ld32 と st32 に変更
  * 2015.12.30 : St32 追加(重村)
@@ -39,6 +40,7 @@
 #define EI   0x0080                                 // 割込み許可
 #define DI   0x0000                                 // 割込み不許可
 #define KERN 0x0040                                 // カーネルモード
+#define IOPR 0x0020                                 // IO特権モード
 #define USER 0x0000                                 // ユーザモード
 public int setPri(int l);                           // フラグ値の変更
 public int in(int p);                               // ポートから入力
