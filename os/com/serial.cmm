@@ -1,0 +1,121 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2016 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * com/serial.cmm : シリアルドライバ
+ *
+ * 2016.11.03 : 新規作成
+ *
+ * $Id$
+ *
+ */
+
+#include <util.h>
+#include <kernel.h>
+#include <pm.h>
+#include "serial.h"
+
+#define SIO_Data 0x08
+#define SIO_Ctrl 0x0a
+
+RingBuf rcvBuf = { null, 0, 0 };          // リングバッファインスタンス
+RingBuf trsBuf = { null, 0, 0 };
+
+/*
+ *  SIO ハードウエア制御
+ */
+
+// 送信関係
+boolean trsIdle;                          // トランスミッタがアイドル状態
+
+// SIO 送信割込み処理ルーチン
+interrupt sioTrs() {
+  if (ISEmpty(trsBuf)) {                  // 送信すべきデータがないなら
+    out(SIO_Ctrl,0x0040);                   // 送信割込み禁止
+    trsIdle = true;
+  } else {                                // そうでなければ
+    int c = ord(getBuf(trsBuf));          // 送信バッファから一文字取り出す
+    out(SIO_Data,c);                        // データを送信
+  }
+}
+
+// SIO へ１文字出力
+void putSio(char c) {
+  setPri(KERN|DI);                        // 割込み禁止状態で
+  if (trsIdle) {                          // 送信中でなければ
+    out(SIO_Ctrl,0x00c0);                   // 割込みを許可し
+    out(SIO_Data,ord(c));                   // 送信を始める
+    trsIdle = false;
+  } else {
+    putBuf(trsBuf, c);                    // 送信バッファに１文字追加
+  }
+  setPri(KERN|EI);
+}
+
+// 受信関係
+
+// SIO から入力された文字をバッファに格納する
+void rcvData(char c) {
+  if (0x0020<=ord(c) && ord(c)<=0x007e) { // 印刷可能な ASCII 文字なら
+    putBuf(rcvBuf, c);                 // バッファへ転記
+    return;
+  }
+
+  if (c=='\10') {                         // BS
+    if(!ISEmpty(rcvBuf)) {                // 受信バッファにデータがあれば
+      rcvBuf.head = prevIdx(rcvBuf.head); // バッファから１文字取り消し
+    }
+    return;
+  }
+
+  if (c=='\r') {                          // Enter
+    putBuf(rcvBuf, '\0');                  // バッファの文字列完成
+    return;
+  }
+}
+
+// SIO 受信割込み処理ルーチン
+interrupt sioRcv()  {
+  char c = chr(in(SIO_Data));  // 受信データを入力する
+  rcvData(c);
+}
+
+char[] _buf1 = array(BSIZE);
+char[] _buf2 = array(BSIZE);
+public void serialInit() {
+  int[] vect = _ItoA(0xffe0);
+  vect[4] = addrof(sioRcv);  // 割込みベクタ初期化
+  vect[5] = addrof(sioTrs);  // 割込みベクタ初期化
+  rcvBuf.buf = _buf1;
+  trsBuf.buf = _buf2;
+  in(SIO_Data);              // 受信バッファのゴミをとる
+  out(SIO_Ctrl,0x40);  // SIO受信割込み許可、送信割込み禁止
+  trsIdle = true;
+
+}
+
+public char getSerialCode() {
+  return getBuf(rcvBuf);
+}
+
+public void putSerialCode(char c) {
+  putSio(c);
+}

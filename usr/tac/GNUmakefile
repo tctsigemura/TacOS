@@ -17,17 +17,23 @@
 # る損害に関しても，その責任を負わない．
 #
 #
-# GNUmakefile.rul : ユーザプログラム用の Makefile
+# GNUmakefile : ユーザプログラム用の Makefile
 #
-# 2016.01.07         : 初期バージョン
+# 2016.08.11         : 初期バージョン
 #
 # $Id$
 #
 
 #----------------------------------------------------------------------------
-NAME=port
-OBJS=${NAME}.o
+NAME=tac
+SRCS=${NAME}.cmm
 #----------------------------------------------------------------------------
 
-all : ${NAME}.exe
-include ../Makefile.rul
+all : clean ${NAME}.exe
+
+${NAME}.exe : ${SRCS}
+	cm2e -o ${NAME} ${SRCS}
+
+clean :
+	rm -f ${NAME} *.o *.lst *.sym *.exe *.map *~
+

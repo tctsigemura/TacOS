@@ -22,6 +22,8 @@
 /*
  * tty/kbd.cmm : キーボードドライバ
  *
+ * 2016.11.11 : カーソルキーのスキャンコードを取得できるように変更
+ * 2016.10.28 : キーボード入力されているコードを常に返す関数を追加
  * 2015.06.04 : 村田開発開始、include を変更
  * 2012.05.15 : TeC7 用に I/O アドレスなど変更
  * 2011.05.20 : 新規作成(TaC)
@@ -33,9 +35,12 @@
 #include <util.h>
 #include <kernel.h>
 #include "kbd.h"
+#include "scConv.h"
 
 #define PS2_Data 0x0c
 #define PS2_Ctrl 0x0e
+
+RingBuf rcvBuf = { null, 0, 0 };          // リングバッファインスタンス
 
 // シフトキーの状態
 boolean rShift = false;                         // 右シフトキー
@@ -51,9 +56,13 @@ char kbdFSM(char c) {
     else if (c=='\x59') rShift = true;
     else if (c=='\x12') lShift = true;
     else if (rShift || lShift) retVal = chr(ord(c) | 0x80);
-    else retVal = c;
+    else if (c!='\x75' && c!='\x72' && c!='\x6b' && c!='\x74') retVal = c;
   } else if (stat==1) {
-    if (c!='\xf0') stat = 0;
+    if (c=='\xf0') stat = 2;
+    else {
+      stat = 0;
+      retVal = c;
+    }
   } else /* if (stat==2) */ {
     if      (c=='\x59') rShift = false;
     else if (c=='\x12') lShift = false;
@@ -63,32 +72,38 @@ char kbdFSM(char c) {
 }
 
 // スキャンコードバッファ
-int  sem;					// code を排他制御するセマフォ
-char code = '\0';				// 1文字バッファ	      
+int  sem;  // code を排他制御するセマフォ
 
 // 割り込みハンドラ
 interrupt kbdInt() {
-  char c = chr(in(PS2_Data));			// スキャンコードを取得
-  c = kbdFSM(c);                      		// FSM を使用して変換
+  char c = chr(in(PS2_Data));  // スキャンコードを取得
+  c = kbdFSM(c);               // FSM を使用して変換
   if (c!='\0') {
-    code = c;					// 有効なら書き込む
-    semV(sem);					// プロセスを起こす
+    putBuf(rcvBuf, c);         // 有効なら書き込む
+    semV(sem);                 // プロセスを起こす
   }
 }
+
+char[] _buf1 = array(BSIZE);
 
 // 初期化ルーチン
 public void keyBoardInit() {
   int[] vect = _ItoA(0xffe0);
-  vect[6] = addrof(kbdInt);			// 割込みベクタ初期化
-  in(PS2_Data);                       		// 受信バッファのゴミをとる
-  out(PS2_Ctrl,0x40);                 		// PS/2 受信割込み許可
-  sem = newSem(0);                    		// キー入力同期用のセマフォ
+  vect[6] = addrof(kbdInt);  // 割込みベクタ初期化
+  rcvBuf.buf = _buf1;
+  in(PS2_Data);              // 受信バッファのゴミをとる
+  out(PS2_Ctrl,0x40);        // PS/2 受信割込み許可
+  sem = newSem(0);           // キー入力同期用のセマフォ
 }
 
 // スキャンコード取得
 public char getKeyCode() {
-  semP(sem);					// キーボード待ちで止まる
-  char c = code;
-  code = '\0';
+  semP(sem);  // キーボード待ちで止まる
+  char c = getBuf(rcvBuf);
+  if (c=='\x75' || c=='\x72' || c=='\x6b' || c=='\x74') return '\0';
   return c;
+}
+
+public char noBlockGetKey(){
+  return getBuf(rcvBuf);
 }

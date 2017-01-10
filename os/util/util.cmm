@@ -22,6 +22,7 @@
 /*
  * util/util.cmm : C-- が動くために必要な関数群
  *
+ * 2016.12.24 : リングバッファ関連の関数等を追加
  * 2016.01.11 : panic() が #ifdef DEGUB 以外で printf() を使用しないように変更
  * 2016.01.11 : 一部関数をキャメルケースに統一
  * 2016.01.06 : コメント体裁を清書
@@ -104,8 +105,8 @@ public char[] strCpy(char[] dst, char[] src) {
 // 1文字出力
 public void putCh(char c) {			    // VGA と SIO の両方へ出力
 #ifdef SIO
-  if (c=='\n') putSIO('\r');
-  putSIO(c);
+  if (c=='\n') putSIO(ord('\r'));
+  putSIO(ord(c));
 #endif
   putVGA(c);
 }
@@ -141,7 +142,7 @@ void __putnum_sub(int x, int n) {
 
 // グローバル変数を使用するため割り込み禁止(本来なら割り込み禁止する必要はない)
 void __uputnum(int x, int w, char p, int base) {
-  int r =setPri(DI|KERN);			     // 割り込み禁止 
+  int r =setPri(DI|KERN);			     // 割り込み禁止
   __putnum_b = base;
   __putnum_m = false;
   __putnum_w = w;
@@ -153,7 +154,7 @@ void __uputnum(int x, int w, char p, int base) {
 // グローバル変数を使用するため割り込み禁止(本来なら割り込み禁止する必要はない)
 void __sputnum(int x, int w, char p, int base) {
   int r =setPri(DI|KERN);			     // 割り込み禁止
-  
+
   __putnum_b = base;
   __putnum_m = false;
   if (x<0) {
@@ -168,7 +169,7 @@ void __sputnum(int x, int w, char p, int base) {
   setPri(r);					     // 割り込み復元
 }
 
-public int printF(char[] fmt, ...) {  
+public int printF(char[] fmt, ...) {
   int[] args = _args();
   int n = 0;
   int arg = args[0];
@@ -205,12 +206,49 @@ public int printF(char[] fmt, ...) {
       } else {
         putCh(c);
       }
-    } else 
+    } else
       putCh(c);
   }
   return n;
 }
 #endif
+
+// --------------------------- リングバッファ関係 ------------------------
+
+/*
+ * SIO 等で使用できる管理ルーチン
+ */
+
+public int nextIdx(int idx) {                    // 直後の添字を求める
+  int next = idx + 1;
+  if (next>=BSIZE) next = 0;
+  return next;
+}
+
+public int prevIdx(int idx) {                    // 直前の添字を求める
+  int next = idx - 1;
+  if (next<0) next = BSIZE - 1;
+  return next;
+}
+
+// リングバッファに 1 文字追加
+public boolean putBuf(RingBuf buf, char c) {
+  if (!ISFull(buf)) {                     // バッファがパンク！(無視？)
+    int next = nextIdx(buf.head);
+    buf.buf[buf.head] = c;
+    buf.head = next;
+    return true;
+  }
+  return false;
+}
+
+// リングバッファから 1 文字取得
+public char getBuf(RingBuf buf) {         // リングバッファから1文字取り出し
+  if (ISEmpty(buf)) return '\0';           //  空の 場合は NULL
+  int tail = buf.tail;
+  buf.tail = nextIdx(buf.tail);           // tail を進めて
+  return  buf.buf[tail];                  // 一文字返す
+}
 
 // ------------------------------- エラー表示 ----------------------------
 public void panic(char[] msg, ...) {

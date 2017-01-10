@@ -30,4 +30,4 @@
  *
  */
 
-public char scConv(char c);
+public int scConv(char c);

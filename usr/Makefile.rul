@@ -19,16 +19,28 @@
 #
 # Makefile.rul : ユーザプログラム用の Makefile.rul
 #
+# 2016.12.28   : EXE ファイルのマジックナンバーを指定できるように変更
 # 2016.01.07   : 初期バージョン
 #
 # $Id$
 #
 
+Mode=USER
+
 # プリプロセッサ
-CPP=cc -E -std=c99 -nostdinc ${CPFLAGS} -I../include - < 
+CPP=cc -E -std=c99 -nostdinc ${CPFLAGS} -I../include - <
 
 # ユーザライブラリ
 LIB=../lib/library.o
+
+# モード
+ifeq (${Mode},KERN)
+  cmmMode=-K
+  exeMode=KERN
+else
+  cmmMode=
+  exeMode=USER
+endif
 
 # make するソースのサフィックス（拡張子） の一覧
 .SUFFIXES: .o .cmm .s
@@ -39,7 +51,7 @@ LIB=../lib/library.o
 
 # .cmm -> .s
 .cmm.s:
-	${CPP} $*.cmm| c-- > $*.s
+	${CPP} $*.cmm| c-- ${cmmMode} > $*.s
 
 # 必要ならライブラリを作る
 ${LIB} :
@@ -51,7 +63,7 @@ mod.o : ${LIB} ${OBJS}
 
 # mod.o を objexe-- で変換して .exe ファイルを生成する
 ${NAME}.exe : mod.o
-	objexe-- ${NAME}.exe  mod.o 600 | sort --key=1 > ${NAME}.map
+	objexe-- ${NAME}.exe  mod.o 600 ${exeMode} | sort --key=1 > ${NAME}.map
 
 clean :
 	rm -f *.o *.lst *.sym *.exe *.map *~

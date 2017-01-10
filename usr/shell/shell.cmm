@@ -22,6 +22,8 @@
 /*
  * shell/shell.cmm : シェルプログラム
  *
+ * 2016.12.31 : プログラムの大きさを重視して記述などを修正
+ * 2016.11.11 : 履歴機能の追加
  * 2016.01.13 : コマンドプログラムの生成方法を修正
  * 2015.12.07 : コマンドプログラムを bin フォルダから探すように変更
  * 2015.09.01 : コマンド実行後の sta の値のチェックを追加
@@ -38,18 +40,28 @@
 
 #define LMAX 80                                         // 1行最大 80 文字
 
+char[] cc = array(2); // 文字を conWrite で出力するための配列
+char[] tbuf = array(LMAX+1);                            // 一時領域
+
+#define HISTORYSIZE 4
+char[][] history = array(HISTORYSIZE, LMAX+1);                         // キー入力文字列履歴
+int historyPoint = -1;
+
+char[] buf = array(LMAX+1);                             // キー入力文字列格納用
+char[][] argv;
+char[] cmd = array(17);                                 // "bin/abcdefgh.exe"
+int[]  sta = array(1);                                  // リターンコード格納用
+
 // s[ptr] からの空白区切り文字列を d に取り出す
 int getStr(char[] s, int ptr, char[] d) {
   while (s[ptr]==' ')
     ptr = ptr + 1;
-
   int i=0;
   while (s[ptr]!='\0' && s[ptr]!=' ') {
     d[i] = s[ptr];
     i = i + 1;
     ptr = ptr + 1;
   }
-
   d[i] = '\0';
   return ptr;
 }
@@ -78,15 +90,13 @@ void strCpy(char[] s1, char[] s2) {
   s1[i]='\0';
 }
 
-char[] tbuf = array(LMAX+1);                            // 一時領域
-
 // コマンド行引数の数を数える
 int cntArgc(char[] s) {
   int argc = 0;                                         // 返り値
   int i=0;
   while (s[i]!='\0') {                                  // 終端記号が来るまで
-    i = getStr(s, i, tbuf);                             //   コマンド行引数抽出
-    argc = argc+1;                                      //   argcを加算
+    i = getStr(s, i, tbuf);                             // コマンド行引数抽出
+    argc = argc+1;                                      // argcを加算
   }
   return argc;
 }
@@ -99,16 +109,72 @@ void strCat(char[] src, char[] dst) {
     i=i+1;                                             //   dst をコピーする
 }
 
+// 引数の長さ分文字を消去
+void backSpace(int len){
+  for(int i=0;i<len;i=i+1){
+    conWrite("\x08 \x08");
+  }
+}
+
+// readConsole (キーボード入力された文字列をユーザ領域に渡す)
+void readConsole(char[] buf, char[][] history, int len) {
+  int ch = 0;
+  int kbdCnt = 0;                                       // buf のインデクス
+  len = len - 1;                                        // '\0' の格納領域を確保
+  for (;;) {
+    while( (ch=getPS2())==0x00 )                             // 1文字入力
+      ;
+    if (ch==0x80) { // 上カーソルキーが押されたら
+      if(historyPoint<HISTORYSIZE-1 && strLen(history[historyPoint+1])>0){
+        historyPoint = historyPoint+1;
+        backSpace(kbdCnt);
+        strCpy(buf, history[historyPoint]);
+        kbdCnt = strLen(buf);
+        conWrite(buf);
+      }
+    }else if(ch==0x81){ // 下カーソルキーが押されたら
+      if(historyPoint>0){
+        historyPoint = historyPoint-1;
+        backSpace(kbdCnt);
+        strCpy(buf, history[historyPoint]);
+        kbdCnt = strLen(buf);
+        conWrite(buf);
+      }
+    }else{
+      char c = chr(ch);
+      if (kbdCnt>=len || c=='\r' || c=='\n') {            // 指定長以上か改行なら
+        buf[kbdCnt] = '\0';
+        conWrite("\n");
+        if(strLen(buf)>0){
+          historyPoint=-1;
+          for(int i=HISTORYSIZE-1; i>0; i=i-1)
+            strCpy(history[i], history[i-1]);
+          strCpy(history[0], buf);
+        }
+        break;
+      } else if (0x20<=ord(c) && ord(c)<=0x7e && kbdCnt<len) { // 表示可能な文字
+        buf[kbdCnt] = c;
+        cc[0] = c;
+        conWrite(cc);
+        kbdCnt = kbdCnt + 1;
+      } else if (c=='\x08'&& kbdCnt>0) {                  // バックスペースなら
+        backSpace(1);
+        kbdCnt = kbdCnt - 1;
+      }
+    }
+  }
+}
+
 // メインルーチン
-char[] buf = array(LMAX+1);                             // キー入力文字列格納用
-char[][] argv;
-char[] cmd = array(17);                                 // "bin/abcdefgh.exe"
-int[]  sta = array(1);                                  // リターンコード格納用
 public int main() {
-  printf("TacOS Modoki Shell\n");
+  conWrite("TacOS Shell\n");
+  cc[1] = '\0';
+  buf[0]='\0';
+  for(int i=0;i<HISTORYSIZE;i=i+1)
+    history[i][0]='\0';
   for (;;) {
     printf("$ ");                                       // プロンプトのつもり
-    conRead(buf, LMAX+1);                               // 入力文字列を取得
+    readConsole(buf, history, LMAX+1);                           // 入力文字列を取得
 
     // argc を計算
     int argc = cntArgc(buf);                            // コマンド行引数の数
@@ -128,6 +194,8 @@ public int main() {
     // 入力に応じたプログラムを生成する
     if (argv[0][0]=='\n')                               // Enter だけなら
       ;                                                 //   何もしない
+    else if(strLen(argv[0])>8)
+      conWrite("Command name is too long.\n");
     else {
       strCpy(cmd, "bin/");                              // コマンドのパスを生成
       strCat(cmd, argv[0]);

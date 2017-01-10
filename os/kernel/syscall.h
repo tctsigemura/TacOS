@@ -51,7 +51,7 @@
  *
  */
 
-// kernel.cmm fatSys.cmm blkFile.cmm pm.cmm mem.cmm tty.cmm でインクルード
+// kernel.cmm fatSys.cmm blkFile.cmm pm.cmm mem.cmm tty.cmm com.cmm でインクルード
 
 #ifndef _syscall_h
 #define _syscall_h
@@ -72,8 +72,12 @@
 #define SEEK            12
 #define CONREAD         13
 #define CONWRITE        14
-#define MALLOC          15
-#define FREE            16
+#define COMTEC          15
+#define PUTSIO          16
+#define GETSIO          17
+#define GETPS2          18
+#define MALLOC          19
+#define FREE            20
 
 // システムコールのエラー番号
 #define ENAME           (-1)      // ファイル名が不正
@@ -102,5 +106,5 @@
 #define EPRIVVIO        (-22)     // 特権例外
 #define EILLINST        (-23)     // 不正命令
 #define ESTKOVRFLW      (-24)     // スタックオーバーフロー
- 
+
 #endif

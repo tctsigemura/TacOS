@@ -22,25 +22,28 @@
 /*
  * touch/touch.cmm : touch プログラム
  *
- * 2016.01.12 : 新規開発
+ * 2016.03.07 : 新規開発
  *
  * $Id$
  *
  */
 
-#include <syslib.h>
-#include <lib.h>
+#include <stdio.hmm>
+#include <syslib.hmm>
 
-// 新規ファイルを作成する
 public int main(int argc, char[][] argv) {
-  if (argc!=2) {
-    printf("Usage:touch <fileName>\n");
+  if (argc<2) {
+    printf("Usage: %s <fileName>...\n", argv[0]);
     return 0;
   }
 
-  if (creat(argv[1])<0) {
-    perror(argv[1]);
-    exit(1);
+  int err = 0;
+  for (int i=1; i<argc; i=i+1) {
+    if (creat(argv[i])<0) {
+      perror(argv[i]);
+      err = 1;
+    }
   }
-  return 0;
+
+  return err;
 }

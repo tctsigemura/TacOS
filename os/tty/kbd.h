@@ -29,3 +29,4 @@
 
 public void keyBoardInit();        // 初期化
 public char getKeyCode();          // スキャンコード取得
+public char noBlockGetKey();       // スキャンコード取得（キーボード待ちなし）

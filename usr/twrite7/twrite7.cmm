@@ -1,0 +1,110 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2016 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * twrite7/twrite7.cmm : twrite7 プログラム
+ *
+ * 2016.12.28 : 標準ライブラリ用のプログラムに変換
+ * 2016.10.04 : 新規開発
+ *
+ * $Id$
+ *
+ */
+
+#include <stdio.hmm>
+#include <errno.hmm>
+#include <ctype.hmm>
+#include <syslib.hmm>
+
+int[] mc = array(0xdc+1);
+
+int htoi(char c) {
+  int h = 0;
+  c = toUpper(c);
+  if(ord('A')<=ord(c) && ord(c)<=ord('F')){
+    h = ord(c)-ord('A')+10;
+  }else if(ord('0')<=ord(c) && ord(c)<=ord('9')){
+    h = ord(c)-ord('0');
+  }else{
+    printf("Value error : \"%s\"\n", c);
+    _exit(1);
+  }
+  return h;
+}
+
+void gethex(char[] file){
+  FILE fp = fopen(file, "r");
+  if(fp==null) _exit(errno); // エラー表示をシェルに任せる
+  int i = 0, cnt = 0;
+  while(!feof(fp)){
+    char c = fgetc(fp);
+    if(c!='\n' && c!='\r' && c!=' ' && c!=chr(0x09)){  // 改行,スペース,tabでなければ
+      if(i>=0xdc){
+        printf("TeC : No enough memory\n");
+        _exit(1);
+      }
+      if(cnt>=4){
+        mc[i] = mc[i]*16 + htoi(c);
+        if(cnt%2!=0) i  = i+1;
+      }
+      cnt = cnt+1;
+    }
+  }
+  mc[i] = 0xffff;
+  fclose(fp);
+}
+
+void output(int p, int v){
+  comTec(p,v);
+  sleep(25);
+}
+
+void tecInit(){
+  comTec(0x2c,0x000c);
+  output(0x2a,0x0080);
+  output(0x2a,0x0000);
+  for(int i=0;i<6;i=i+1){
+    output(0x2c,0x004c);
+    output(0x2c,0x000c);
+  }
+}
+
+void twrite(){
+  for(int i=0; mc[i]!=0xffff; i=i+1){
+    output(0x28,mc[i]);
+    output(0x2a,0x0008);
+    output(0x2a,0x0000);
+    output(0x28,0x0000);
+  }
+}
+
+public int main(int argc, char[][] argv){
+  if (argc!=2) {                                    // 引数が不足している
+    printf("Usage:twrite7 <fileName>\n");
+    return -1;
+  }
+  gethex(argv[1]);
+  printf("Console:TeC\n");
+  tecInit();
+  twrite();
+  comTec(0x2c,0x0004);
+  return 0;
+}
