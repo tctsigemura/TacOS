@@ -35,7 +35,7 @@
 #include <lib.h>
 
 public int main(int argc, char[][] argv){
-  printf("Console:TeC\n");
+  conWrite("Console:TeC\n");
   out(0x2c,0x0004);
   return 0;
 }

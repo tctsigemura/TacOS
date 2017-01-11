@@ -173,7 +173,7 @@ public int main() {
   for(int i=0;i<HISTORYSIZE;i=i+1)
     history[i][0]='\0';
   for (;;) {
-    printf("$ ");                                       // プロンプトのつもり
+    conWrite("$ ");                                       // プロンプトのつもり
     readConsole(buf, history, LMAX+1);                           // 入力文字列を取得
 
     // argc を計算

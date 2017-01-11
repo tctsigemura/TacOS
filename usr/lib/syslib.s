@@ -2,7 +2,7 @@
 ;  TacOS Source Code
 ;     Tokuyama kousen Advanced educational Computer.
 ;
-;  Copyright (C) 2011 - 2016 by
+;  Copyright (C) 2011 - 2017 by
 ;                       Dept. of Computer Science and Electronic Engineering,
 ;                       Tokuyama College of Technology, JAPAN
 ;

@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * lib/lib.cmm : C-- で記述するライブラリ関数を集めたファイル
  *
+ * 2017.01.11 : メモリ使用領域削減のため shell が利用していない関数を削除
  * 2016.01.07 : include と lib に分離
  * 2015.12.17 : readDir() を実装
  * 2015.06.10 : カーネル用の printf をコピーしユーザ用に修正、putch を新規に実装
@@ -96,7 +97,7 @@ public void[] malloc(int s) {                   // メモリ割り当て
 
   // SP と割り付けたメモリの衝突を検知したらエラー出力して終了
   if (_aCmp(alcAddr, _ItoA(_sp()))>=0) {        // ポインタが SP 以上なら
-    printf("malloc: no enough memory\n");       //   エラー出力し
+    conWrite("malloc: no enough memory\n");       //   エラー出力し
     exit(1);                                    //     異常終了
   }
 
@@ -110,7 +111,7 @@ public void free(void[] mem) {                  // 領域解放
   MemBlk m = p.next;                            // 直後の空き領域
 
   if (q.next!=MAGIC) {                          // 領域マジックナンバー確認
-    printf("free: bad address\n");
+    conWrite("free: bad address\n");
     exit(1);                                    // 異常終了
   }
 
@@ -124,7 +125,7 @@ public void free(void[] mem) {                  // 領域解放
   void[] pl = _addrAdd(p, p.size);              // 直前の領域の最後
 
   if (_aCmp(q,pl)<0 || m!=null&&_aCmp(m,ql)<0) {// 未割り当て領域では？
-    printf("free: bad address\n");
+    conWrite("free: bad address\n");
     exit(1);                                    // 異常終了
   }
 
@@ -150,138 +151,6 @@ public void free(void[] mem) {                  // 領域解放
   //   解放した領域の直前の空き領域の先頭は、最深の直前の割当領域の終端になる
   if (_aCmp(alcAddr, ql)==0)                    // 現在の最深を解放したなら
     alcAddr = p;                                //   ポインタを直前の最深に
-}
-
-// ------------------------------ 文字判断関係 -----------------------------
-
-// 文字 c が 0~9 の間か
-public boolean isDigit(char c) {
-  return ord('0')<=ord(c) && ord(c)<=ord('9');
-}
-
-// 文字 c が印刷可能か
-public boolean isPrint(char c) {
-  return 0x20<=ord(c) && ord(c)<=0x7e;
-}
-
-// ---------------------------- 入出力ルーチン -----------------------------
-#define LMAX 80                                 // 1行最大 80 文字
-char[] lBuf = array(LMAX+1);                    // LMAX + '\0'
-int bCnt = 0;                                   // lBuf の参照位置
-
-// 渡された文字を lBuf に溜めて、まとめて TTY に送る
-void putch(char c) {
-  lBuf[bCnt]=c;
-  bCnt = bCnt + 1;
-
-  if(bCnt >= LMAX || c=='\0' || c=='\n') {      // バッファフラッシュが必要
-    lBuf[bCnt]='\0';                            //   lBuf に終端記号を格納
-    conWrite(lBuf);                             //   TTY に lBuf を送る
-    bCnt = 0;                                   //   参照位置の初期化
-  }
-}
-
-// 文字列を出力する
-public void putstr(char[] str) {
-  for (int i=0; str[i]!='\0'; i=i+1)
-    putch(str[i]);
-}
-
-char[] __hstr = "0123456789abcdef";
-int  __putnum_w;
-int  __putnum_b;
-char __putnum_p;
-boolean __putnum_m;
-
-void __putnum_sub(int x, int n) {
-  if (x!=0) {
-    __putnum_sub(x/__putnum_b, n+1);
-    putch(__hstr[x%__putnum_b]);
-  } else {
-    if (__putnum_m&&__putnum_p!=' ') putch('-');
-    if (n==0) __putnum_w = __putnum_w - 1;
-    while (__putnum_w>n) {
-      putch(__putnum_p);
-      __putnum_w = __putnum_w - 1;
-    }
-    if (__putnum_m&&__putnum_p==' ') putch('-');
-    if (n==0) putch('0');
-  }
-}
-
-void __uputnum(int x, int w, char p, int base) {
-  __putnum_b = base;
-  __putnum_m = false;
-  __putnum_w = w;
-  __putnum_p = p;
-  __putnum_sub(x,0);
-}
-
-void __sputnum(int x, int w, char p, int base) {
-  __putnum_b = base;
-  __putnum_m = false;
-  if (x<0) {
-    x = -x;
-    __putnum_m = true;
-    w = w - 1;
-  }
-  __putnum_w = w;
-  __putnum_p = p;
-  __putnum_sub(x,0);
-}
-
-void putdec(int x, int w, char p) {
-  __sputnum(x,w,p,10);
-}
-
-void puthex(int x, int w, char p) {
-  __uputnum(x,w,p,16);
-}
-
-// fmt を '\0' までたぐる、% の次が意味のあるものであれば後ろの引数を参照する
-public int printf(char[] fmt, ...) {
-  int[] args = _args();                         // fmt より後ろの引数を取得
-  int n=0;
-  int arg = args[0];                            // 関数の第2引数を取得する
-  for (int i=0; fmt[i]!='\0'; i=i+1) {          // '\0' が来るまで fmt をたぐる
-    char c = fmt[i];                            // fmt から1文字取得する
-    if (c=='%') {                               // '%' ならば
-      c = fmt[i=i+1];                           //   次の1文字を取得する
-      char  p = ' ';
-      if (c=='0') p='0';                        //   先行の0詰め用
-      int  w = 0;
-      while (isDigit(c)) {
-        w = w * 10 + (ord(c) - ord('0'));
-        c = fmt[i=i+1];
-      }
-      if (c=='\0') {                            // '\0' ならば
-        putch('\0');                            //   lBuf を出力させる
-        return n;
-      } else if (c=='o') {                      // 8進数として出力
-        __uputnum(arg,w,p,8);
-        arg = args[n=n+1];                      // 後ろの引数を更新
-      } else if (c=='d') {                      // 10進数として出力
-        __sputnum(arg,w,p,10);
-        arg = args[n=n+1];                      // 後ろの引数を更新
-      } else if (c=='x') {                      // 16進数として出力
-        __uputnum(arg,w,p,16);
-        arg = args[n=n+1];                      // 後ろの引数を更新
-      } else if (c=='c') {                      // 文字として出力
-        putch(chr(arg));
-        arg = args[n=n+1];                      // 後ろの引数を更新
-      } else if (c=='s') {                      // 文字列として出力
-        putstr(_ItoA(arg));
-        arg = args[n=n+1];
-      } else if (c=='%') {                      // '%' を出力
-        putch('%');
-      } else {
-        putch(c);
-      }
-    } else                                      // '%' 以外なら
-      putch(c);                                 //   そのまま出力
-  }
-  putch('\0');                                  // lBuf を出力させる
-  return n;
 }
 
 // ------------------------------- エラー処理 ------------------------------
@@ -325,10 +194,14 @@ char[][] errList = {                            // エラーメッセージリ�
 public void _perror(char[] s, int err) {
   if (err>=0)     return;                       // 0以上なら何もしない
   if (err<=ELAST) {                             // err の値が不正なら
-    putstr("Invalid err\n");                    //   エラーメッセージを出力
+    conWrite("Invalid err\n");                  // エラーメッセージを出力
     return;
   }
-  printf("%s : %s\n",s, errList[err*-1]);       // 対象のエラーメッセージを出力
+  // 対象のエラーメッセージを出力
+  conWrite(s);
+  conWrite(" : ");
+  conWrite(errList[err*-1]);
+  conWrite("\n");
   errno = 0;                                    // errno を初期化
 }
 
@@ -336,32 +209,3 @@ public void perror(char[] s) {
   _perror(s, errno);
 }
 
-// ---------------------------- readDir の処理 ------------------------------
-
-// isValidDirEnt : DIR エントリが有効か判定する
-// 返り値        : true=有効なエントリ、false=無効なエントリ(未使用か削除済み)
-// 引数  c       : DIR エントリの最初の文字
-
-#define wordLE(b, i) ((ord((b)[(i)+1])<<8) | ord((b)[i]))
-char[] buf = array(32);
-
-public int readDir(int fd, Dir dir) {
-  int r;
-  while ((r=read(fd, buf, 32))>0) {            // EOF まで
-    char flag = buf[0];                        //   エントリの先頭１バイト
-    int  attr = ord(buf[11]);                  //   属性
-    if (flag=='\x00') return 0;                //   この先に有効エントリは無い
-    if (flag!='\xe5' && flag!='\x05' &&        //   有効なエントリでかつ
-        (attr & 0x0a)==0) {                    //   通常ファイルかディレクトリ
-      for (int i=0; i<11; i=i+1)               //     ファイル名をコピー
-        dir.name[i]=buf[i];
-      dir.name[11]='\0';                       //       ファイル名を完成させる
-      dir.attr = attr;                         //     属性
-      dir.clst = wordLE(buf, 26);              //     先頭クラスタ番号
-      dir.lenH = wordLE(buf, 30);              //     上位ファイルサイズ
-      dir.lenL = wordLE(buf, 28);              //     下位ファイルサイズ
-      return 1;
-    }
-  }
-  return r;
-}
