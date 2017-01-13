@@ -56,19 +56,19 @@ char[] scTbl = {/* +0      +1      +2      +3      +4      +5      +6      +7*/
 };
 
 // コンバータ
-public int scConv(char c) {
+public char scConv(char c) {
   boolean shift = (ord(c) >= 0x80);
-  int retVal = ord(scTbl[ord(c) & 0x007f]);
+  char retVal = scTbl[ord(c) & 0x007f];
   if (shift) {
-    if      (isLower(chr(retVal))) retVal = retVal - 0x20;
-    else if (isDigit(chr(retVal))) retVal = retVal - 0x10;
-    else if (ord(',')<=retVal && retVal<=ord('/'))
-      retVal = retVal + 0x10;
-    else if (ord('[')<=retVal && retVal<=ord('^'))
-      retVal = retVal + 0x20;
-    else if (retVal==ord(';')) retVal = ord('+');
-    else if (retVal==ord(':')) retVal = ord('*');
-    else if (retVal==ord('@')) retVal = ord('`');
+    if      (isLower(retVal)) retVal = chr(ord(retVal) - 0x20);
+    else if (isDigit(retVal)) retVal = chr(ord(retVal) - 0x10);
+    else if (ord(',')<=ord(retVal) && ord(retVal)<=ord('/'))
+      retVal = chr(ord(retVal) + 0x10);
+    else if (ord('[')<=ord(retVal) && ord(retVal)<=ord('^'))
+      retVal = chr(ord(retVal) + 0x20);
+    else if (retVal==';') retVal = '+';
+    else if (retVal==':') retVal = '*';
+    else if (retVal=='@') retVal = '`';
   }
   return retVal;
 }

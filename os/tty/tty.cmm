@@ -49,7 +49,7 @@ int sysConRead(char[] buf, int len) {
   int kbdCnt = 0;                                       // buf のインデクス
   len = len - 1;                                        // '\0' の格納領域を確保
   for (;;) {
-    char c = chr(scConv(getKeyCode()));                      // 1文字入力
+    char c = scConv(getKeyCode());                      // 1文字入力
     if (kbdCnt>=len || c=='\r' || c=='\n') {            // 指定長以上か改行なら
       buf[kbdCnt] = '\0';
       putCh('\n');
@@ -81,7 +81,7 @@ int sysConWrite(void[] buf) {
 
 // getPS2 システムコールの本体 (キーボードが押されていればその文字コードを返す，そうでなければ'\0'を返す)
 int sysGetPS2() {
-  return scConv(noBlockGetKey());
+  return ord(scConv(noBlockGetKey()));
 }
 
 // ----------------------------- 要求待ち受け部 -------------------------------
