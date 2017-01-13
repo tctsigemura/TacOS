@@ -1,0 +1,16 @@
+#include <stdlib.hmm>
+#include <stdio.hmm>
+#include <ctype.hmm>
+#include <string.hmm>
+
+#include "Error.hmm"
+
+// エラーメッセージを表示して終了する
+
+public void error(char[] s) {
+    fprintf(stderr,"%s\n", s);
+}
+
+public void error2(char[] s1, char[] s2) {
+    fprintf(stderr,"%s : %s\n", s2, s1);
+}

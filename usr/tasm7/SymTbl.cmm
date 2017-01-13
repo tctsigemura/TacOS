@@ -1,0 +1,67 @@
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+
+#include "SymTbl.hmm"
+
+/*
+ * static変数
+ */
+int label_cnt;                                  /* ラベルの個数のカウント用 */
+char[][] label = array(DATA,LABEL_LENGTH);      /* ラベル名を記憶する配列 */
+int[] label_address = array(DATA);              /* ラベルのアドレスを記憶する配列 */
+
+// SymTblの初期化
+public void initSymTbl(){
+    label_cnt = 0;
+}
+
+public void printSymTbl(){
+    //printf("printSymTbl()\n");
+    int i;
+    for(i = 0; i < label_cnt; i = i+1){
+    }
+}
+/*
+ * ラベルを登録する
+ */
+public void asignLabel(int pca, char[] str){
+    int i;
+    for(i=0;i<LENGTH;i=i+1){                    /* ラベルの最大長まで */
+        label[label_cnt][i]=str[i];            /* ラベルの文字を登録 */
+        if(str[i] == '\0'){                     /* ラベルの文字の登録を終えたら */
+            label_address[label_cnt] = pca;     /* ラベルのアドレスを登録 */
+            break;                              /* ラベル登録終了 */
+        } 
+    }
+    label_cnt = label_cnt+1;                    /* ラベルの個数を増やす */
+}
+
+/******** ラベルのアドレスを返す関数 *********/
+public int getLabelAddr(char[] str){
+    //printf("getLabelAddress() *%s*\n",str);
+    int address = -1;
+
+    int i;
+    for(i = 0; i < label_cnt; i = i+1){
+        if(strCmp(str,label[i]) == 0){
+            address = label_address[i];
+        }
+    }
+
+    return address;
+}
+/*********************************************/
+
+/******** ラベルのアドレスを変更する関数 **********/
+public void changeSymAddr(int pca, int address){
+    int i;
+    for(i=0;i<=label_cnt;i=i+1){                 /* 登録されているラベルの個数まで */
+        if(label_address[i] == pca){            /* ラベルのアドレスを検索 */
+            label_address[i] = address;         /* ラベルのアドレスを変更 */
+    //printf("Label address changed label_name=*%s*, label_address=*%d*\n",label[i],label_address[i]);
+            break;
+        }
+    }
+}
+/**************************************************/

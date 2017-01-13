@@ -1,0 +1,16 @@
+#ifndef OPERATIONTBL_H
+
+// 予約語の一覧表
+struct OperationTbl {
+  int  operation_id;                    /* トークン値の組 */
+  int  size;                            /* サイズ */
+  int  machine_code;                    /* 機械語 */
+  int  style;                        /* 変換の種類 */
+};
+
+public OperationTbl[] operationtbl;
+
+public int searchSize(int token_id);
+public int searchMachineCode(int token_id);
+public int searchStyle(int token_id);
+#endif   /* OPERATIONTBL_H */

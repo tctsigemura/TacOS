@@ -1,0 +1,117 @@
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+#include <errno.hmm>
+#include <syslib.hmm>
+
+#include "Assemble.hmm"
+#include "Error.hmm"
+#include "Pass1.hmm"
+#include "Pass2.hmm"
+
+#define FLENGTH 31  /* ファイル名は最大30文字 */
+//#define UNIX
+#define TAC
+
+// 大域変数
+public FILE sourcefp;
+public FILE listfp;
+public FILE hexfp;
+
+//
+char[] filename = array(FLENGTH + 1);    /* .lstと.binと後で出力するために領域を一つ増やす */
+
+// 使い方表示関数
+void usage(char[] name) {
+    fprintf(stderr, "usage: %s [-h] [<source file>]\n",name);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -h : show this message\n");
+    fprintf(stderr, "\n");
+}
+
+// main 関数
+public int main(int argc, char[][] argv){
+    int  i = 1;
+    int j;
+    if (argc==i){                                   /* ソースコードがない */
+    error("引数が足りていません");               /* 今はこれで代用本番では消す */
+    exit(EINVAL);                               /* 引数が足りていませんと出力 */
+    return -1;
+    }
+
+    if (argc>i && (strCmp(argv[i],"-h")==0 ) ) {    /* 使い方を表示 */
+        usage(argv[0]);
+        return 0 ;
+    }
+    
+    int flength = strLen(argv[i]);
+    if(flength <= 30){                              /* 30文字以内なら */
+        strCpy(filename,argv[i]);
+    } else{
+        error("file name is too long");
+        exit(1);
+    }
+
+    if (argc==i+1) {                                /* 引数としてソースファイルがある */
+        if(filename[flength-3] == '.' && filename[flength-2] == 't' && filename[flength-1] == '7'){    /* ファイル名が".t7"でおわるなら */
+            sourcefp = fopen(argv[i],"r");              /* ソースファイルをオープン */
+            if(sourcefp == null){                       // オープン失敗の場合は、
+                perror(argv[i]);                        // エラー出力
+                return -1 ;
+            } 
+        } else{
+            usage(argv[0]);
+        }
+
+        filename[flength - 2] = 'l';
+        filename[flength - 1] = 's';
+        filename[flength] = 't';
+        filename[flength + 1] = '\0';
+
+        #ifdef TAC
+            exec("bin/rm.exe",filename);
+        #endif
+        listfp = fopen(filename,"w");              /* リストファイルをオープン */
+        if(listfp == null){
+            perror(filename);
+            return -1;
+        }
+ 
+        filename[flength - 2] = 'b';
+        filename[flength - 1] = 'i';
+        filename[flength] = 'n';
+        filename[flength + 1] = '\0';
+
+        #ifdef TAC
+            exec("bin/rm.exe",filename);
+        #endif
+        hexfp = fopen(filename,"w");         /* バイナリファイルのオープン */
+        if(hexfp == null){
+            perror(filename);
+            return -1;
+        }
+    }
+    
+    if(argc>2) {                                    /* 引数が多すぎる場合 */
+        error("引数が多すぎます");
+        return -1;
+    }
+    
+    //使い方表示終わり初期化
+    initPass1();
+    
+    //Pass1の実行
+    pass1(sourcefp);
+    fclose(sourcefp);
+
+    // Pass2の実行
+    sourcefp = fopen(argv[1],"r");
+    initPass2();
+    pass2(sourcefp,listfp,hexfp);
+    
+    // ファイルをクローズ
+    //fclose(sourcefp);
+    fclose(listfp);
+    fclose(hexfp);
+    return 0 ;
+}

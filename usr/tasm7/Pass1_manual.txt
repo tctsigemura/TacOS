@@ -1,0 +1,676 @@
+pass1()
+
+1行目:SPK EQU 01H
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)を実行
+    }
+
+    ・token_id = getTokenを実行(EQU)
+
+    EQUの処理{
+    ・token_idがEQUなのでaddressにpcaをバックアップ
+    ・getToken()を実行(01H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pcaにeqAnalyzer(str)の値を代入
+    ・changeSymAddress(pca,address,str)
+    ・バックアップからpcaの値をもとに戻す
+    ・pca = pca + searchSize(token_id)を実行
+    }
+
+    ・次の行へ
+
+2行目:SIO_DAT EQU 02H
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)を実行
+    }
+
+    ・token_id = getTokenを実行(EQU)
+
+    EQUの処理{
+    ・token_idがEQUなのでaddressにpcaをバックアップ
+    ・getTokenを実行(02H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pcaにeqAnalyzer(str)の値を代入
+    ・changeSymAddress(pca,address,str)
+    ・バックアップからpcaの値をもとに戻す
+    ・pca = pca + searchSize(token_id)を実行
+    }
+
+    ・次の行へ
+
+3行目:SIO_STA EQU 03H
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)を実行
+    }
+
+    ・token_id = getTokenを実行(EQU)
+
+    EQUの処理{
+    ・token_idがEQUなのでaddressにpcaをバックアップ
+    ・getTokenを実行(03H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pcaにeqAnalyzer(str)の値を代入
+    ・changeSymAddress(pca,address,str)
+    ・バックアップからpcaの値をもとに戻す
+    ・pca = pca + searchSize(token_id)を実行
+    }
+
+    ・次の行へ
+
+4行目:
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(改行)
+    ・次の行へ
+
+5行目:; 電子オルゴール
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(COMMENT)
+    ・次の行へ
+
+6行目:  ORG 70H
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(ORG)
+
+    ORGの処理{
+    ・token_id=ORGなのでgetTokenを実行(70H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pcaにeqAnalyzer(str)の値を代入
+    }
+
+    ・次の行へ
+
+7行目:START   LD  SP,#0E0H
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)でラベルを登録する
+    }
+
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+8行目:  LD  G1,#TABLE-1
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+9行目:L9    ADD G1,#1
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)でラベルを登録する
+    }
+
+    ・getToken()でトークン番号を取ってくる(ADD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+10行目:     LD  G2,0,G1
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+11行目:     CMP G2,#0
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+12行目:     JZ  L15
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+13行目:     ADD G1,#1       ; ステート
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+14行目:L10 PUSH     G2      ; 6
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)でラベルを登録する
+    }
+
+    ・getToken()でトークン番号を取ってくる(PUSH)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+15行目:     LD  G2,0,G1     ; 7
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+16行目:L11	SUB	G2,#1		; 5
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)でラベルを登録する
+    }
+
+    ・getToken()でトークン番号を取ってくる(SUB)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+17行目: NO			; 3
+    ・ラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+18行目: 	NO			; 3
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+19行目: 	JZ	L12		; 4
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+20行目: 	JMP	L11		; 5
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+21行目:L12	LD	G2,#0FFH	; 5
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)でラベルを登録する
+    }
+
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+22行目: 	OUT	G2,SPK		; 7
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+23行目: 	LD	G2,0,G1		; 7
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+24行目:L13	SUB	G2,#1		; 5
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)でラベルを登録する
+    }
+
+    ・getToken()でトークン番号を取ってくる(SUB)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+25行目: 	NO			; 3
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+26行目: 	JZ	L14		; 4
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+27行目: 	JMP	L13		; 5
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+28行目:L14	OUT	G2,SPK		; 7
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)でラベルを登録する
+    }
+
+    ・getToken()でトークン番号を取ってくる(OUT)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+29行目:  	POP	G2		; 6
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+30行目: 	SUB	G2,#1		; 5
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+31行目: 	JZ	L9		; 4
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+32行目: 	JMP	L10		; 5
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(LD)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+33行目:L15	JMP	START
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)でラベルを登録する
+    }
+
+    ・getToken()でトークン番号を取ってくる(JMP)
+    ・pca = pca + searchSize(token_id)を実行
+    ・次の行へ
+
+34行目:;L15	HALT
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(COMMENT)
+    ・次の行へ
+
+35行目:
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(改行)
+    ・次の行へ
+
+36行目:; ドレミの歌
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(COMMENT)
+    ・次の行へ
+
+37行目:
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号と取ってくる(改行)
+    ・次の行へ
+
+38行目:TABLE	DC	0C5H,0E8H
+    ・getLabel()でラベルの有無を判定(true)
+    ・getToken()でトークン番号を取ってくる(LABEL)
+
+    ラベル処理{
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・asignLabel(pca,str)でラベルを登録する
+    }
+
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0C5H,0E8H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+39行目: 	DC	049H,0D1H
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(049H,0D1H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+40行目: 	DC	0F7H,0BAH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    ・次の行へ
+
+    DCの処理{
+    ・getToken()を実行(0FH,0BAH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+41行目: 	DC	041H,0E8H
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(041H,0E8H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+42行目: 	DC	0A5H,0BAH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0A5H,0BAH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+43行目: 	DC	083H,0E8H
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(083H,0E8H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+44行目: 	DC	0A5H,0BAH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0A5H,0BAH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+45行目: 	DC	0A5H,0BAH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0A5H,0BAH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+46行目: 	DC	0DCH,0D1H
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0DCH,0D1H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+47行目: 	DC	052H,0BAH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(052H,0BAH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+48行目: 	DC	057H,0AFH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(057H,0AFH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+49行目: 	DC	057H,0AFH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(057H,0AFH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+50行目: 	DC	052H,0BAH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(052H,0BAH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+51行目: 	DC	049H,0D1H
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(049H,0D1H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+52行目: 	DC	0AFH,0AFH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0AFH,0AFH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+53行目: 	DC	0AFH,0AFH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0AFH,0AFH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+54行目: 	DC	0AFH,0AFH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0AFH,0AFH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+55行目: 	DC	0AFH,0AFH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0AFH,0AFH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+56行目: 	DC	0F7H,0BAH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0F7H,0BAH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+57行目: 	DC	057H,0AFH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(057H,0AFH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+58行目: 	DC	0C4H,09CH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0C4H,09CH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+59行目: 	DC	062H,09CH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(062H,09CH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+60行目: 	DC	052H,0BAH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(052H,0BAH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+61行目: 	DC	0C4H,09CH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0C4H,09CH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+62行目: 	DC	0A5H,0BAH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0A5H,0BAH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+63行目: 	DC	0C4H,09CH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0C4H,09CH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+64行目: 	DC	0C4H,09CH
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(0C4H,09CH)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ
+
+65行目: 	DC	000H		; 終了
+    ・getLabel()でラベルの有無を判定(false)
+    ・getToken()でトークン番号を取ってくる(DC)
+
+    DCの処理{
+    ・getToken()を実行(000H)
+    ・getString()でLexicalのstrをPass1のstrに代入
+    ・pca = pca + dcSyzeAnalyzer(str)を実行
+    }
+
+    ・次の行へ(終わり)
+
