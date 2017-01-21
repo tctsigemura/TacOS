@@ -22,6 +22,7 @@
 /*
  * sio/serial.cmm : シリアルドライバ
  *
+ * 2017.01.21 : シリアル出力時の送信チェック忘れを修正
  * 2016.11.03 : 新規作成
  *
  * $Id$
@@ -53,6 +54,8 @@ interrupt sioTrs() {
     trsIdle = true;
   } else {                                // そうでなければ
     int c = ord(getBuf(trsBuf));          // 送信バッファから一文字取り出す
+    while ((in(SIO_Ctrl) & 0x80)==0)
+      ;
     out(SIO_Data,c);                        // データを送信
   }
 }
@@ -62,6 +65,8 @@ void putSio(char c) {
   setPri(KERN|DI);                        // 割込み禁止状態で
   if (trsIdle) {                          // 送信中でなければ
     out(SIO_Ctrl,0x00c0);                   // 割込みを許可し
+    while ((in(SIO_Ctrl) & 0x80)==0)
+      ;
     out(SIO_Data,ord(c));                   // 送信を始める
     trsIdle = false;
   } else {
@@ -70,26 +75,12 @@ void putSio(char c) {
   setPri(KERN|EI);
 }
 
+
 // 受信関係
 
 // SIO から入力された文字をバッファに格納する
 void rcvData(char c) {
-  if (0x0020<=ord(c) && ord(c)<=0x007e) { // 印刷可能な ASCII 文字なら
-    putBuf(rcvBuf, c);                 // バッファへ転記
-    return;
-  }
-
-  if (c=='\10') {                         // BS
-    if(!ISEmpty(rcvBuf)) {                // 受信バッファにデータがあれば
-      rcvBuf.head = prevIdx(rcvBuf.head); // バッファから１文字取り消し
-    }
-    return;
-  }
-
-  if (c=='\r') {                          // Enter
-    putBuf(rcvBuf, '\0');                  // バッファの文字列完成
-    return;
-  }
+  putBuf(rcvBuf, c); // バッファへ転記
 }
 
 // SIO 受信割込み処理ルーチン

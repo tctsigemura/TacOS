@@ -22,6 +22,7 @@
 /*
  * shell/shell.cmm : シェルプログラム
  *
+ * 2017.01.21 : SIOが定義されていればシリアル端末からのコマンド入力をできるように変更
  * 2016.12.31 : プログラムの大きさを重視して記述などを修正
  * 2016.11.11 : 履歴機能の追加
  * 2016.01.13 : コマンドプログラムの生成方法を修正
@@ -34,6 +35,8 @@
  * $Id$
  *
  */
+
+#define SIO
 
 #include <syslib.h>
 #include <lib.h>
@@ -122,8 +125,15 @@ void readConsole(char[] buf, char[][] history, int len) {
   int kbdCnt = 0;                                       // buf のインデクス
   len = len - 1;                                        // '\0' の格納領域を確保
   for (;;) {
-    while( (ch=getPS2())==0x00 )                             // 1文字入力
+    while( (ch=getPS2())==0x00){  // 1文字入力
       ;
+#ifdef SIO
+      if((ch=getSIO())!=0x00){
+        if(ch==0x7f) ch=0x08;
+        break;
+      }
+#endif
+    }
     if (ch==0x80) { // 上カーソルキーが押されたら
       if(historyPoint<HISTORYSIZE-1 && strLen(history[historyPoint+1])>0){
         historyPoint = historyPoint+1;

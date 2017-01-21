@@ -1,0 +1,117 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2017 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * terminal/terminal.cmm : シリアル端末プログラム
+ *
+ * 2017.01.17 : 新規開発
+ *
+ * $Id$
+ *
+ */
+
+#include <stdio.hmm>
+#include <syslib.hmm>
+#include <string.hmm>
+
+#define LMAX 80                                         // 1行最大 80 文字
+
+char[] buf = array(LMAX+2);                             // キー入力文字列格納用
+char[] cc = array(2);
+int bufPoint = 0;
+
+void putBuf(char[] buf, char c){
+  if(bufPoint <= LMAX){
+    buf[bufPoint] = c;
+    bufPoint = bufPoint+1;
+  }else{
+    printf("too long command\n");
+    _exit(1);
+  }
+}
+
+void strPutSIO(char[] buf){
+  int len = strLen(buf);
+  for(int i=0;i<len;i=i+1){
+    putSIO(ord(buf[i]));
+  }
+  bufPoint = 0;
+}
+
+void backSpace(char[] buf){
+  if(bufPoint > 0){
+    bufPoint = bufPoint-1;
+    conWrite("\x08 \x08");
+  }
+}
+
+public int main(int argc, char[][] argv){
+  cc[1] = '\0';
+  boolean mldpf = false;
+  for(;;){
+    int ch = getSIO();
+    if(ch != 0x00){
+      cc[0] = chr(ch);
+      conWrite(cc);
+    }else{
+      int keyCode = getPS2();
+      if(keyCode!=0x00){
+        if(keyCode == 0x1b){ // Escキーで終了
+          printf("\n");
+          break;
+        }
+        if(mldpf==false){
+          if (0x20<=keyCode && keyCode<=0x7e) { // 表示可能な文字
+            putBuf(buf, chr(keyCode));
+            cc[0] = chr(keyCode);
+            conWrite(cc);
+          }else if(keyCode==ord('\r') || keyCode==ord('\n')){ // 改行
+            printf("\n");
+            putBuf(buf, '\r');
+            putBuf(buf, '\0');
+            strPutSIO(buf);
+          }else if(keyCode==0x08){ // バックスペース
+             backSpace(buf);
+          }else if(keyCode == 0x1b){ // Escキーで終了
+            printf("\n");
+            break;
+          }else if(keyCode==0x80){ // 上カーソルキーが押されたら
+            conWrite("MLDP MODE\n");
+            mldpf = true;
+          }
+        }
+        else{
+          if (0x20<=keyCode && keyCode<=0x7e || keyCode==ord('\r') || keyCode==ord('\n')) { // 表示可能な文字か改行
+            putSIO(keyCode);
+            if(keyCode == ord('\r'))
+              keyCode = ord('\n');
+            cc[0] = chr(keyCode);
+            conWrite(cc);
+          }else if(keyCode==0x81){ // 下カーソルキーが押されたら
+            conWrite("CMD MODE\n");
+            mldpf = false;
+          }
+        }
+      }
+    }
+  }
+  return 0;
+}

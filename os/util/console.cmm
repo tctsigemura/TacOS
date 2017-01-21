@@ -110,14 +110,6 @@ public void putVGA(char c) {
   setPri(r);                                   // 割り込み復元
 }
 
-#ifdef SIO
-void putSIO(char c) {                          // SIO への出力
-  while ((in(0x0a) & 0x80)==0)
-    ;
-  out(0x08, ord(c));
-}
-#endif
- 
 // 画面の初期化
 public void consInit() {
   vRam = _ItoA(VRAM);                          // VRAM のアドレス

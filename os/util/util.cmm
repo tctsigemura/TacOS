@@ -22,6 +22,7 @@
 /*
  * util/util.cmm : C-- が動くために必要な関数群
  *
+ * 2017.01.21 : SIOがで定義されていればVGAとともにシリアル端末への出力も行えるように変更
  * 2016.12.24 : リングバッファ関連の関数等を追加
  * 2016.01.11 : panic() が #ifdef DEGUB 以外で printf() を使用しないように変更
  * 2016.01.11 : 一部関数をキャメルケースに統一
@@ -51,9 +52,15 @@
  *
  */
 
+#define SIO
+
 #include <kernel.h>
 #include "util.h"
 #include "console.h"
+
+#ifdef SIO
+#include <sio.h>
+#endif
 
 // util の初期化ルーチン
 public void utilInit() {
@@ -104,10 +111,16 @@ public char[] strCpy(char[] dst, char[] src) {
 
 // 1文字出力
 public void putCh(char c) {			    // VGA と SIO の両方へ出力
+
 #ifdef SIO
-  if (c=='\n') putSIO(ord('\r'));
-  putSIO(ord(c));
+  if(c=='\n'){
+    putSIO(ord('\r'));
+    putSIO(ord('\n'));
+  }else{
+    putSIO(ord(c));
+  }
 #endif
+
   putVGA(c);
 }
 

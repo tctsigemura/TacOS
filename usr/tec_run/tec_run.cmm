@@ -20,9 +20,9 @@
  */
 
 /*
- * tsend7/tsend7.cmm : tsend7 プログラム
+ * tec_run/tec_run.cmm : TeCのプログラムをRunするプログラム
  *
- * 2017.01.12 :
+ * 2017.01.20 : 新規開発
  *
  * $Id$
  *
@@ -32,36 +32,12 @@
 #include <io.h>
 #include <lib.h>
 
-int[] mc = array(0xdc+3);
-char[] c = array(1);
-
-void getProg(char[] file){
-  int fp = open(file, READ);
-  if(fp==-2) {
-    conWrite("No such file : ");
-    conWrite(file);
-    conWrite("\n");
-    exit(1);
-  }
-  int i = 0;
-  while(read(fp,c,1)>0){  // エラーもしくはEOFなら読み取り終了
-    if(i>=0xdc+2){
-      conWrite("TeC : No enough memory\n");
-      exit(1);
-    }
-    mc[i] = ord(c[0]);
-    i  = i+1;
-  }
-  mc[i] = 0xffff;
-  close(fp);
-}
-
 void output(int p, int v){
   out(p,v);
   sleep(25);
 }
 
-void tecSet(){
+void tecRun(){
   output(0x2a,0x0080);     // Reset Switch
   output(0x2a,0x0000);     // Switch Off
   for(int i=0;i<6;i=i+1){
@@ -70,38 +46,16 @@ void tecSet(){
   }
   output(0x2c,0x002c);     // Left Switch
   output(0x2c,0x000c);     // Switch Off
-  output(0x28,0x00e0);     // Data Swtich
-  output(0x2a,0x0008);     // Write Switch
   output(0x2c,0x008c);     // Run Switch
   output(0x2c,0x000c);     // Switch Off
 }
 
-void tsend(){
-  sleep(10);
-  output(0x2c,0x0006);
-  sleep(10);
-  for(int i=0; mc[i]!=0xffff; i=i+1){
-    putSIO(mc[i]);         // シリアル出力
-  }
-  sleep(10);
-  output(0x2c,0x000c);
-  sleep(10);
-}
-
 public int main(int argc, char[][] argv){
-  if (argc!=2) {  // 引数が不足している
-    conWrite("Usage:tsend7 <fileName>\n");
-    return 0;
-  }
-  getProg(argv[1]);
-  out(0x2c,0x000c);        // コンソールパネルのモードをTeCにし，
-                           // 入力はTaCからの信号により行えるようにする．
-  conWrite("TeC Setting...");
-  tecSet();
-  conWrite("\nProgram Sending...");
-  tsend();
-  conWrite("\nConsole:TeC\n");
-  out(0x2c,0x0004);        // コンソールパネルのモードをTeCにし，
-                           // 入力はコンソールパネルから行えるようにする．
+  conWrite("Console:TeC\n");
+  out(0x2c,0x000c); // コンソールパネルのモードをTeCにし，
+                    // 入力はTaCからの信号により行えるようにする．
+  tecRun();
+  out(0x2c,0x0004); // コンソールパネルのモードをTeCにし，
+                    // 入力はコンソールパネルから行えるようにする．
   return 0;
 }
