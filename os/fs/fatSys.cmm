@@ -178,8 +178,8 @@ boolean srchPath(char[] path, int n) {
   strCpy(curEnt.name, "/");                     // 名称は "/"
   curEnt.attr    = 0x10;                        // 属性はディレクトリ
   curEnt.clst    = ROOTDIR;                     // ルート・ディレクトリ
-  curEnt.lenH    = 0x0000;                      // ルート・ディレクトリサイズは
-  curEnt.lenL	 = 0x4000;                      // 16kiB 固定
+  curEnt.lenH    = 0x0000;                      // ディレクトリファイル長は
+  curEnt.lenL	 = 0x0000;                      //   0x0000 0000 にする
 
   // n 文字目までパスを解析
   for (int p=0; ;) {                            // 渡されたパスについて
