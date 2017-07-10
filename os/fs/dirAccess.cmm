@@ -88,6 +88,7 @@ void setCache(DirEnt dirEnt) {
 void getFname(char[] s, int ofs) {
   for (int i=0; i<11; i=i+1)                // ファイル名を抜き出す
     s[i] = dirCache[ofs+i];                 //   1文字ずつコピーする
+  if (s[0]=='\x05') s[0]='\xe5';            // 本当はSJIS漢字コードの0xe5
   s[11] = '\0';                             // C-- 文字列として完成させる
 }
 
@@ -100,7 +101,6 @@ public int readDirEnt(DirEnt dirEnt) {
   char c = dirCache[curEnt];                 // 着目エントリの先頭
   if (c=='\x00') return 0;                   // これ以上有効なエントリはない
   if (c=='\xe5') return -1;                  // 無効なエントリ
-  if (c=='\x05') dirCache[curEnt]='\xe5';    // 本当はSJIS漢字コードの0xe5
   getFname(dirEnt.name, curEnt);             // ファイル名を読み込む
   dirEnt.attr = ord(dirCache[curEnt+11]);    // 属性を読み込む
   dirEnt.clst = wordLE(dirCache, curEnt+26); // 先頭クラスタ番号を読み込む
@@ -115,6 +115,7 @@ public int readDirEnt(DirEnt dirEnt) {
 void setFname(char[] s, int ofs) {
   for (int i=0; i<11; i=i+1)
     dirCache[ofs+i] = s[i];
+  if (s[0]=='\xe5') dirCache[ofs]='\x05';    // SJIS漢字コードの0xe5は0x05に変換
 }
 
 // writeDirEnt : dirEnt の情報を DIR FILE に書き込む
