@@ -98,8 +98,9 @@ public int readDirEnt(DirEnt dirEnt) {
   setCache(dirEnt);                          // 目的のセクタをキャッシュする
   int curEnt=(dirEnt.dirEnt%(BLKSIZ/32))*32; // セクタ中の着目エントリ
   char c = dirCache[curEnt];                 // 着目エントリの先頭
-  if (c=='\x00')              return 0;      // これ以上有効なエントリはない
-  if (c=='\xe5' || c=='\x05') return -1;     // 無効なエントリ
+  if (c=='\x00') return 0;                   // これ以上有効なエントリはない
+  if (c=='\xe5') return -1;                  // 無効なエントリ
+  if (c=='\x05') dirCache[curEnt]='\xe5';    // 本当はSJIS漢字コードの0xe5
   getFname(dirEnt.name, curEnt);             // ファイル名を読み込む
   dirEnt.attr = ord(dirCache[curEnt+11]);    // 属性を読み込む
   dirEnt.clst = wordLE(dirCache, curEnt+26); // 先頭クラスタ番号を読み込む
