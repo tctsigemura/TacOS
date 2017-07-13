@@ -97,6 +97,7 @@ boolean isUseableAsName(char c) {
 // 返り値    : true=不正な文字が含まれていない 、false=不正な文字が含まれている
 // 引数 s    : ファイル名
 boolean validName(char[] s) {
+  if (s[0]==' ') return false;                  // 空文字列は使用できない
   for (int i=0; s[i]!='\0'; i=i+1)              // ファイル名の最初から最後まで
     if (!isUseableAsName(s[i])) return false;   //   使えない文字を使用している
   return true;
