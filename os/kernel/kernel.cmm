@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2017.10.27 : 関数名変更(dispatch() -> yield(), startProc() -> dispatch())
  * 2016.01.19 : 例外発生時に、ユーザモード中だったかのチェックを修正
  * 2016.01.06 : ソース、コメントの体裁を整える
  * 2015.11.17 : newProc() で FDS の登録を追加、カーネルプロセスの FDS 確保を追加
@@ -174,8 +175,8 @@ public void semP(int sd) {
     delProc(curProc);                               //   実行可能列から外し
     curProc.stat = P_SLEEP;                         //   実行不可能に変更する
     insProc(s.queue,curProc);                       //   セマフォの行列に登録
-    dispatch();                                     //   プロセスを切換える
-  }
+    yield();                                        //   CPUを解放し
+  }                                                 //     他プロセスに切換える
   setPri(r);                                        // 割り込み状態を復元する
 }
 
@@ -208,7 +209,7 @@ boolean iSemV(int sd) {
 public void semV(int sd) {  
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   if (iSemV(sd))                                    // V 操作し必要なら
-    dispatch();                                     //   プロセスを切り替える
+    yield();                                        //   プロセスを切り替える
   setPri(r);                                        // 割り込み状態を復元する
 }
 
@@ -390,7 +391,7 @@ public void zmbProc() {
   freeSem(curProc.evtSem);                          // セマフォを返却し
   delProc(curProc);                                 // 実行可能列から外す
   curProc.stat = P_ZOMBIE;                          // ゾンビに変更
-  dispatch();                                       // プロセスを切換える
+  yield();                                          // CPUを解放する
   panic("zmbProc");                                 // ゾンビが生き返った
 }
 
@@ -472,7 +473,7 @@ interrupt tmrIntr() {
     }
   }
 
-  if (disp) dispatch();                             // 必要ならディスパッチ
+  if (disp) yield();                             // 必要ならディスパッチ
 }
 
 // タイマー初期化 : 割り込みベクタとハードウェアを初期化する
@@ -607,7 +608,7 @@ public void main() {
   procInit();                                       // プロセス(procTbl)初期化
 
   // システムスタート
-  startProc();                                      // プロセス実行開始
+  dispatch();                                       // プロセス実行開始
   panic("main");                                    // ここは実行されないはず
 }
 

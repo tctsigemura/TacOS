@@ -21,6 +21,7 @@
 ; 
 ; kernel/dispatcher.s : ディスパッチャ
 ;
+; 2017.10.27 : ルーチン名を変更(_dispatch -> _yield, _startProc -> _dispatch)
 ; 2015.11.17 : PCB の項目を追加したため、[next]と[magic]へのポインタをずらした
 ; 2015.09.02 : ソースコードを清書(重村)
 ; 2015.04.02 : PCB の項目を追加したため、[next]と[magic]へのポインタをずらした
@@ -45,7 +46,7 @@
 ; 現在のプロセス(curProc)から、別のプロセス(readyQueue の先頭プロセス）へ
 ; CPU の使用権を渡す
 ; 
-_dispatch
+_yield
         ;--- G13(SP)以外の CPU レジスタと FLAG をカーネルスタックに退避 ---
         push    g0              ; FLAG の保存場所を準備する
         push    g0              ; G0 を保存
@@ -74,7 +75,7 @@ _dispatch
         cmp     g0,#0xabcd      ; P_MAGIC と比較、一致しなければ
         jnz     .stkOverFlow    ; カーネルスタックがオーバーフローしている
         
-_startProc
+_dispatch
         ;-------- 次に実行するプロセスの G13(SP)を復元 ----------
         ld      g0,_readyQueue  ; 実行可能列の番兵のアドレス
         ld      g0,28,g0        ; [G0+28] は PCB の next フィールド(先頭の PCB)
