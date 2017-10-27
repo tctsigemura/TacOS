@@ -22,6 +22,7 @@
 /*
  * kernel/dispatcher.h : dispatcher.s の外部インタフェース
  *
+ * 2017.10.27 : 関数名を変更(dispatch() -> yield(), startProc() -> dispatch())
  * 2015.05.07 : 村田開発開始、ファイル名を変更(disp.h -> dispatcher.h)
  * 2013.03.07 : ファイル名を変更(kernelAsm.h -> disp.h)
  * 2012.03.02 : setPri() を ../util/crt0.s に移す
@@ -31,5 +32,5 @@
  *
  */
 
-public void dispatch();  // ディスパッチャの入口
-public void startProc(); // ディスパッチャの後半から実行開始
+public void yield();     // CPUを解放する。（その後、dispatch()を実行する。）
+public void dispatch();  // readyQueue の先頭プロセスにディスパッチする。
