@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2017.12.05 : Sem構造体からinUseを削除
  * 2017.10.27 : 関数名変更(dispatch() -> yield(), startProc() -> dispatch())
  * 2016.01.19 : 例外発生時に、ユーザモード中だったかのチェックを修正
  * 2016.01.06 : ソース、コメントの体裁を整える
@@ -133,15 +134,15 @@ public void schProc(PCB proc) {
 // セマフォ管理
 //----------------------------------------------------------------------------
 Sem[] semTbl=array(SEM_MAX);                        // セマフォの一覧表
+boolean[] semInUse=array(SEM_MAX);                  // どれが使用中か（falseで初期化）
 
 // セマフォの割当て
 public int newSem(int init) {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   for (int i=0; i<SEM_MAX; i=i+1) {                 // 全てのセマフォについて
-    Sem s = semTbl[i];                              //   未使用を探す
-    if (!s.inUse) {                                 //   見つかったら
-      s.inUse = true;                               //     使用中に変更し
-      s.cnt = init;                                 //     カウンタを初期化し
+    if (!semInUse[i]) {                             //   未使用のものを見つけたら
+      semInUse[i] = true;                           //     使用中に変更し
+      semTbl[i].cnt = init;                         //     カウンタを初期化し
       setPri(r);                                    //     割込み状態を復元し
       return i;                                     //     セマフォ番号を返す
     }
@@ -154,7 +155,7 @@ public int newSem(int init) {
 // (書き込み1回で仕事が終わるので割込み許可でも大丈夫)
 public void freeSem(int s) {
 //int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
-  semTbl[s].inUse = false;                          // 未使用に変更
+  semInUse[s] = false;                              // 未使用に変更
 //setPri(r);                                        // 割り込み状態を復元する
 }
 
@@ -165,7 +166,7 @@ public void freeSem(int s) {
 //　  　　　　             ディスパッチャを呼び出す 
 public void semP(int sd) {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
-  if (sd<0 || SEM_MAX<=sd || !semTbl[sd].inUse)     // 不正なセマフォ番号
+  if (sd<0 || SEM_MAX<=sd || !semInUse[sd])         // 不正なセマフォ番号
     panic("semP(%d)", sd);
 
   Sem s = semTbl[sd];
@@ -184,9 +185,9 @@ public void semP(int sd) {
 // (V 操作をしたあとまだ仕事があるとき使用する)
 // (kernel 内部専用、割込み禁止で呼出す)
 boolean iSemV(int sd) {
-  if (sd<0 || SEM_MAX<=sd || !semTbl[sd].inUse)     // 不正なセマフォ番号
-    panic("iSemV(%d)", sd);  
-
+  if (sd<0 || SEM_MAX<=sd || !semInUse[sd]) {       // 不正なセマフォ番号
+    panic("iSemV(%d)", sd);
+  }
   boolean ret = false;                              // 起床するプロセスなし
   Sem s = semTbl[sd];                               // 操作するセマフォ
   PCB q = s.queue;                                  // 待ち行列の番兵
@@ -208,8 +209,9 @@ boolean iSemV(int sd) {
 //                      ディスパッチャを呼び出す
 public void semV(int sd) {  
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
-  if (iSemV(sd))                                    // V 操作し必要なら
+  if (iSemV(sd)) {                                  // V 操作し必要なら
     yield();                                        //   プロセスを切り替える
+  }
   setPri(r);                                        // 割り込み状態を復元する
 }
 
@@ -226,7 +228,6 @@ void semInit() {
     p.next = p.prev = p;                            // 重連結環状リストにする
 
     Sem s = _AtoA(semMem[i]);                       // セマフォ本体(静的に確保)
-    s.inUse = false;                                // セマフォは未使用
     s.queue = p;                                    // 番兵を登録
     semTbl[i] = s;                                  // 一覧にセマフォを登録
   }
@@ -271,12 +272,13 @@ int nextPid() {
 // PCB をプロセス一覧表に登録する
 int regProcTbl(PCB pcb) {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
-  for (int i=0; i<PRC_MAX; i=i+1)                   // 全エントリについて
+  for (int i=0; i<PRC_MAX; i=i+1) {                 // 全エントリについて
     if (procTbl[i]==null) {                         //   空きエントリがあれば
       procTbl[i] = pcb;                             //     PCB を登録する
       setPri(r);                                    // 割り込み状態を復元する
       return i;                                     // 登録場所を返す
     }
+  }
   panic("regProcTbl");                              // プロセスが多すぎる
   return -1;                                        // ここは実行されない
 }
