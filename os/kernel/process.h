@@ -22,6 +22,7 @@
 /*
  * kernel/process.h : プロセス管理に関するデータを含むファイル
  *
+ * 2017.12.05 : Sem構造体からinUseを削除
  * 2016.01.18 : 構造体宣言をアッパーキャメルケースに統一
  * 2015.11.17 : PCB に fds を追加、 P_FILE_MAX を追加
  * 2015.09.06 : tmrCnt,tmrSem,retCode をevtCnt,evtSem,exitStat に改称(重村)
@@ -96,7 +97,6 @@ struct PCB {              // PCB を表す構造体
 #define SEM_MAX 30        // セマフォは最大 30 個
 
 struct Sem {              // セマフォを表す構造体
-  boolean inUse;          // このセマフォ構造体は使用中
   int cnt;                // カウンタ
   PCB queue;              // 待ち行列
 };
