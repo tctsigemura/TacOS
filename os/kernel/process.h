@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * kernel/process.h : プロセス管理に関するデータを含むファイル
  *
+ * 2017.12.08 : P_SLEEP を P_WAIT に変更
  * 2017.12.05 : Sem構造体からinUseを削除
  * 2016.01.18 : 構造体宣言をアッパーキャメルケースに統一
  * 2015.11.17 : PCB に fds を追加、 P_FILE_MAX を追加
@@ -56,7 +57,7 @@
 #define P_KERN_STKSIZ 200 // プロセス毎のカーネルスタックのサイズ
 #define P_LOW_PRI 30000   // プロセスの最低優先度
 #define P_RUN    1        // プロセスは実行可能または実行中
-#define P_SLEEP  2        // プロセスは実行不可能
+#define P_WAIT   2        // プロセスは待ち状態
 #define P_ZOMBIE 3        // プロセスは実行終了
 #define P_MAGIC  0xabcd   // スタックオーバーフロー検知に使用
 #define P_FILE_MAX 4      // プロセスがオープンできるファイルの最大数

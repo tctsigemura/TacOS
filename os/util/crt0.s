@@ -2,7 +2,7 @@
 ; TacOS Source Code
 ;    Tokuyama kousen Advanced educational Computer
 ;
-; Copyright (C) 2009-2016 by
+; Copyright (C) 2009-2017 by
 ;                      Dept. of Computer Science and Electronic Engineering,
 ;                      Tokuyama College of Technology, JAPAN
 ;
@@ -20,6 +20,7 @@
 ; 
 ; util/crt0.s : カーネル用スタートアップ
 ;
+; 2017.12.10 : _setPri のコメントを訂正
 ; 2016.01.20 : __fp() を追加
 ; 2016.01.06 : コメントの体裁を清書 
 ; 2015.09.02 : __AtoA 追加(重村)
@@ -43,7 +44,7 @@
         halt                ; 万一カーネルが終了したらここで終わる
         jmp     0xf000      ; IPL へジャンプ
 
-;; CPU の割り込みレベルを変更 
+;; CPU のフラグの値を返すと同時に新しい値に変更 
 _setPri 
         ld      g0,2,sp     ; 引数の値を G0 に取り出す
         push    g0          ; 新しい状態をスタックに積む

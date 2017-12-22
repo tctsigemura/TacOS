@@ -22,11 +22,14 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2017.12.22 : send(), receive()の不要なsetPri()を削除
+ * 2017.12.08 : P_SLEEP を P_WAIT に変更
+ * 2017.12.07 : freeSem()のコメントになっていたsetPri()を削除
  * 2017.12.05 : Sem構造体からinUseを削除
  * 2017.10.27 : 関数名変更(dispatch() -> yield(), startProc() -> dispatch())
  * 2016.01.19 : 例外発生時に、ユーザモード中だったかのチェックを修正
  * 2016.01.06 : ソース、コメントの体裁を整える
- * 2015.11.17 : newProc() で FDS の登録を追加、カーネルプロセスの FDS 確保を追加
+ * 2015.11.17 : newProc() でFDSの登録を追加、カーネルプロセスのFDS確保を追加
  * 2015.11.16 : zmbProc() で親プロセスが wait していたら起こすように改良
  * 2015.09.06 : curProc, readyQueue を外部 C-- プログラムへ公開
  *              retChildPcb() を waitChild() に変更
@@ -154,9 +157,7 @@ public int newSem(int init) {
 // セマフォの解放
 // (書き込み1回で仕事が終わるので割込み許可でも大丈夫)
 public void freeSem(int s) {
-//int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   semInUse[s] = false;                              // 未使用に変更
-//setPri(r);                                        // 割り込み状態を復元する
 }
 
 // セマフォの P 操作
@@ -174,7 +175,7 @@ public void semP(int sd) {
     s.cnt = s.cnt - 1;                              //   カウンタから引く
   } else {                                          // カウンタから引けないなら
     delProc(curProc);                               //   実行可能列から外し
-    curProc.stat = P_SLEEP;                         //   実行不可能に変更する
+    curProc.stat = P_WAIT;                          //   待ち状態に変更する
     insProc(s.queue,curProc);                       //   セマフォの行列に登録
     yield();                                        //   CPUを解放し
   }                                                 //     他プロセスに切換える
@@ -513,22 +514,18 @@ public int newLink() {
 
 // サーバ用の待ち受けルーチン
 public Link receive(int num) {
-  int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   Link l = linkTbl[num];
   if (l.server != curProc) panic("receive");        // 登録されたサーバではない
   semP(l.s1);                                       // サーバをブロック
-  setPri(r);                                        // 割り込み復元
   return l;
 }
 
 // サーバ用の送信ルーチン
 public void send(int num, int res) {
-  int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   Link l = linkTbl[num];
   if (l.server != curProc) panic("send");           // 登録されたサーバではない
   l.op = res;                                       // 処理結果を書込む
   semV(l.s3);                                       // クライアントを起こす
-  setPri(r);                                        // 割り込み復元
 }
 
 // クライアント用メッセージ送受信ルーチン
