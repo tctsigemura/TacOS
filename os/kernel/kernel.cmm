@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2017.12.25 : sndrec() で割込み禁止区間を縮小
  * 2017.12.22 : send(), receive()の不要なsetPri()を削除
  * 2017.12.08 : P_SLEEP を P_WAIT に変更
  * 2017.12.07 : freeSem()のコメントになっていたsetPri()を削除
@@ -530,24 +531,19 @@ public void send(int num, int res) {
 
 // クライアント用メッセージ送受信ルーチン
 public int sndrec(int num, int op, int prm1, int prm2, int prm3) {
-  int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
-#ifdef DEBUG
-  printF("sendrec:LINK=%d,PID=%d,OP=%d,PRM1=%04x,PRM2=%04x,PRM3=%04x\n",
-         num, curProc.pid, op, prm1, prm2, prm3);
-#endif
-  Link l = linkTbl[num];
-                                                    // 他のクライアントと相互
+  Link l = linkTbl[num];                            // 他のクライアントと相互
   semP(l.s2);                                       //   排除しリンクを確保
   l.client = curProc;                               // リンク使用中プロセス記録
   l.op = op;                                        // メッセージを書込む
   l.prm1 = prm1;
   l.prm2 = prm2;
   l.prm3 = prm3;
+  int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   iSemV(l.s1);                                      // サーバを起こす
   semP(l.s3);                                       // 返信があるまでブロック
+  setPri(r);                                        // 割り込み復元
   int res = l.op;                                   // 返信を取り出す
   semV(l.s2);                                       // リンクを解放
-  setPri(r);                                        // 割り込み復元
   return res;
 }
 
