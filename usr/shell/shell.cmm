@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011-2016 by
+ * Copyright (C) 2011-2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * shell/shell.cmm : シェルプログラム
  *
+ * 2017.12.25 : コマンド名が8文字以上で異常終了するバグを訂正
  * 2016.01.13 : コマンドプログラムの生成方法を修正
  * 2015.12.07 : コマンドプログラムを bin フォルダから探すように変更
  * 2015.09.01 : コマンド実行後の sta の値のチェックを追加
@@ -125,10 +126,13 @@ public int main() {
     }
     argv[j] = null;
 
-    // 入力に応じたプログラムを生成する
-    if (argv[0][0]=='\n')                               // Enter だけなら
+    // 入力に応じたプログラムを実行する
+    sta[0]=0;                                           // 終了ステータスクリア
+    if (argv[0][0]=='\n') {                             // Enter だけなら
       ;                                                 //   何もしない
-    else {
+    } else if (strLen(argv[0])>8) {                     // コマンド名が長すぎ
+      printf("too long commnd name\n");
+    } else {
       strCpy(cmd, "bin/");                              // コマンドのパスを生成
       strCat(cmd, argv[0]);
       strCat(cmd, ".exe");
