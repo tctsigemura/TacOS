@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2017.12.27 : newLink() のコメントを修正
  * 2017.12.25 : sndrec() で割込み禁止区間を縮小
  * 2017.12.22 : send(), receive()の不要なsetPri()を削除
  * 2017.12.08 : P_SLEEP を P_WAIT に変更
@@ -505,7 +506,7 @@ public int newLink() {
     panic("newLink");
 
   Link l = linkTbl[linkID];                         // 新しく割り当てるリンク
-  l.server = curProc;                               // 生成したサーバを記憶
+  l.server = curProc;                               // リンクの所有者を記憶
   l.s1 = newSem(0);                                 // server が受信待ちに使用
   l.s2 = newSem(1);                                 // client が相互排他に使用
   l.s3 = newSem(0);                                 // client が返信待ちに使用
