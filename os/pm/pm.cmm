@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2017 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * pm/pm.cmm : プロセスマネージャ(PM)の本体、プロセスの生成と管理を行う
  *
+ * 2017.12.27 : プログラムの体裁を整える
  * 2016.01.12 : copyArgs() の argc を廃止
  * 2016.01.02 : sleep システムコールを追加
  * 2015.12.01 : readTextData() を修正
@@ -286,7 +287,7 @@ public void pmMain() {
   pmLink = newLink();                               // リンクを生成する
   while (true) {                                    // システムコールを待つ
     Link l = receive(pmLink);                       // システムコールを受信
-    int r= pmSysCall(l.op,l.prm1,l.prm2,l.prm3,l.client);// システムコール実行
+    int r=pmSysCall(l.op,l.prm1,l.prm2,l.prm3,l.client);// システムコール実行
     send(pmLink, r);                                // 結果を返す
   }
 }
