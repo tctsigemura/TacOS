@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011-2016 by
+ * Copyright (C) 2016 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,36 +22,34 @@
 /*
  * cat/cat.cmm : cat プログラム
  *
- * 2016.01.11 : ファイル名チェックを省略(拡張子のないファイル名も認める)
- * 2015.07.01 : 新規開発
+ * 2016.03.07 : 新規作成
  *
  * $Id$
  *
  */
 
-#include <syslib.h>
-#include <lib.h>
+#include <stdio.hmm>
 
-// ファイルの表示
 public int main(int argc, char[][] argv) {
-  if (argc!=2) {                                    // 引数が不足している
-    printf("Usage:cat <fileName>\n");
-    return 0;
+  if (argc<2) {
+    fprintf(stderr, "Usage: %s <fileName>...\n", argv[0]);
+    return 1;
   }
 
-  int fd = open(argv[1], READ);
-  if (fd<0) {
-    printf("can't open File \"%s\"\n", argv[1]);
-  } else {
-    char[] dbuf = malloc(BLKSIZ);
-    int len;
-    while ((len=read(fd, dbuf, BLKSIZ))>0) {
-      for (int i=0; i<len; i=i+1)
-         printf("%c", dbuf[i]);
+  int err = 0;
+  for (int i=1; i<argc; i=i+1) {
+    FILE fp = fopen(argv[i], "r");
+    if (fp==null) {
+      perror(argv[i]);
+      err = 1;
+      continue;
     }
-    free(dbuf);
-    close(fd);
+
+    while (!feof(fp))
+      putchar(fgetc(fp));
+
+    fclose(fp);
   }
-  return 0;
+  return err;
 }
 

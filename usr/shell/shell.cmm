@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011-2017 by
+ * Copyright (C) 2015-2016 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,7 +22,7 @@
 /*
  * shell/shell.cmm : シェルプログラム
  *
- * 2017.12.25 : コマンド名が8文字以上で異常終了するバグを訂正
+ * 2016.03.03 : C--/samples にコピー
  * 2016.01.13 : コマンドプログラムの生成方法を修正
  * 2015.12.07 : コマンドプログラムを bin フォルダから探すように変更
  * 2015.09.01 : コマンド実行後の sta の値のチェックを追加
@@ -34,116 +34,95 @@
  *
  */
 
-#include <syslib.h>
-#include <lib.h>
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+#include <ctype.hmm>
+#include <syslib.hmm>
 
-#define LMAX 80                                         // 1行最大 80 文字
+#define LMAX 80                                   // 1行最大 80 文字
+#define ARGMAX 30                                 // コマンド業引数は最大30個
+#define PATHMAX 80                                // 最長のパスの名
+#define BIN  "/bin/"                              // コマンドを探す場所
+#define EXE  ".exe"                               // 実行形式の拡張子
 
-// s[ptr] からの空白区切り文字列を d に取り出す
-int getStr(char[] s, int ptr, char[] d) {
-  while (s[ptr]==' ')
-    ptr = ptr + 1;
+char[] cmd = array(PATHMAX+1);                    // 実行形式へのパス
+int[]  sta = array(1);                            // リターンコード格納用
+char[][] argv = array(ARGMAX+1);                  // コマンド行引数の配列
 
-  int i=0;
-  while (s[ptr]!='\0' && s[ptr]!=' ') {
-    d[i] = s[ptr];
+// 空白以外を探す
+int skipSpc(char[] line, int p) {
+  while (isSpace(line[p]) && line[p]!='\0')
+    p = p + 1;
+  return p;
+}
+
+// 空白を探す
+int srchSpc(char[] line, int p) {
+  while (!isSpace(line[p]) && line[p]!='\0')
+    p = p + 1;
+  return p;
+}
+
+// コマンド行を解析して argv 配列を作る
+boolean parse(char[] line) {
+  int p = 0;
+  int i = 0;
+  while (i<=ARGMAX) {
+    p = skipSpc(line , p);                        // 余計な空白をスキップする
+    if (line[p]=='\0') break;                     // 行末になった
+
+    argv[i] = subStr(line, p);                    // 文字列を記録する
     i = i + 1;
-    ptr = ptr + 1;
+
+    p = srchSpc(line , p);                        // 空白を探す
+    if (line[p]=='\0') break;                     // 行末になった
+
+    line[p] = '\0';                               // 文字列を区切る
+    p = p + 1;
   }
+  if (i>ARGMAX) return true;                      // コマンド行引数が多すぎる
 
-  d[i] = '\0';
-  return ptr;
+  argv[i] = null;                                 // argv配列を完成する
+  return false;                                   // 正常に解析できた
 }
 
-// 文字列比較
-int strCmp(char[] s1, char[] s2) {
-   int i = 0;
-   while (s1[i]==s2[i] && s1[i]!='\0')
-     i = i + 1;
-   return ord(s1[i])-ord(s2[i]);
-}
-
-// 文字列の長さを計算する('\0' はカウントしない)
-public int strLen(char[] s) {
-  int len = 0;
-  while (s[len]!='\0')                              // 終端記号まで
-    len = len + 1;
-  return len;                                       // 長さを返す
-}
-
-// 文字列のコピー(s2 を s1 にコピーする)
-void strCpy(char[] s1, char[] s2) {
-  int i;
-  for (i=0; s2[i]!='\0'; i=i+1)
-    s1[i]=s2[i];
-  s1[i]='\0';
-}
-
-char[] tbuf = array(LMAX+1);                            // 一時領域
-
-// コマンド行引数の数を数える
-int cntArgc(char[] s) {
-  int argc = 0;                                         // 返り値
-  int i=0;
-  while (s[i]!='\0') {                                  // 終端記号が来るまで
-    i = getStr(s, i, tbuf);                             //   コマンド行引数抽出
-    argc = argc+1;                                      //   argcを加算
-  }
-  return argc;
-}
-
-// 文字列の連結(src に dst を連結する)
-void strCat(char[] src, char[] dst) {
-  int i;
-  for (i=0; src[i]!='\0'; i=i+1) ;                     // src の終端まで
-  for (int j=0; (src[i]=dst[j])!='\0'; j=j+1)          // src の続きから
-    i=i+1;                                             //   dst をコピーする
-}
-
-// メインルーチン
-char[] buf = array(LMAX+1);                             // キー入力文字列格納用
-char[][] argv;
-char[] cmd = array(17);                                 // "bin/abcdefgh.exe"
-int[]  sta = array(1);                                  // リターンコード格納用
 public int main() {
-  printf("TacOS Modoki Shell\n");
-  for (;;) {
-    printf("$ ");                                       // プロンプトのつもり
-    conRead(buf, LMAX+1);                               // 入力文字列を取得
+  fprintf(stderr, "TacOS Shell\n");
 
-    // argc を計算
-    int argc = cntArgc(buf);                            // コマンド行引数の数
-    argv = malloc((argc+1) * 2);
+  char[] buf = malloc(LMAX+1);                    // キー入力文字列格納用
+  for (;;) {
+    fprintf(stderr, "$ ");                        // プロンプトのつもり
+    if (fgets(buf, LMAX+1, stdin)==null) break;   // 入力文字列を取得
 
     // argv を生成
-    int p = 0;                                          // tbuf の参照位置
-    int j = 0;                                          // argv のインデックス
-    while (buf[p]!='\0') {
-      p = getStr(buf, p, tbuf);                         // argv[i] を取得
-      argv[j] = malloc(strLen(tbuf)+1);
-      strCpy(argv[j], tbuf);
-      j = j + 1;
-    }
-    argv[j] = null;
-
-    // 入力に応じたプログラムを実行する
-    sta[0]=0;                                           // 終了ステータスクリア
-    if (argv[0][0]=='\n') {                             // Enter だけなら
-      ;                                                 //   何もしない
-    } else if (strLen(argv[0])>8) {                     // コマンド名が長すぎ
-      printf("too long commnd name\n");
-    } else {
-      strCpy(cmd, "bin/");                              // コマンドのパスを生成
-      strCat(cmd, argv[0]);
-      strCat(cmd, ".exe");
-      if      (exec(cmd, argv)<0) perror(cmd);          // コマンドを生成
-      else if (wait(sta)<0)       perror(cmd);          // コマンドの終了を待つ
+    if (parse(buf)) {
+      fprintf(stderr, "shell: Too many args\n");
+      continue;
     }
 
-    if (sta[0]<0) _perror(argv[0], sta[0]);             // 異常終了のエラー表示
-    for (int i=0; i<argc; i=i+1)                        // argv を解放
-      free(argv[i]);
-    free(argv);
+    // デバッグ用
+    // for (int i=0; argv[i]!=null; i=i+1)
+    //   fprintf(stderr, "argv[%d]=[%s]\n", i, argv[i]);
+
+    if (argv[0]==null) continue;                  // Enter だけなら
+
+    // コマンド名の長さをチェックする
+    if (PATHMAX<strLen(BIN)+strLen(argv[0])+strLen(EXE)) {
+      fprintf(stderr, "shell: Too long path name\n");
+      continue;
+    }
+     
+    strCpy(cmd, BIN);                             // コマンドへのパスを作る
+    strCat(cmd, argv[0]);
+    strCat(cmd, EXE);
+
+    sta[0] = 0;                                   // エラー番号をクリア
+    if (exec(cmd, argv)<0) perror(cmd);           // コマンドを実行
+    else if (wait(sta)<0)  perror(cmd);           // コマンドの終了を待つ
+
+    if (sta[0]<0) _perror(argv[0], sta[0]);       // 異常終了のエラー表示
   }
+
   return 0;
 }

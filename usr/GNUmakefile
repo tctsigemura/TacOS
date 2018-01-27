@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2011 - 2016 by
+# Copyright (C) 2016 - 2018 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -19,6 +19,7 @@
 #
 # Makefile : usr ディレクトリ用の Makefile
 #
+# 2018.01.26         : lib ディレクトリを削除（C-- 標準ライブラリを用いる）
 # 2016.01.07         : 初期バージョン
 #
 # $Id$
@@ -26,7 +27,7 @@
 MAKEFLAGS=--no-print-directory
 
 # サブディレクトリ
-SUBDIRS:=lib cat dump ls shell touch rm mkdir rmdir
+SUBDIRS:=cat dump ls shell touch rm mkdir rmdir
 
 all :
 	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir); )
