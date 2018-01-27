@@ -19,7 +19,7 @@
 #
 # Makefile.rul : ユーザプログラム用の Makefile.rul
 #
-# 2018.01.26   : cm2e を使用するように書き換え
+# 2018.01.27   : cm2e を使用するように書き換え
 # 2016.01.08   : 整理して著作権表示追加
 #
 # $Id$
@@ -27,7 +27,7 @@
 
 # 使用されそうなフラグ
 #CPFLAGS+=-DDEBUG
-CMFLAGS+=-K
+CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../pm -I../tty
 
 # make するソースのサフィックス（拡張子） の一覧
 .SUFFIXES: .o .cmm .s
@@ -36,9 +36,9 @@ CMFLAGS+=-K
 .s.o:
 	as-- $*.s
 
-# .cmm -> .s
-.cmm.s:
-	cm2e -K -S $*.cmm
+# .cmm -> .o
+.cmm.o:
+	cm2e ${CMFLAGS} -c $*.cmm
 
 # 各サブディレクトリで生成される .o ファイルを結合して mod.o ファイルを生成する
 mod.o : ${OBJS}
