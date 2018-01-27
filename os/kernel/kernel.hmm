@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,8 +20,9 @@
  */
 
 /*
- * kernel/kernel.h : kernel.cmm の外部インタフェース
+ * kernel/kernel.hmm : kernel.cmm の外部インタフェース
  *
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2015.11.17 : newProc() の引数を追加
  * 2015.09.06 : tmrRst() を廃止(重村)
  * 2015.09.04 : getPid(), schProc() 追加、parentToInit() 削除(重村)
@@ -54,7 +55,7 @@
  *
  */
 
-#include "process.h"
+#include "process.hmm"
 
 /*-----------------------------------------------------------------------------
  * カーネルデータ

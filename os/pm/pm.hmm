@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,8 +20,9 @@
  */
 
 /*
- * pm/pm.h : pm.cmm の外部インタフェース
+ * pm/pm.hmm : pm.cmm の外部インタフェース
  *
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.02 : sleep システムコールを追加
  * 2015.06.26 : exec のパラメータを追加(argc、argv)
  * 2015.04.30 : wait システムコールを実装

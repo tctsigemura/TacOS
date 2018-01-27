@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,17 +20,26 @@
  */
 
 /*
- * kernel/init.h : init.cmm の外部インタフェース
+ * pm/exeFile.hmm : 実行ファイルフォーマットに関するデータを含むファイル
  *
- * 2015.09.06 : 清書(重村)
- * 2014.05.16 : process.h の二重定義を防ぐ方法を追加
- * 2014.05.16 : pcb1, pcb2 をプロセスからアクセスできるように usrInit.cmm から
- *              public で移動
- * 2014.05.08 : 村田開発開始
- * 2011.05.20 : 新規作成
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
+ * 2015.09.08 : ファイルフォーマットに関するコメント追加
+ * 2015.08.20 : 新規作成
  *
  * $Id$
  *
  */
 
-public void initMain();                             // INIT のメインルーチン
+#define MAGIC	0x0108
+#define HDRSIZ  12
+
+/* 実行ファイル(EXE ファイル)のヘッダを構造体で表現すると
+struct ExeHeader {
+  int  magic;             // MAGIC コード (0x0108)
+  int  textSiz;           // TEXT  セグメントのサイズ
+  int  dataSiz;           // DATA  セグメントのサイズ
+  int  bssSiz;            // BSS   セグメントのサイズ
+  int  relSiz;            // 再配置情報のサイズ
+  int  userStkSiz;        // プロセスのユーザスタックサイズ
+}
+*/

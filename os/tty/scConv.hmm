@@ -1,8 +1,8 @@
 /*
  * TacOS Source Code
- *    Tokuyama kousen Educational Computer 16bit Ver.
+ *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2009-2016 by
+ * Copyright (C) 2011-2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,14 +20,15 @@
  */
 
 /*
- * util/console.h : console.cmm の外部インタフェース
+ * tty/scConv.hmm : scConv.cmm の外部インタフェース
  *
- * 2014.05.07 : 村田開発開始
- * 2012.02.29 : cls を追加
- * 2012.01.08 : console.cmm の外部インタフェース
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
+ * 2015.06.04 : 村田開発開始、include を変更
+ * 2012.05.15 : TeC7 用に I/O アドレスなど変更
+ * 2011.05.20 : 新規作成(TaC)
  *
  * $Id$
+ *
  */
 
-public void putVGA(char c);                 // VGAへの1文字表示
-public void consInit();                     // 画面出力の初期化
+public char scConv(char c);

@@ -1,8 +1,8 @@
 /*
  * TacOS Source Code
- *    Tokuyama kousen Educational Computer 16bit Ver.
+ *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2009-2016 by
+ * Copyright (C) 2011-2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,37 +20,13 @@
  */
 
 /*
- * fs/mmcspi.h : mmcspi.cmm の外部インタフェース
+ * tty/kbd.hmm : kbd.cmm の外部インタフェース
  *
- * 2015.09.02 : コメントなどの体裁を調整(重村)
- * 2014.06.03 : 村田開発開始
- * 2012.09.14 : バッファの型を char[] から void[] に変更
- * 2012.01.08 : 初期バージョン
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  *
  * $Id$
  *
  */
 
-/*----------------------------------------------------------------------------
- * public function
- *---------------------------------------------------------------------------*/
-/*
- * initMmcSpi : initialize
- */
-public void initMmcSpi();
-
-/*
- * readSct : read block(sector address)
- *  h   : sector address upper
- *  l   : sector address lower
- *  buf : data buffer
- */
-public void readSct(int h, int l, void[] buf);
-
-/*
- * writeSct : write block(sector address)
- *  h   : sector address upper
- *  l   : sector address lower
- *  buf : data buffer
- */
-public void writeSct(int h, int l, void[] buf);
+public void keyBoardInit();        // 初期化
+public char getKeyCode();          // スキャンコード取得

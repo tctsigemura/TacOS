@@ -1,8 +1,8 @@
 /*
  * TacOS Source Code
- *    Tokuyama kousen Advanced educational Computer.
+ *    Tokuyama kousen Educational Computer 16bit Ver.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2009-2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,36 +20,37 @@
  */
 
 /*
- *  mm/mm.h : mm.cmm の外部インタフェース
+ * fs/mmcspi.hmm : mmcspi.cmm の外部インタフェース
  *
- * 2015.09.04 : memInit() を削除(重村)
- * 2014.08.22 : 村田開発開始
- * 2011.05.20 : 新規作成
+ * 2015.09.02 : コメントなどの体裁を調整(重村)
+ * 2014.06.03 : 村田開発開始
+ * 2012.09.14 : バッファの型を char[] から void[] に変更
+ * 2012.01.08 : 初期バージョン
  *
  * $Id$
  *
  */
 
-
-public int mmLink;             // MM 用のリンク番号
-public void mmMain();
-
-//----------------------------------------------------------------------------
-// カーネルプロセス用のメモリ関係システムコール
-//----------------------------------------------------------------------------
-
 /*----------------------------------------------------------------------------
- *   名前   : malloc
- *　 戻り値 : void[] (失敗なら null)
- *　 引数   : int s 確保したいメモリの大きさ
- *   解説   : メモリを確保する
+ * public function
+ *---------------------------------------------------------------------------*/
+/*
+ * initMmcSpi : initialize
  */
-public void[] malloc(int s);
+public void initMmcSpi();
 
-/*----------------------------------------------------------------------------
- *   名前   : free
- *　 戻り値 : なし
- *　 引数   : void[] mem 解放したいメモリへのポインタ
- *   解説   : メモリを解放する
+/*
+ * readSct : read block(sector address)
+ *  h   : sector address upper
+ *  l   : sector address lower
+ *  buf : data buffer
  */
-public void free(void[] mem);
+public void readSct(int h, int l, void[] buf);
+
+/*
+ * writeSct : write block(sector address)
+ *  h   : sector address upper
+ *  l   : sector address lower
+ *  buf : data buffer
+ */
+public void writeSct(int h, int l, void[] buf);

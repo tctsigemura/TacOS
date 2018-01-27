@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2017 by
+ * Copyright (C) 2011 - 2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * pm/pm.cmm : プロセスマネージャ(PM)の本体、プロセスの生成と管理を行う
  *
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2017.12.27 : プログラムの体裁を整える
  * 2016.01.12 : copyArgs() の argc を廃止
  * 2016.01.02 : sleep システムコールを追加
@@ -56,13 +57,13 @@
  * 2015.02.11 : 村田開発開始
  */
 
-#include <util.h>
-#include <kernel.h>
-#include <syscall.h>
-#include <mm.h>
-#include <fs.h>
-#include "pm.h"
-#include "exeFile.h"
+#include <util.hmm>
+#include <kernel.hmm>
+#include <syscall.hmm>
+#include <mm.hmm>
+#include <fs.hmm>
+#include "pm.hmm"
+#include "exeFile.hmm"
 
 // PM は単一プロセスで実行されるので、ほとんどのグローバル変数アクセスで
 // 排他を気にしなくて良い

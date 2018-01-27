@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * fs/fatSys.cmm : FAT16 ファイルシステムのシステムコール処理部分
  *
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.06 : コードレビューを反映
  * 2015.12.02 : ルートディレクトリもオープンできるように、sysOpenDir() を修正
  * 2015.12.01 : ファイルシステム全体を見直し
@@ -45,14 +46,14 @@
  *
  */
 
-#include <util.h>
-#include <mm.h>
-#include <syscall.h>
-#include "fsDef.h"                              // 全体に共通の定義
-#include "blkFile.h"                            // 下位モジュール
-#include "fatSys.h"                             // 外部公開
-#include "dirAccess.h"
-#include "file.h"
+#include <util.hmm>
+#include <mm.hmm>
+#include <syscall.hmm>
+#include "fsDef.hmm"                            // 全体に共通の定義
+#include "blkFile.hmm"                          // 下位モジュール
+#include "fatSys.hmm"                           // 外部公開
+#include "dirAccess.hmm"
+#include "file.hmm"
 
 // FAT ファイルシステムは EXE ファイルと違い、リトルエンディアンであることに注意
 // 新規ファイルの場合は、最初に何かを書き込んだタイミングでクラスタを割り当てる

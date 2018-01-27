@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Educational Computer 16bit Ver.
  *
- * Copyright (C) 2009-2016 by
+ * Copyright (C) 2009-2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * util/console.cmm : TaC の画面制御部分
  *
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.11 : ハードウェアカーソルの制御を追加
  * 2016.01.06 : コメントの体裁を清書
  * 2016.01.04 : util.h をインクルードし isPrint() を使用する(重村)
@@ -36,9 +37,9 @@
  *
  */
 
-#include "crt0.h"
-#include "util.h"
-#include "console.h"
+#include "crt0.hmm"
+#include "util.hmm"
+#include "console.hmm"
 
 #define VRAM  0xe000                           // VRAM のアドレス 
 

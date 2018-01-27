@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,38 +20,35 @@
  */
 
 /*
- * fs/blkFile.h : blkFile.cmm の外部インタフェース
+ * fs/fatSys.hmm : fatSys.cmm の外部インタフェース
  *
- * 2016.01.19 : LdBK, StBK を ldBlk, stBlk に変更
- * 2015.12.30 : LdBk, StBk を追加(重村)
- * 2015.12.03 : entToBlk() を dirAccess.cmm に移植
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2015.12.01 : ファイルシステム全体を見直し
- * 2015.09.02 : インクルードファイルを見直し(重村)
- * 2015.03.10 : P_OPENMAX を process.h から移植
+ * 2015.11.17 : chkCloseForg() を廃止、sysMkDir() と sysRmDir() を追加
+ * 2015.09.02 : コメントなどの体裁を調整(重村)
+ * 2015.04.24 : クローズ忘れファイルを探索する chkCloseForg() を追加
+ * 2015.03.10 : sysOpen() の引数に要求クライアントの pid を追加
  * 2014.11.25 : seek システムコールを実装
- * 2014.11.04 : mkdir システムコールを実装
+ * 2014.11.04 : mkDir システムコールを実装
  * 2014.11.03 : write システムコールを実装
  * 2014.10.06 : remove システムコールを実装
- * 2014.10.03 : creat システムコールを実装
- * 2014.06.03 : コピー
+ * 2014.10.03 : creat システムを実装
+ * 2014.06.03 : 村田開発開始
+ * 2011.05.28 : 一応完成
  * 2011.05.23 : Boot-- をもとに新規作成
  *
  * $Id$
  *
  */
 
-struct Blk {                                // データブロックを表す構造体
-  int clst;                                 // ブロックのクラスタ番号
-  int sct;                                  // ブロックのセクタ番号
-};
+#include <process.hmm>
 
-public void blkInit();
-public void readBlk(Blk blk, char[] buf);
-public void writeBlk(Blk blk, char[] buf);
-public boolean nextBlk(Blk blk);
-public int allocClst(int clst);
-public void delClstChain(int clst);
-public void flushFat();
-
-#define ldBlk(dst,c,s) ((dst).clst=(c),(dst).sct=(s))
-#define stBlk(c,s,src) ((c)=(src).clst,(s)=(src).sct)
+public int sysOpen(char[] path, int mode, PCB pcb);
+public int sysClose(int idx, PCB pcb);
+public int sysRead(PCB pcb, int idx, char[] buf, int len);
+public int sysWrite(PCB pcb, int idx, char[] buf, int len);
+public int sysCreat(char[] path);
+public int sysRemove(char[] path);
+public int sysSeek(PCB pcb, int idx,  int posH, int posL);
+public int sysMkDir(char[] path);
+public int sysRmDir(char[] path);
