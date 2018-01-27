@@ -17,21 +17,26 @@
 # る損害に関しても，その責任を負わない．
 #
 #
-# GNUmakefile : lib 用の GNUmakefile
+# GNUmakefile : ユーザプログラム用の Makefile
 #
-# 2016.01.08  : 初期バージョン
+# 2016.08.11         : 初期バージョン
 #
 # $Id$
 #
 
-# crt0.o を先頭にする
-OBJS=crt0.o syslib.o lib.o io.o
+#----------------------------------------------------------------------------
+NAME=hello
+SRCS=${NAME}.cmm
+#----------------------------------------------------------------------------
 
-# 作るもの
-all : clean library.o 
+all : clean ${NAME}.exe ${NAME}
 
-include ../Makefile.rul
+${NAME}.exe : ${SRCS}
+	cm2e -o ${NAME} ${SRCS}
 
-library.o : ${OBJS}
-	ld-- library.o ${OBJS} > library.sym
+${NAME} : ${SRCS}
+	cm2c -o ${NAME} ${SRCS}
+
+clean :
+	rm -f ${NAME} *.o *.lst *.sym *.exe *.map *~
 

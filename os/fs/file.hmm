@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011 - 2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,8 +20,9 @@
  */
 
 /*
- * fs/file.h : file.cmm の外部インタフェース
+ * fs/file.hmm : file.cmm の外部インタフェース
  *
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.18 : 構造体宣言をアッパーキャメルケースに統一
  * 2011.12.01 : 新規作成
  *

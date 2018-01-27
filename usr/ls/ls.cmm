@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011-2016 by
+ * Copyright (C) 2016 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,44 +22,45 @@
 /*
  * ls/ls.cmm : ls プログラム
  *
- * 2016.01.10 : ファイル名表示の桁数指定
- * 2015.12.02 : FS の見直しに伴い、一部修正
- * 2015.07.01 : 新規開発
+ * 2016.03.07 : 新規作成
  *
  * $Id$
  *
  */
 
-#include <syslib.h>
-#include <lib.h>
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <syslib.hmm>
 
-Dir dir = {"            ", 0, 0, 0, 0 };        // 一時使用領域
+Dir dir = {"            ", 0, 0, 0, 0 };        // ディレクトリの読出しバッファ
 
-// ファイルの一覧を出力する
-// 「ls」のみ入力された場合はルートディレクトリ("/")の一覧を出力
-public int main(int argc, char[][] argv) {
-
-  // argv[1] がディレクトリ名か確認する
-  boolean period = false;                       // '.' が含まれているか
-  for (int i=0; argv[1][i]!='\0'; i=i+1)
-    if (argv[1][i]=='.') {period=true; break;} 
-  if (period) {                                 // '.' が含まれていたら
-    printf("Usage:ls <dirName>\n");             //   引数がディレクトリでない
-    return 0;
+// ディレクトリの一覧を表示する
+int printDir(char[] fname) {
+  int fd = open(fname, READ);                   // ディレクトリを開く
+  if (fd<0) {
+    perror(fname);
+    return 1;
   }
 
-  int fd;
-  if  (argc==1) fd = open("/", READ);           // ルートディレクトリ
-  else          fd = open(argv[1], READ);       // ディレクトリを OPEN
-  if (fd<0)                                     // ディレクトリが見つからない
-    printf("can't open Dir \"%s\"\n", argv[1]); //   メッセージを出力
-  else {                                        // ディレクトリが見つかった
-    printf("FileNameExt Attr Clst FileLength\n");
-    while (readDir(fd, dir)>0)                  // ファイルが続くまで
-      printf("%11s 0x%02x %4d 0x%04x%04x\n",    //   ファイルの一覧を出力
-                    dir.name, dir.attr, dir.clst, dir.lenH, dir.lenL);
+  printf("FileNameExt Attr Clst FileLength\n");
+  while (readDir(fd, dir)>0) {                  // ファイルが続く間
+    printf("%11s 0x%02x %4d 0x%04x%04x\n",      //   ファイルの一覧を出力
+             dir.name, dir.attr, dir.clst,
+             dir.lenH, dir.lenL);
   }
-
   close(fd);
   return 0;
+}
+
+public int main(int argc, char[][] argv) {
+  int err = 0;
+  if  (argc==1) {                               // 特に指定がなければ
+    err = printDir("/");
+  } else {
+    for (int i=1; i<argc; i=i+1) {
+      if (argc>2) printf("%s:\n", argv[i]);     // 複数ファイルの場合は名前表示
+      err = err | printDir(argv[i]);
+    }
+  }
+  return err;
 }

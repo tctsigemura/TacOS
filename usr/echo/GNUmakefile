@@ -17,41 +17,26 @@
 # る損害に関しても，その責任を負わない．
 #
 #
-# Makefile.rul : ユーザプログラム用の Makefile.rul
+# GNUmakefile : ユーザプログラム用の Makefile
 #
-# 2016.01.07   : 初期バージョン
+# 2016.08.11         : 初期バージョン
 #
 # $Id$
 #
 
-# プリプロセッサ
-CPP=cc -E -std=c99 -nostdinc ${CPFLAGS} -I../include - < 
+#----------------------------------------------------------------------------
+NAME=echo
+SRCS=${NAME}.cmm
+#----------------------------------------------------------------------------
 
-# ユーザライブラリ
-LIB=../lib/library.o
+all : clean ${NAME}.exe ${NAME}
 
-# make するソースのサフィックス（拡張子） の一覧
-.SUFFIXES: .o .cmm .s
+${NAME}.exe : ${SRCS}
+	cm2e -o ${NAME} ${SRCS}
 
-# .s -> .o
-.s.o:
-	as-- $*.s
-
-# .cmm -> .s
-.cmm.s:
-	${CPP} $*.cmm| c-- > $*.s
-
-# 必要ならライブラリを作る
-${LIB} :
-	${MAKE} --directory=../lib
-
-# .o ファイルを結合して mod.o ファイルを生成する
-mod.o : ${LIB} ${OBJS}
-	ld-- mod.o ${LIB} ${OBJS} > mod.sym
-
-# mod.o を objexe-- で変換して .exe ファイルを生成する
-${NAME}.exe : mod.o
-	objexe-- ${NAME}.exe  mod.o 600 | sort --key=1 > ${NAME}.map
+${NAME} : ${SRCS}
+	cm2c -o ${NAME} ${SRCS}
 
 clean :
-	rm -f *.o *.lst *.sym *.exe *.map *~
+	rm -f ${NAME} *.o *.lst *.sym *.exe *.map *~
+

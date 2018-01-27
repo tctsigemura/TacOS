@@ -1,8 +1,8 @@
 /*
  * TacOS Source Code
- *    Tokuyama kousen Advanced educational Computer
+ *    Tokuyama kousen Educational Computer 16bit Ver.
  *
- * Copyright (C) 2008-2016 by
+ * Copyright (C) 2009-2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,22 +20,37 @@
  */
 
 /*
- * include/crt0.h : lib/crt0.s の外部インタフェース
+ * fs/mmcspi.hmm : mmcspi.cmm の外部インタフェース
  *
- * 2015.06.17  _sp() を追加
- * 2015.06.08　新規作成
+ * 2015.09.02 : コメントなどの体裁を調整(重村)
+ * 2014.06.03 : 村田開発開始
+ * 2012.09.14 : バッファの型を char[] から void[] に変更
+ * 2012.01.08 : 初期バージョン
  *
  * $Id$
+ *
  */
 
+/*----------------------------------------------------------------------------
+ * public function
+ *---------------------------------------------------------------------------*/
+/*
+ * initMmcSpi : initialize
+ */
+public void initMmcSpi();
 
-// C-- をサポートする関数
-public int    _AtoI(void[] a);                      // 型変換ルーチン
-public void[] _ItoA(int a);                         // 型変換ルーチン
-public void[] _addrAdd(void[] a, int i);            // アドレス計算
-public int    _uCmp(int a, int b);                  // 符号無しの大小比較
-public int    _aCmp(void[] a, void[] b);            // アドレスの大小比較
-public void[] _args();                              // 関数の引数配列を返す
-public int    _sp();                                // 現在の SP の値を返す
+/*
+ * readSct : read block(sector address)
+ *  h   : sector address upper
+ *  l   : sector address lower
+ *  buf : data buffer
+ */
+public void readSct(int h, int l, void[] buf);
 
-
+/*
+ * writeSct : write block(sector address)
+ *  h   : sector address upper
+ *  l   : sector address lower
+ *  buf : data buffer
+ */
+public void writeSct(int h, int l, void[] buf);

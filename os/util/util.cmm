@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer
  *
- * Copyright (C) 2008-2016 by
+ * Copyright (C) 2008-2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * util/util.cmm : C-- が動くために必要な関数群
  *
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.11 : panic() が #ifdef DEGUB 以外で printf() を使用しないように変更
  * 2016.01.11 : 一部関数をキャメルケースに統一
  * 2016.01.06 : コメント体裁を清書
@@ -50,9 +51,9 @@
  *
  */
 
-#include <kernel.h>
-#include "util.h"
-#include "console.h"
+#include <kernel.hmm>
+#include "util.hmm"
+#include "console.hmm"
 
 // util の初期化ルーチン
 public void utilInit() {

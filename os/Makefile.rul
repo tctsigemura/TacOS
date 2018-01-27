@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2016 by
+# Copyright (C) 2016 - 2018 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -19,6 +19,7 @@
 #
 # Makefile.rul : ユーザプログラム用の Makefile.rul
 #
+# 2018.01.27   : cm2e を使用するように書き換え
 # 2016.01.08   : 整理して著作権表示追加
 #
 # $Id$
@@ -26,12 +27,7 @@
 
 # 使用されそうなフラグ
 #CPFLAGS+=-DDEBUG
-CMFLAGS+=-K
-
-# プリプロセッサ
-# -Iオプション: インクルードの探索先(各サブディレクトリからの相対パス)
-CPP=cc -E -std=c99 -nostdinc ${CPFLAGS} \
-        -I../util -I../kernel -I../fs -I../tty -I../mm -I../pm - < 
+CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../pm -I../tty
 
 # make するソースのサフィックス（拡張子） の一覧
 .SUFFIXES: .o .cmm .s
@@ -40,9 +36,9 @@ CPP=cc -E -std=c99 -nostdinc ${CPFLAGS} \
 .s.o:
 	as-- $*.s
 
-# .cmm -> .s
-.cmm.s:
-	${CPP} $*.cmm| c-- ${CMFLAGS} > $*.s
+# .cmm -> .o
+.cmm.o:
+	cm2e ${CMFLAGS} -c $*.cmm
 
 # 各サブディレクトリで生成される .o ファイルを結合して mod.o ファイルを生成する
 mod.o : ${OBJS}
@@ -50,4 +46,3 @@ mod.o : ${OBJS}
 
 clean :
 	rm -f *.o *.lst *.sym *~
-

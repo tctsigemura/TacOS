@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer
  *
- * Copyright (C) 2008-2016 by
+ * Copyright (C) 2008-2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,8 +20,9 @@
  */
 
 /*
- * util/crt0.h :crt0.s の外部インターフェイス
+ * util/crt0.hmm :crt0.s の外部インターフェイス
  *
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.20 : _fp() を追加
  * 2016.01.19 : Ld32 と St32 を ld32 と st32 に変更
  * 2015.12.30 : St32 追加(重村)

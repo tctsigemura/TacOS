@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2016 by
+ * Copyright (C) 2011-2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,36 +20,13 @@
  */
 
 /*
- *  mm/mm.h : mm.cmm の外部インタフェース
+ * tty/kbd.hmm : kbd.cmm の外部インタフェース
  *
- * 2015.09.04 : memInit() を削除(重村)
- * 2014.08.22 : 村田開発開始
- * 2011.05.20 : 新規作成
+ * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  *
  * $Id$
  *
  */
 
-
-public int mmLink;             // MM 用のリンク番号
-public void mmMain();
-
-//----------------------------------------------------------------------------
-// カーネルプロセス用のメモリ関係システムコール
-//----------------------------------------------------------------------------
-
-/*----------------------------------------------------------------------------
- *   名前   : malloc
- *　 戻り値 : void[] (失敗なら null)
- *　 引数   : int s 確保したいメモリの大きさ
- *   解説   : メモリを確保する
- */
-public void[] malloc(int s);
-
-/*----------------------------------------------------------------------------
- *   名前   : free
- *　 戻り値 : なし
- *　 引数   : void[] mem 解放したいメモリへのポインタ
- *   解説   : メモリを解放する
- */
-public void free(void[] mem);
+public void keyBoardInit();        // 初期化
+public char getKeyCode();          // スキャンコード取得
