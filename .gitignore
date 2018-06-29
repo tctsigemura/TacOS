@@ -1,2 +1,7 @@
 .DS_Store
 *~
+*.exe
+*.map
+*.o
+*.lst
+*.sym

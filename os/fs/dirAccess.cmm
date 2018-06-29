@@ -104,9 +104,9 @@ public int readDirEnt(DirEnt dirEnt) {
   if (c=='\xe5') return -1;                  // 無効なエントリ
   getFname(dirEnt.name, curEnt);             // ファイル名を読み込む
   dirEnt.attr = ord(dirCache[curEnt+11]);    // 属性を読み込む
-  dirEnt.clst = wordLE(dirCache, curEnt+26); // 先頭クラスタ番号を読み込む
-  dirEnt.lenH = wordLE(dirCache, curEnt+30); // 上位ファイルサイズを読み込む
-  dirEnt.lenL = wordLE(dirCache, curEnt+28); // 下位ファイルサイズを読み込む
+  dirEnt.clst = wordLE(dirCache, curEnt+26); // 先頭クラスタ番号を読む
+  dirEnt.lenH = wordLE(dirCache, curEnt+30); // ファイルサイズ（上位）を読む
+  dirEnt.lenL = wordLE(dirCache, curEnt+28); // ファイルサイズ（下位）を読む
   return 1;
 }
 
