@@ -83,10 +83,10 @@ void setCache(DirEnt dirEnt) {
 // DIRENT : DIR エントリ を操作する関数
 //----------------------------------------------------------------------------
 
-// getFname : キャッシュから DIR エントリの名前("abcdefghtxt"形式)を抽出する
-// 引数 s   : 抜き出した名前を格納する領域
-//      ofs : DIR エントリの位置
-void getFname(char[] s, int ofs) {
+// readFname : キャッシュから DIR エントリの名前("abcdefghtxt"形式)を読み出す
+// 引数  s   : 抜き出した名前を格納する領域
+//       ofs : DIR エントリの位置
+void readFname(char[] s, int ofs) {
   for (int i=0; i<11; i=i+1)                // ファイル名を抜き出す
     s[i] = dirCache[ofs+i];                 //   1文字ずつコピーする
   if (s[0]=='\x05') s[0]='\xe5';            // 本当はSJIS漢字コードの0xe5
@@ -102,7 +102,7 @@ public int readDirEnt(DirEnt dirEnt) {
   char c = dirCache[curEnt];                 // 着目エントリの先頭
   if (c=='\x00') return 0;                   // これ以上有効なエントリはない
   if (c=='\xe5') return -1;                  // 無効なエントリ
-  getFname(dirEnt.name, curEnt);             // ファイル名を読み込む
+  readFname(dirEnt.name, curEnt);             // ファイル名を読み込む
   dirEnt.attr = ord(dirCache[curEnt+11]);    // 属性を読み込む
   dirEnt.clst = wordLE(dirCache, curEnt+26); // 先頭クラスタ番号を読む
   dirEnt.lenH = wordLE(dirCache, curEnt+30); // ファイルサイズ（上位）を読む
@@ -110,10 +110,10 @@ public int readDirEnt(DirEnt dirEnt) {
   return 1;
 }
 
-// setFname : DIR エントリの名前("abcdefghtxt"形式)をキャッシュにコピーする
-// 引数 s   : 名前が格納されている領域
-//      ofs : キャッシュ上のエントリの位置
-void setFname(char[] s, int ofs) {
+// writeFname : DIR エントリの名前("abcdefghtxt"形式)をキャッシュに書き込む
+// 引数   s   : 名前が格納されている領域
+//        ofs : キャッシュ上のエントリの位置
+void writeFname(char[] s, int ofs) {
   for (int i=0; i<11; i=i+1)
     dirCache[ofs+i] = s[i];
   if (s[0]=='\xe5') dirCache[ofs]='\x05';    // SJIS漢字コードの0xe5は0x05に変換
@@ -125,7 +125,7 @@ public void writeDirEnt(DirEnt dirEnt) {
   setCache(dirEnt);                          // 目的のセクタをキャッシュ
   int curEnt = (dirEnt.dirEnt%(BLKSIZ/32))*32;// セクタ中の着目エントリの位置
 
-  setFname(dirEnt.name, curEnt);
+  writeFname(dirEnt.name, curEnt);
   dirCache[curEnt+11] = chr(dirEnt.attr);    // 属性を書き込む
   stWordLE(dirCache, curEnt+26, dirEnt.clst);// 先頭クラスタ番号を書き込む
   stWordLE(dirCache, curEnt+30, dirEnt.lenH);// 上位ファイルサイズを書き込む
