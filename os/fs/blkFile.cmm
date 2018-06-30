@@ -102,7 +102,7 @@ void readBPB() {
   char[] buf = malloc(BLKSIZ);              // 1セクタ分のバッファを確保
 
   readSct(bpbLba[0], bpbLba[1], buf);       // BPB を読み込む
-  if (wordLE(buf,11) != 512)                // セクタ長は 512 バイトだけサポート
+  if (wordLE(buf,11) != 512)                // セクタ長は512バイトだけサポート
     panic("BLKSIZ!=512");
 
   sctPrClst = ord(buf[13]);                 // クラスタあたりのセクタ数
@@ -123,18 +123,6 @@ void readBPB() {
   ld32(dataLba, 0, wordLE(buf, 17) / 16);   // data <= ルートディレクトリサイズ
   _add32(dataLba, rootLba);                 // data <= data + root
 
-  // 総クラスタ数をチェックする
-  /*
-  int totalSct = wordLE(buf, 19);           // 総セクタ数の格納方法は2種類
-  if (totalSct != 0)
-    ld32(dTmp, 0, totalSct);
-  else
-    ld32(dTmp, wordLE(buf, 34), wordLE(buf, 32));
-
-  _div32(dTmp, sctPrClst);                  // クラスタ数に変換
-  if (dTmp[0]<0x1000)
-    panic("FAT12?");
-  */
   free(buf);                                // バッファを解放
 }
 
