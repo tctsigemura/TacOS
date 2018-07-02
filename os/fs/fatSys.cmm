@@ -262,39 +262,11 @@ public int sysOpen(char[] path, int mode, PCB pcb) {
   f.isEob = f.fileIsDirty = false;              // フラグを下ろす
 
   // f.posXX は seekFile() で初期化される
-  if (mode==APPEND_MODE)                        // APPEND_MODE なら
+  if (mode==APPEND_MODE) {                      // APPEND_MODE なら
     seekFile(f, f.lenH, f.lenL);                //   ファイルの最後に移動
-  else                                          // READ_MODE か WRITE_MODE なら
+  } else {                                      // READ_MODE か WRITE_MODE なら
     seekFile(f, 0, 0);                          //   ファイルの先頭に移動
-
-#ifdef DEBUG
-printF("******** %s *********\n",curEnt.name);
-if (f.isDir)
-  printF("  isDir   = DIR\n");
-else
-  printF("  isDir   = FILE\n");
-printF("  mode    = %d\n",f.mode);
-printF("  lenH    = %d\n",f.lenH);
-printF("  lenL    = %d\n",f.lenL);
-printF("  clst    = %04x\n",f.clst);
-printF("  dirClst = %04x\n",f.dirClst);
-printF("  dirEnt  = %d\n",f.dirEnt);
-printF("  posH    = %d\n",f.posH);
-printF("  posL    = %d\n",f.posL);
-printF("  posClst = %04x\n",f.posClst);
-printF("  posSct  = %d\n",f.posSct);
-/*
-halt();
-for (int j=0; j<BLKSIZ; j=j+1) {                        // ブロックサイズ分
-  if (j%16==0)  printF("\n%04x ",j);                    // 1行を 16Byte で出力
-                printF("%02x ",ord(f.fileBuf[j]));      // セクタの値出力
   }
-  printF("\n");
-*/
-printF("***********************************************\n");
-halt();
-#endif
-
   files[fd] = f;                                // ファイル一覧に登録
   pcb.fds[idx] = fd;                            // FDS にファイル記述子を登録
   return idx;                                   // FDS のインデクスを返す
@@ -431,7 +403,7 @@ public int sysMkDir(char[] path) {
 
   // baseName のデータ領域の先頭に '.' エントリを書き込む
   int dirNameClst = curEnt.dirClst;             // dirName の先頭クラスタ# 記憶
-  if (dirNameClst==ROOTDIR) dirNameClst=0x0000; // ROOT_DIR の本来のクラスタ#
+  if (dirNameClst==ROOTDIR) dirNameClst=0x0000; // ROOTDIR の本来のクラスタ#
   curEnt.dirClst = curEnt.clst;                 // baseName に割り当てたクラスタ
   curEnt.dirEnt  = 0;                           // データ領域の先頭
   strCpy(curEnt.name, ".          ");           // '.'エントリ
