@@ -494,17 +494,3 @@ public int sysSeek(PCB pcb, int idx, int posH, int posL) {
   }
   return 0;
 }
-
-/*
-// DirEnt の出力
-printF("*********************\n");
-printF("dirClst=%04x\n",curEnt.dirClst);
-printF("dirEnt =%d\n",curEnt.dirEnt);
-printF("name   =%s\n",curEnt.name);
-printF("attr   =%02x\n",curEnt.attr);
-printF("clst   =%04x\n",curEnt.clst);
-printF("lenH   =%d\n",curEnt.lenH);
-printF("lenL   =%d\n",curEnt.lenL);
-printF("*********************\n");
-halt();
-*/
