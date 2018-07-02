@@ -63,7 +63,7 @@
 #include "blkFile.hmm"
 
 #define ENDCLST      0xfff6                 // ユーザが使用できるクラスタ#の最後
-#define ROOTSCT_MAX  32                     // FAT16 の ROOT_DIR は32セクタ固定
+#define ROOTSCT_MAX  32                     // FAT16 の ROOTDIR は32セクタ固定
 
 // 一時領域:プロセスとして動作するので一時領域はファイル毎に作らなくてよい
 int[] sTmp  = {0, 0};                       // セクタアドレス用
