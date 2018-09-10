@@ -159,7 +159,7 @@ public void flushFat(){
 // 引数 clst : 現在のクラスタ番号
 int readFat(int clst) {
   // clst が指すセクタアドレスに変換する
-  int s = (clst >> 8) & 0xff;               // クラスタ内セクタ番号
+  int s = (clst >> 8) & 0xff;               // FAT内セクタ番号
   ld32(sTmp, 0, s);                         // セクタ番号を 32bit にする
   _add32(sTmp, fatLba);                     // FAT の開始アドレスを加える
 
