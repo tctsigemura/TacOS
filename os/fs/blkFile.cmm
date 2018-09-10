@@ -22,6 +22,7 @@
 /*
  * fs/blkFile.cmm : ブロック(セクタ単位)で操作する簡単なファイルを提供する
  *
+ * 2018.06.30 : コメントアウトされていた総セクタ数をチェックするコードを削除
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.06 : コードレビューを反映
  * 2015.12.01 : ファイルシステム全体を見直し
@@ -62,7 +63,7 @@
 #include "blkFile.hmm"
 
 #define ENDCLST      0xfff6                 // ユーザが使用できるクラスタ#の最後
-#define ROOTSCT_MAX  32                     // FAT16 の ROOT_DIR は32セクタ固定
+#define ROOTSCT_MAX  32                     // FAT16 の ROOTDIR は32セクタ固定
 
 // 一時領域:プロセスとして動作するので一時領域はファイル毎に作らなくてよい
 int[] sTmp  = {0, 0};                       // セクタアドレス用
@@ -102,7 +103,7 @@ void readBPB() {
   char[] buf = malloc(BLKSIZ);              // 1セクタ分のバッファを確保
 
   readSct(bpbLba[0], bpbLba[1], buf);       // BPB を読み込む
-  if (wordLE(buf,11) != 512)                // セクタ長は 512 バイトだけサポート
+  if (wordLE(buf,11) != 512)                // セクタ長は512バイトだけサポート
     panic("BLKSIZ!=512");
 
   sctPrClst = ord(buf[13]);                 // クラスタあたりのセクタ数
@@ -123,18 +124,6 @@ void readBPB() {
   ld32(dataLba, 0, wordLE(buf, 17) / 16);   // data <= ルートディレクトリサイズ
   _add32(dataLba, rootLba);                 // data <= data + root
 
-  // 総クラスタ数をチェックする
-  /*
-  int totalSct = wordLE(buf, 19);           // 総セクタ数の格納方法は2種類
-  if (totalSct != 0)
-    ld32(dTmp, 0, totalSct);
-  else
-    ld32(dTmp, wordLE(buf, 34), wordLE(buf, 32));
-
-  _div32(dTmp, sctPrClst);                  // クラスタ数に変換
-  if (dTmp[0]<0x1000)
-    panic("FAT12?");
-  */
   free(buf);                                // バッファを解放
 }
 
@@ -170,7 +159,7 @@ public void flushFat(){
 // 引数 clst : 現在のクラスタ番号
 int readFat(int clst) {
   // clst が指すセクタアドレスに変換する
-  int s = (clst >> 8) & 0xff;               // クラスタ内セクタ番号
+  int s = (clst >> 8) & 0xff;               // FAT内セクタ番号
   ld32(sTmp, 0, s);                         // セクタ番号を 32bit にする
   _add32(sTmp, fatLba);                     // FAT の開始アドレスを加える
 
