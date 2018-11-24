@@ -5,3 +5,4 @@
 *.o
 *.lst
 *.sym
+*.dSYM
