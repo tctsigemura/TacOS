@@ -19,6 +19,7 @@
 #
 # Makefile : usr ディレクトリ用の Makefile
 #
+# 2018.11.24         : ar cp fsize mv を追加
 # 2018.01.26         : lib ディレクトリを削除（C-- 標準ライブラリを用いる）
 # 2016.01.07         : 初期バージョン
 #
@@ -27,7 +28,7 @@
 MAKEFLAGS=--no-print-directory
 
 # サブディレクトリ
-SUBDIRS:=ar cat dump echo fsize hello ls mkdir rm rmdir shell touch # port
+SUBDIRS:=ar cat cp dump echo fsize hello ls mkdir mv rm rmdir shell touch # port
 
 all :
 	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir); )
