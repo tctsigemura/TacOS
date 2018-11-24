@@ -1,0 +1,96 @@
+#include <stdio.hmm>
+#include <stdlib.hmm>                       // exit() のために必要
+#include <string.hmm>                       // strCmp() のために必要
+
+// 入力ファイルの読み込み関係
+FILE in;                                    // 入力ファイル
+char[] curFile = "";                        // 現在の入力ファイルの名前
+
+void xOpen(char[] fname){                   // エラーチェック付きの fopen
+  curFile = fname;                          //   現在の入力ファイルを記録
+  if((in = fopen(fname,"r"))==null){        //   オープンする
+    perror(curFile);                        //     オープンできない場合は
+    exit(1);                                //       エラー終了
+  }
+}
+
+char getB(){                                // 1バイト入力ルーチン
+  if (feof(in)){                            //   予想外のEOFなら
+    fprintf(stderr, "%s : undexpected EOF\n", curFile);
+    exit(1);                                //     エラー終了
+  }
+  return fgetc(in);                         //   1バイト入力して返す
+}
+
+int getW(){                                 // 1ワード入力ルーチン
+  int c1 = ord(getB());                     //   上位バイト
+  int c2 = ord(getB());                     //     下位バイトの順
+  return (c1 << 8) | c2;                    //       （ビッグエンディアン）
+}
+
+// アーカイブファイルへの書き込み関係
+FILE out;                                   // 出力ファイル
+#define putB(c) fputc(c,out);               // 1バイト出力ルーチン
+
+void putW(int x){                           // 1ワード出力ルーチン
+  putB(chr((x>>8) & 0xff));                 //   上位バイト
+  putB(chr(x & 0xff));                      //     下位バイトの順(Big Endian)
+}
+
+// ファイルヘッダの書き込み
+#define MAGIC 0x600a                        // ファイルヘッダのマジックナンバー
+int[] tmp = array(2);                       // ファイルサイズ用
+
+void writeHeader(char[] fname){             // ファイルヘッダの書き込み
+  if (fsize(fname, tmp)){                   //   ファイルサイズを調べる
+    perror(fname);                          //     調べられない場合は
+    exit(1);                                //       エラー終了
+  }
+#ifdef C
+  if (tmp[0]!=0 || (tmp[1] & ~0xffff)!=0){  //   C言語のintは32ビットと仮定
+#else
+  if (tmp[0]!=0){                           //   TaC版のintは16ビット
+#endif
+    fprintf(stderr, "%s : too big .o file\n", fname);
+  }
+  fprintf(out, "%s\n", fname);              //   ファイル名
+  putW(tmp[1]);                             //   ファイルサイズ（64KiB以内）
+  putW(MAGIC);                              //   マジック番号
+}
+
+// アーカイブの作成機能
+void createArchive(char[][] argv){
+  if((out=fopen(argv[2],"w")) == null){     // アーカイブファイル作成
+    perror(argv[1]);                        //  作成できない場合は
+    exit(1);                                //    エラー終了
+  }
+  fputs("!<arch>\n",out);                   // グローバルヘッダ
+  for(int i=3; argv[i]!=null; i=i+1){       // すべてのファイルについて
+    writeHeader(argv[i]);                   //   ファイルヘッダ出力
+    xOpen(argv[i]);                         //   ファイルをオープン
+    while(!feof(in)){                       //   ファイルの最後まで
+      char c=getB();                        //    バイト単位で
+      putB(c);                              //      コピーする
+    }
+    fclose(in);                             //   ファイルをクローズ
+  }
+  fclose(out);                              // アーカイブファイルクロース
+}
+
+// 使用方法の表示
+void usage(char[] myname){
+  fprintf(stderr, "Usage : %s -c <archive> <file>...\n", myname);
+  exit(1);
+}
+
+// ar のメイン関数
+public int main(int argc, char[][] argv){
+  if (argc<3){                              // 引数の数が不足
+    usage(argv[0]);                         //   エラー終了
+  } else if (strCmp(argv[1], "-c")==0){     // -c アーカイブ作成
+    createArchive(argv);                    //   アーカイブの作成機能
+  } else {                                  // どれでもなければ
+    usage(argv[0]);                         //   エラー終了
+  }
+  return 0;
+}
