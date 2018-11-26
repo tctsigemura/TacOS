@@ -89,6 +89,10 @@ public int main(int argc, char[][] argv){
     usage(argv[0]);                         //   エラー終了
   } else if (strCmp(argv[1], "-c")==0){     // -c アーカイブ作成
     createArchive(argv);                    //   アーカイブの作成機能
+  } else if (strCmp(argv[1], "-x")==0){     // -x アーカイブ展開
+    extractArchive(argv);                   //   アーカイブの展開機能
+  } else if (strCmp(argv[1], "-t")==0){     // -c アーカイブファイルリスト
+    listArchive(argv);                      //   アーカイブのリスト機能
   } else {                                  // どれでもなければ
     usage(argv[0]);                         //   エラー終了
   }
