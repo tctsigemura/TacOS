@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2011-2016 by
+# Copyright (C) 2011-2018 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -19,19 +19,27 @@
 #
 # GNUmakefile
 #
+# 2018.11.12         : SIO版の作業開始
 # 2015.08.31         : c-- コンパイラの -K オプションに対応(重村)
-# 2015.06.04	      : SUBDIRS に tty を追加
+# 2015.06.04	     : SUBDIRS に tty を追加
 # 2014.05.07         : 村田開発開始
 # 2013.01.04         : kernel.map を作成するように変更
 # 2012.03.02         : TaC7 用に書き換え + boot.bin + sioboot.bin を追加
 # 2011.11.27         : MacOS X に対応(cpp 問題)
 # 2011.05.11         : 初期バージョン
 
+# キーボードディスプレイをコンソールにする場合
+VGA=VGA=1
+
 #　ディレクトリを移動する際のログを出力しない
 MAKEFLAGS=--no-print-directory
 
 # make 対象のサブディレクトリ  crt0 が含まれる util を最初にすること！！
+ifdef VGA
 SUBDIRS:=util kernel fs tty mm pm
+else
+SUBDIRS:=util kernel fs sio mm pm
+endif
 
 # OBJS に SUBDIRS で生成された各 mod.o ファイルをディレクトリパス付きで代入
 OBJS=$(foreach dir, $(SUBDIRS), $(dir)/mod.o )
@@ -47,7 +55,7 @@ all : clean kernel.bin
 # (4) kernel.o を 0x0000 番地にロードした kernel.bin を生成
 # (5) メモリマップを kernel.map に格納
 kernel.bin :
-	$(foreach dir, $(SUBDIRS), ${MAKE} --directory=$(dir); )
+	$(foreach dir, $(SUBDIRS), ${MAKE} ${VGA} --directory=$(dir); )
 	ld-- kernel.o ${OBJS} > kernel.sym
 	size-- kernel.o
 	objbin-- 0x0000 kernel.bin kernel.o | sort --key=1 > kernel.map
