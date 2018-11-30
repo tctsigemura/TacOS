@@ -37,7 +37,7 @@ CMFLAGS+=-DVRAM=0xe000
 endif
 
 CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../pm -I../tty \
-                      -I../vga
+                      -I../vga -I../ps2
 
 # make するソースのサフィックス（拡張子） の一覧
 .SUFFIXES: .o .cmm .s

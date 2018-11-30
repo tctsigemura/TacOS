@@ -20,13 +20,14 @@
  */
 
 /*
- * tty/kbd.hmm : kbd.cmm の外部インタフェース
+ * ps2/ps2.hmm : ps2.cmm の外部インタフェース
  *
+ * 2018.11.30 : 名前を kbd から ps2 に変更，スキャンコード入力を文字入力に変更
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  *
  * $Id$
  *
  */
 
-public void keyBoardInit();        // 初期化
-public char getKeyCode();          // スキャンコード取得
+public void ps2Init();             // 初期化
+public char getPS2();              // １文字入力

@@ -92,6 +92,7 @@
 
 #ifdef VGA
 #include <vga.hmm>
+#include <ps2.hmm>
 #endif
 #include <util.hmm>
 #include <mm.hmm>
@@ -601,7 +602,8 @@ void excpInit() {                                   // ベクタにハンドラ�
 public void main() {
   // 初期化ルーチンの実行
 #ifdef VGA
-  vgaInit();                                        // 画面表示初期化
+  vgaInit();                                        // コンソール表示初期化
+  ps2Init();                                        // コンソール入力初期化
 #endif
   utilInit();                                       // MEM配列初期化
   excpInit();                                       // 例外処理(ベクタ)初期化
