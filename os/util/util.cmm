@@ -103,28 +103,6 @@ public char[] strCpy(char[] dst, char[] src) {
   return dst;                                       // コピー先を返す
 }
 
-// -------------------------------- 入出力ルーチン --------------------------
-// 1文字出力（起動時のメッセージなどを表示するための簡易版）
-void putSIO(char c) {                               // SIO への出力
-  while ((in(0x0a) & 0x80)==0)
-    ;
-  out(0x08, ord(c));
-}
-
-public void putCh(char c) {			    // VGA と SIO の両方へ出力
-  if (c=='\n') putSIO('\r');
-  putSIO(c);
-#ifdef VGA
-  putVGA(c);
-#endif
-}
-
-// 文字列出力
-public void putStr(char[] str) {
-  for (int i=0; str[i]!='\0'; i=i+1)
-    putCh(str[i]);
-}
-
 // --------------------------- リングバッファ関係 ------------------------
 // 次の添字を求める
 int nextIdx(RingBuf buf, int idx) {
@@ -151,9 +129,34 @@ public int getBuf(RingBuf buf) {
   return  ord(c);                                   // 文字コードを返す
 }
 
+// --------------------------- デバッグ用表示ルーチン -------------------------
+// 1文字出力（起動時のメッセージなどを表示するための簡易版）
+#ifndef VGA
+void dbgPutSIO(char c) {                            // SIO への出力
+  while ((in(0x0a) & 0x80)==0)
+    ;
+  out(0x08, ord(c));
+}
+#endif
+
+void dbgPutCh(char c) {                             // デバッグ用の表示ルーチン
+#ifdef VGA
+  putVGA(c);
+#else
+  if (c=='\n') dbgPutSIO('\r');
+  dbgPutSIO(c);
+#endif
+}
+
+// 文字列出力
+void dbgPutStr(char[] str) {
+  for (int i=0; str[i]!='\0'; i=i+1)
+    dbgPutCh(str[i]);
+}
+
 // ------------------------------- エラー表示 ----------------------------
 public void panic(char[] msg, ...) {
-  setPri(DI|KERN);				    // 割り込み禁止
+  setPri(DI|KERN);                                  // 割り込み禁止
 
 #ifdef DEBUG
   int[] args = _args();
@@ -165,13 +168,12 @@ public void panic(char[] msg, ...) {
   }
   printF(")) ###\n");
   printF(msg, args[0], args[1], args[2]);
-
 #else
-  putStr(msg);
+  dbgPutStr(msg);
 #endif
 
-  putCh('\n');
-  while (true) halt();				    // システムを停止する
+  dbgPutCh('\n');
+  while (true) halt();                              // システムを停止する
 }
 
 // --------------------------- デバッグ用簡易printf --------------------------
@@ -185,33 +187,33 @@ boolean __putnum_m;
 void __putnum_sub(int x, int n) {
   if (x!=0) {
     __putnum_sub(x/__putnum_b, n+1);
-    putCh(__hstr[x%__putnum_b]);
+    dbgPutCh(__hstr[x%__putnum_b]);
   } else {
-    if (__putnum_m&&__putnum_p!=' ') putCh('-');
+    if (__putnum_m&&__putnum_p!=' ') dbgPutCh('-');
     if (n==0) __putnum_w = __putnum_w - 1;
     while (__putnum_w>n) {
-      putCh(__putnum_p);
+      dbgPutCh(__putnum_p);
       __putnum_w = __putnum_w - 1;
     }
-    if (__putnum_m&&__putnum_p==' ') putCh('-');
-    if (n==0) putCh('0');
+    if (__putnum_m&&__putnum_p==' ') dbgPutCh('-');
+    if (n==0) dbgPutCh('0');
   }
 }
 
 // グローバル変数を使用するため割り込み禁止(本来なら割り込み禁止する必要はない)
 void __uputnum(int x, int w, char p, int base) {
-  int r =setPri(DI|KERN);			     // 割り込み禁止 
+  int r =setPri(DI|KERN);                            // 割り込み禁止 
   __putnum_b = base;
   __putnum_m = false;
   __putnum_w = w;
   __putnum_p = p;
   __putnum_sub(x,0);
-  setPri(r);					     // 割り込み復元
+  setPri(r);                                         // 割り込み復元
 }
 
 // グローバル変数を使用するため割り込み禁止(本来なら割り込み禁止する必要はない)
 void __sputnum(int x, int w, char p, int base) {
-  int r =setPri(DI|KERN);			     // 割り込み禁止
+  int r =setPri(DI|KERN);                            // 割り込み禁止
   
   __putnum_b = base;
   __putnum_m = false;
@@ -224,7 +226,7 @@ void __sputnum(int x, int w, char p, int base) {
   __putnum_p = p;
   __putnum_sub(x,0);
 
-  setPri(r);					     // 割り込み復元
+  setPri(r);                                         // 割り込み復元
 }
 
 public int printF(char[] fmt, ...) {  
@@ -240,32 +242,32 @@ public int printF(char[] fmt, ...) {
       int  w = 0;
       while (isDigit(c)) {
         w = w * 10 + (ord(c) - ord('0'));
-	c = fmt[i=i+1];
+        c = fmt[i=i+1];
       }
       if (c=='\0') {
         return n;
       } else if (c=='o') {
         __uputnum(arg,w,p,8);
-	arg = args[n=n+1];
+        arg = args[n=n+1];
       } else if (c=='d') {
         __sputnum(arg,w,p,10);
-	arg = args[n=n+1];
+        arg = args[n=n+1];
       } else if (c=='x') {
         __uputnum(arg,w,p,16);
-	arg = args[n=n+1];
+        arg = args[n=n+1];
       } else if (c=='c') {
-        putCh(chr(arg));
-	arg = args[n=n+1];
+        dbgPutCh(chr(arg));
+        arg = args[n=n+1];
       } else if (c=='s') {
-        putStr(_ItoA(arg));
-	arg = args[n=n+1];
+        dbgPutStr(_ItoA(arg));
+        arg = args[n=n+1];
       } else if (c=='%') {
-        putCh('%');
+        dbgPutCh('%');
       } else {
-        putCh(c);
+        dbgPutCh(c);
       }
     } else 
-      putCh(c);
+      dbgPutCh(c);
   }
   return n;
 }

@@ -84,7 +84,10 @@ int sysConRead(char[] buf, int len) {
 // conWrite システムコールの本体 (文字列をディスプレイに表示する)
 //   buf はユーザ領域でフォーマット解読済みの文字列となっている
 int sysConWrite(void[] buf) {
-  putStr(buf);                                          // 文字列を表示する
+  char[] str=buf;                                       // 型変換
+  for (int i=0; str[i]!='\0'; i=i+1) {
+    putCh(str[i]);
+  }
   return 0;
 }
 
