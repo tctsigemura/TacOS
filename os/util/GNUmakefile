@@ -27,8 +27,6 @@
 
 ifdef VGA
 OBJS=crt0.o console.o util.o
-CPFLAGS+=-DVGA
-CPFLAGS+=-DVRAM=0xe000
 else
 OBJS=crt0.o util.o
 endif

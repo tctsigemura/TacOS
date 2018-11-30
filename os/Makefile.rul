@@ -25,8 +25,17 @@
 # $Id$
 #
 
-# 使用されそうなフラグ
-#CPFLAGS+=-DDEBUG
+# デバッグの場合
+ifdef DEBUG
+CMFLAGS+=-DDEBUG
+endif
+
+# コンソールを使用する場合
+ifdef VGA
+CMFLAGS+=-DVGA
+CMFLAGS+=-DVRAM=0xe000
+endif
+
 CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../pm -I../tty
 
 # make するソースのサフィックス（拡張子） の一覧

@@ -28,6 +28,9 @@
 # 2011.11.27         : MacOS X に対応(cpp 問題)
 # 2011.05.11         : 初期バージョン
 
+# デバッグ
+#DEBUG=DEBUG=1
+
 # キーボードディスプレイをコンソールにする場合
 VGA=VGA=1
 
@@ -55,7 +58,7 @@ all : clean kernel.bin
 # (4) kernel.o を 0x0000 番地にロードした kernel.bin を生成
 # (5) メモリマップを kernel.map に格納
 kernel.bin :
-	$(foreach dir, $(SUBDIRS), ${MAKE} ${VGA} --directory=$(dir); )
+	$(foreach dir,$(SUBDIRS),${MAKE} ${VGA} ${DEBUG} --directory=$(dir);)
 	ld-- kernel.o ${OBJS} > kernel.sym
 	size-- kernel.o
 	objbin-- 0x0000 kernel.bin kernel.o | sort --key=1 > kernel.map
@@ -63,5 +66,5 @@ kernel.bin :
 
 clean :
 	rm -f kernel.bin kernel.map kernel.s *.o *.sym *.lst  *~ 
-	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir) clean; )
+	$(foreach dir,$(SUBDIRS),$(MAKE) --directory=$(dir) clean;)
 
