@@ -20,8 +20,10 @@
  */
 
 /*
- * util/console.cmm : TaC の画面制御部分
+ * vga/vga.cmm : TaC7a の画面制御部分
  *
+ * 2018.11.30 : 名前を console から vga に変更（ディレクトリも移動）
+ * 2018.11.12 : putSIO() を util.cmm へ移動
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.11 : ハードウェアカーソルの制御を追加
  * 2016.01.06 : コメントの体裁を清書
@@ -37,9 +39,9 @@
  *
  */
 
-#include "crt0.hmm"
-#include "util.hmm"
-#include "console.hmm"
+#include <crt0.hmm>
+#include <util.hmm>
+#include "vga.hmm"
 
 #define VRAM  0xe000                           // VRAM のアドレス 
 
@@ -110,17 +112,9 @@ public void putVGA(char c) {
   vRam[2046] = cy;                             //   レジスタは VRAM 最後にある
   setPri(r);                                   // 割り込み復元
 }
-
-#ifdef SIO
-void putSIO(char c) {                          // SIO への出力
-  while ((in(0x0a) & 0x80)==0)
-    ;
-  out(0x08, ord(c));
-}
-#endif
  
 // 画面の初期化
-public void consInit() {
+public void vgaInit() {
   vRam = _ItoA(VRAM);                          // VRAM のアドレス
   putVGA('\x0c');                              // 画面クリア
 }

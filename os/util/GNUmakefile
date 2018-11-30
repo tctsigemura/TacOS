@@ -25,10 +25,6 @@
 # $Id$
 #
 
-ifdef VGA
-OBJS=crt0.o console.o util.o
-else
 OBJS=crt0.o util.o
-endif
 
 include ../Makefile.rul

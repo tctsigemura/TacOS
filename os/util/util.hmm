@@ -22,6 +22,7 @@
 /*
  * util/util.hmm : util.cmm の外部インターフェイス
  *
+ * 2018.11.12 : 隅田の成果を取り込む（リングバッファ関連）
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.19 : WordLE を wordLE に変更
  * 2016.01.18 : WordBE と stWordBE を削除
@@ -61,6 +62,7 @@ public int strLen(char[] s);
 public char[] strCpy(char[] dst, char[] src);
 public void putCh(char c);
 public void putStr(char[] str);
+
 public void panic(char[] msg, ...);
 
 #define isDigit(c) (ord('0')<=ord(c) && ord(c)<=ord('9'))
@@ -73,6 +75,17 @@ public void panic(char[] msg, ...);
 #define wordLE(b, i) ((ord((b)[(i)+1])<<8) | ord((b)[i]))
 #define stWordLE(b,i,s) {(b)[i]=chr(s); b[(i)+1]=chr((s)>>8);}
 
+// リングバッファ関係
+struct RingBuf {
+  char[] buf;                             // バッファ
+  int    size;                            // バッファサイズ
+  int    head, tail, cnt;                 // ポインタ
+};
+
+public boolean putBuf(RingBuf buf, char c);   // true:正常, false:バッファフル
+public int getBuf(RingBuf buf);               // =-1:EOF, >=0:文字コード
+
+// デバッグ関係
 #ifdef DEBUG
 public int printF(char[] fmt, ...);
 #endif

@@ -22,11 +22,12 @@
 /*
  * util/util.cmm : C-- が動くために必要な関数群
  *
+ * 2018.11.12 : 隅田の成果を取り込む（リングバッファ関連）
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.11 : panic() が #ifdef DEGUB 以外で printf() を使用しないように変更
  * 2016.01.11 : 一部関数をキャメルケースに統一
  * 2016.01.06 : コメント体裁を清書
- * 2015.01.05 : isUpper, isLower, isDigit, isPrint を削除(util.h のマクロに変更)
+ * 2015.01.05 : isUpper,isLower,isDigit,isPrintを削除(util.h のマクロに変更)
  * 2015.12.21 : _uCmp32() を追加
  * 2015.12.14 : strncmp() を dirAccess.cmm に移植
  * 2015.09.07 : strlen(), strcpy() を追加, MEM 配列を復活(重村)
@@ -53,12 +54,14 @@
 
 #include <kernel.hmm>
 #include "util.hmm"
-#include "console.hmm"
+
+#ifdef VGA
+#include <vga.hmm>                                  // TaC7aでVGAを使用する場合
+#endif 
 
 // util の初期化ルーチン
 public void utilInit() {
-  MEM = _ItoA(0);         // 0x0000 を指す char[] 参照（主記憶を意味する)
-  consInit();
+  MEM = _ItoA(0);                                   // MEMは0x0000を指すchar型
 }
 
 // 32bit の大小比較(第1引数の方が大きいとき1、等しいとき0、小さいとき-1)
@@ -101,14 +104,19 @@ public char[] strCpy(char[] dst, char[] src) {
 }
 
 // -------------------------------- 入出力ルーチン --------------------------
+// 1文字出力（起動時のメッセージなどを表示するための簡易版）
+void putSIO(char c) {                               // SIO への出力
+  while ((in(0x0a) & 0x80)==0)
+    ;
+  out(0x08, ord(c));
+}
 
-// 1文字出力
 public void putCh(char c) {			    // VGA と SIO の両方へ出力
-#ifdef SIO
   if (c=='\n') putSIO('\r');
   putSIO(c);
-#endif
+#ifdef VGA
   putVGA(c);
+#endif
 }
 
 // 文字列出力
@@ -117,6 +125,56 @@ public void putStr(char[] str) {
     putCh(str[i]);
 }
 
+// --------------------------- リングバッファ関係 ------------------------
+// 次の添字を求める
+int nextIdx(RingBuf buf, int idx) {
+  int next = idx + 1;                               // 一つ進める
+  if (next>=buf.size) next = 0;                     // バッファサイズをチェック
+  return next;                                      // 次の添字を返す
+}
+
+// リングバッファに 1 文字追加
+public boolean putBuf(RingBuf buf, char c) {
+  if (buf.size==buf.cnt) return false;              // バッファがパンクなら終了
+  buf.buf[buf.head] = c;                            // バッファに１文字書いて
+  buf.head = nextIdx(buf, buf.head);                // ポインタを進める
+  buf.cnt = buf.cnt + 1;                            // カウンタを増やす
+  return true;
+}
+
+// リングバッファから 1 文字取得
+public int getBuf(RingBuf buf) {
+  if (buf.cnt==0) return -1;                        // 空の場合は -1 を返す
+  char c = buf.buf[buf.tail];                       // バッファから１文字取って
+  buf.tail = nextIdx(buf, buf.tail);                // tail を進める
+  buf.cnt = buf.cnt - 1;                            // カウンタを減らす
+  return  ord(c);                                   // 文字コードを返す
+}
+
+// ------------------------------- エラー表示 ----------------------------
+public void panic(char[] msg, ...) {
+  setPri(DI|KERN);				    // 割り込み禁止
+
+#ifdef DEBUG
+  int[] args = _args();
+  printF("### panic(PID=%d(", getPid());
+  int[] fp = _addrAdd(args, -6);
+  for (int i=0; i<3; i=i+1) {                       // 関数のトレースを3階層
+    printF("<-(%04x)",fp[1]);
+    fp = _ItoA(fp[0]);
+  }
+  printF(")) ###\n");
+  printF(msg, args[0], args[1], args[2]);
+
+#else
+  putStr(msg);
+#endif
+
+  putCh('\n');
+  while (true) halt();				    // システムを停止する
+}
+
+// --------------------------- デバッグ用簡易printf --------------------------
 #ifdef DEBUG
 char[] __hstr = "0123456789abcdef";
 int  __putnum_w;
@@ -212,26 +270,3 @@ public int printF(char[] fmt, ...) {
   return n;
 }
 #endif
-
-// ------------------------------- エラー表示 ----------------------------
-public void panic(char[] msg, ...) {
-  setPri(DI|KERN);				    // 割り込み禁止
-
-#ifdef DEBUG
-  int[] args = _args();
-  printF("### panic(PID=%d(", getPid());
-  int[] fp = _addrAdd(args, -6);
-  for (int i=0; i<3; i=i+1) {                       // 関数のトレースを3階層
-    printF("<-(%04x)",fp[1]);
-    fp = _ItoA(fp[0]);
-  }
-  printF(")) ###\n");
-  printF(msg, args[0], args[1], args[2]);
-
-#else
-  putStr(msg);
-#endif
-
-  putCh('\n');
-  while (true) halt();				    // システムを停止する
-}

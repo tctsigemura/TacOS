@@ -20,8 +20,10 @@
  */
 
 /*
- * util/console.hmm : console.cmm の外部インタフェース
+ * vga/vga.hmm : vga.cmm の外部インタフェース
  *
+ * 2018.11.30 : 名前を console.hmm からvga.hmm に変更
+ *              consInit() を vgaInit() に変更
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2014.05.07 : 村田開発開始
  * 2012.02.29 : cls を追加
@@ -31,4 +33,4 @@
  */
 
 public void putVGA(char c);                 // VGAへの1文字表示
-public void consInit();                     // 画面出力の初期化
+public void vgaInit();                      // 画面出力の初期化

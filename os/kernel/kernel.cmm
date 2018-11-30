@@ -90,6 +90,9 @@
 // クリティカルセクションは setPri() で囲む
 // プロセス間通信(IPC)をリンクで実現
 
+#ifdef VGA
+#include <vga.hmm>
+#endif
 #include <util.hmm>
 #include <mm.hmm>
 #include <pm.hmm>
@@ -597,7 +600,10 @@ void excpInit() {                                   // ベクタにハンドラ�
 //----------------------------------------------------------------------------
 public void main() {
   // 初期化ルーチンの実行
-  utilInit();                                       // util(画面表示)初期化
+#ifdef VGA
+  vgaInit();                                        // 画面表示初期化
+#endif
+  utilInit();                                       // MEM配列初期化
   excpInit();                                       // 例外処理(ベクタ)初期化
   tmrInit();                                        // タイマー(ベクタ,ハード)
   semInit();                                        // セマフォ(semTbl)初期化
