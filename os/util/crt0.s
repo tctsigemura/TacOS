@@ -2,7 +2,7 @@
 ; TacOS Source Code
 ;    Tokuyama kousen Advanced educational Computer
 ;
-; Copyright (C) 2009-2017 by
+; Copyright (C) 2009-2018 by
 ;                      Dept. of Computer Science and Electronic Engineering,
 ;                      Tokuyama College of Technology, JAPAN
 ;
@@ -20,6 +20,7 @@
 ; 
 ; util/crt0.s : カーネル用スタートアップ
 ;
+; 2018.11.30 : TaC7a と TaC7b を自動識別し SP の初期値を決める．
 ; 2017.12.10 : _setPri のコメントを訂正
 ; 2016.01.20 : __fp() を追加
 ; 2016.01.06 : コメントの体裁を清書 
@@ -39,8 +40,14 @@
 ; [sp+2]が第1引数、[sp+4]が第2引数
 
 .start                      ; IPL からここにジャンプしてくる
-        ld      sp,#0xe000  ; SP をメモリの最後に
-        call    _main       ; カーネルのメインに飛ぶ
+        ld      sp,#0xe000  ; TaC7a と仮定しするとメモリの最後は 0xe000 
+	ld	g0,#-1      ;
+	st	g0,0xeffe   ; TaC7a なら 0xe000 から 0xeffff は上位バイトが
+	ld	g0,0xeffe   ;   実装されていないのでデータが化けるはず
+	cmp	g0,#-1      ;
+	jnz     .l          ; データが一致しなければ TaC7a
+        ld      sp,#0xf000  ; 一致すれば TaC7b なのでメモリの最後は 0xf000
+.l      call    _main       ; カーネルのメインに飛ぶ
         halt                ; 万一カーネルが終了したらここで終わる
         jmp     0xf000      ; IPL へジャンプ
 
