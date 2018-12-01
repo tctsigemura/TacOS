@@ -67,7 +67,7 @@ char kbdFSM(char c) {
 
 // スキャンコードバッファ
 int  sem;                                       // code を排他制御するセマフォ
-RingBuf codeBuf={"0123456789012345",16,0,0,0};  // 16バイトのバッファ本体
+RingBuf codeBuf={"1234567890123456",16,0,0,0};  // 16バイトのバッファ本体
 
 // 割り込みハンドラ
 interrupt kbdInt() {
