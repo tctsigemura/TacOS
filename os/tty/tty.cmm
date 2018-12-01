@@ -47,6 +47,7 @@
 #define getCh() getPS2()
 #define putCh(c) putVGA(c)
 #else
+#include <sio.hmm>
 #define getCh() getSIO()
 #define putCh(c) putSIO(c)
 #endif

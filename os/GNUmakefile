@@ -31,13 +31,13 @@
 # デバッグ
 #DEBUG=DEBUG=1
 
-# キーボードディスプレイをコンソールにする場合
-VGA=VGA=1
+# キーボードディスプレイをコンソールにする場合（そうでなければSIOがコンソール）
+#VGA=VGA=1
 
 #　ディレクトリを移動する際のログを出力しない
 MAKEFLAGS=--no-print-directory
 
-# make 対象のサブディレクトリ  crt0 が含まれる util を最初にすること！！
+# make 対象のサブディレクトリ crt0 が含まれる util を最初にすること！！
 ifdef VGA
 SUBDIRS:=util kernel fs vga ps2 tty mm pm
 else

@@ -73,7 +73,8 @@ _out                        ; void out(int p,int v);
 
 ;; CPU を停止
 _halt
-        halt
+	jmp	_halt
+;       halt
 
 ;; FP の値を取得する
 __fp

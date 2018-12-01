@@ -93,6 +93,8 @@
 #ifdef VGA
 #include <vga.hmm>
 #include <ps2.hmm>
+#else
+#include <sio.hmm>
 #endif
 #include <util.hmm>
 #include <mm.hmm>
@@ -604,6 +606,8 @@ public void main() {
 #ifdef VGA
   vgaInit();                                        // コンソール表示初期化
   ps2Init();                                        // コンソール入力初期化
+#else
+  sioInit();                                        // SIO初期化
 #endif
   utilInit();                                       // MEM配列初期化
   excpInit();                                       // 例外処理(ベクタ)初期化

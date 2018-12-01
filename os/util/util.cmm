@@ -149,7 +149,7 @@ void dbgPutCh(char c) {                             // デバッグ用の表示�
 }
 
 // 文字列出力
-void dbgPutStr(char[] str) {
+public void dbgPutStr(char[] str) {
   for (int i=0; str[i]!='\0'; i=i+1)
     dbgPutCh(str[i]);
 }

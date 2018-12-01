@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2016 - 2018 by
+# Copyright (C) 2018 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -17,42 +17,12 @@
 # る損害に関しても，その責任を負わない．
 #
 #
-# Makefile.rul : ユーザプログラム用の Makefile.rul
+# sio/Makefile : sio の Makefile
 #
-# 2018.01.27   : cm2e を使用するように書き換え
-# 2016.01.08   : 整理して著作権表示追加
+# 2018.11.01         : 初期バージョン
 #
 # $Id$
 #
+OBJS=sio.o
 
-# デバッグの場合
-ifdef DEBUG
-CMFLAGS+=-DDEBUG
-endif
-
-# コンソールを使用する場合
-ifdef VGA
-CMFLAGS+=-DVGA
-CMFLAGS+=-DVRAM=0xe000
-endif
-
-CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../pm -I../tty \
-                      -I../vga -I../ps2 -I../sio
-
-# make するソースのサフィックス（拡張子） の一覧
-.SUFFIXES: .o .cmm .s
-
-# .s -> .o
-.s.o:
-	as-- $*.s
-
-# .cmm -> .o
-.cmm.o:
-	cm2e ${CMFLAGS} -c $*.cmm
-
-# 各サブディレクトリで生成される .o ファイルを結合して mod.o ファイルを生成する
-mod.o : ${OBJS}
-	ld-- mod.o ${OBJS} > mod.sym
-
-clean :
-	rm -f *.o *.lst *.sym *~
+include ../Makefile.rul

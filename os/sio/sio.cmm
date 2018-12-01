@@ -1,0 +1,104 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2018 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * sio/sio.cmm : シリアルドライバ
+ *
+ * 2018.11.01 : 新規
+ *
+ * $Id$
+ *
+ */
+
+#include <util.hmm>
+#include <kernel.hmm>
+#include "sio.hmm"
+
+#define SIO_Data 0x08                         // TeC7a 送受信データのI/Oポート
+#define SIO_Ctrl 0x0a                         // TeC7a 制御用のI/Oポート
+
+RingBuf rcvBuf={"1234567890123456",16,0,0,0}; // 受信バッファ
+RingBuf trsBuf={"1234567890123456",16,0,0,0}; // 送信バッファ
+
+// 送信関係
+boolean trsIdle=true;                         // トランスミッタがアイドル状態
+boolean trsWait=false;                        // 送信待ちプロセスがある
+int trsSem;                                   // 送信待ち用のセマフォ
+
+// SIO 送信割込み処理ルーチン
+interrupt sioTrs() {
+  if (ISEmpty(trsBuf)) {                      // 送信すべきデータがないなら
+    out(SIO_Ctrl,0x0040);                     //   送信割込み禁止
+    trsIdle = true;                           //     トランスミッタはアイドルに
+  } else {                                    // 送信すべきデータがあれば
+    int c = getBuf(trsBuf);                   //   次の文字をバッファから取出し
+    out(SIO_Data,c);                          //     送信する
+    if (trsWait) {                            //   待っているプロセスがあれば
+      trsWait=false;                          //     フラグを下ろして
+      semV(trsSem);                           //        起こす
+    }
+  }
+}
+
+// SIO へ１文字出力
+public void putSIO(char c) {
+  int r=setPri(KERN|DI);                      // SIO割り込みが発生しないように
+  if (trsIdle) {                              // トランスミッタがアイドルなら
+    out(SIO_Data,ord(c));                     //   送信を開始する
+    out(SIO_Ctrl,0x00c0);                     //   割込みを許可する
+    trsIdle = false;                          //   トランスミッタは動作中
+  } else {                                    // トランスミッタが動作中なら
+    if (ISFull(trsBuf)) {                     //   送信バッファに空きが無いなら
+      trsWait=true;                           //     フラグを立てて
+      semP(trsSem);                           //       空きができるのを待つ
+    }
+    putBuf(trsBuf, c);                        //     送信バッファに１文字追加
+  }
+  setPri(r);
+}
+
+// 受信関係
+int rcvSem;                                   // 受信待ちセマフォ
+
+// SIO 受信割込み処理ルーチン
+interrupt sioRcv()  {
+  char c = chr(in(SIO_Data));                 // 受信データを入力する
+  if (putBuf(rcvBuf, c)) {                    // バッファに書き込めたら
+    semV(rcvSem);                             //   プロセスを起こす
+  }
+}
+
+// SIO から１文字入力
+public char getSIO() {
+  semP(rcvSem);                               // 受信を待って
+  return chr(getBuf(rcvBuf));                 // 一文字取り出す
+}
+
+// 初期化
+public void sioInit() {
+  int[] vect = _ItoA(0xffe0);
+  vect[4] = addrof(sioRcv);                   // 割込みベクタ初期化
+  vect[5] = addrof(sioTrs);                   // 割込みベクタ初期化
+  in(SIO_Data);                               // 受信バッファのゴミをとる
+  out(SIO_Ctrl,0x0040);                       // 受信割込み許可、送信割込み禁止
+  trsSem = newSem(0);                         // 送信用セマフォ
+  rcvSem = newSem(0);                         // 受信用セマフォ
+}
