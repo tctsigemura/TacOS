@@ -61,3 +61,6 @@ public int[]  _mul32(int[] dst, int src);           // 32bit の乗算ルーチ�
 public int[]  _div32(int[] dst, int src);           // 32bit の除算ルーチン
 #define ld32(dst,h,l) ((dst)[0]=(h),(dst)[1]=(l))   // 32bit のデータのロード
 #define st32(h,l,src) ((h)=(src)[0],(l)=(src)[1])   // 32bit のデータのストア
+
+// グローバル変数
+public int _memSiz;                                 // 主記憶のサイズ

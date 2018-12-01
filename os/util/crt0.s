@@ -39,6 +39,8 @@
 
 ; [sp+2]が第1引数、[sp+4]が第2引数
 
+__memSiz ws     1           ; 主記憶の最終アドレスを格納する
+
 .start                      ; IPL からここにジャンプしてくる
         ld      sp,#0xe000  ; TaC7a と仮定しするとメモリの最後は 0xdfff
 	ld	g0,#-1      ;
@@ -47,7 +49,8 @@
 	cmp	g0,#-1      ;
 	jnz     .l          ; データが一致しなければ TaC7a
         ld      sp,#0xf000  ; 一致すれば TaC7b なのでメモリの最後は 0xefff
-.l      call    _main       ; カーネルのメインに飛ぶ
+.l      st      sp,__memSiz ; TacOSに主記憶のサイズを知らせる
+        call    _main       ; カーネルのメインに飛ぶ
         halt                ; 万一カーネルが終了したらここで終わる
         jmp     0xf000      ; IPL へジャンプ
 
