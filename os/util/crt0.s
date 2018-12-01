@@ -40,13 +40,13 @@
 ; [sp+2]が第1引数、[sp+4]が第2引数
 
 .start                      ; IPL からここにジャンプしてくる
-        ld      sp,#0xe000  ; TaC7a と仮定しするとメモリの最後は 0xe000 
+        ld      sp,#0xe000  ; TaC7a と仮定しするとメモリの最後は 0xdfff
 	ld	g0,#-1      ;
-	st	g0,0xeffe   ; TaC7a なら 0xe000 から 0xeffff は上位バイトが
-	ld	g0,0xeffe   ;   実装されていないのでデータが化けるはず
+	st	g0,0xe000   ; TaC7a なら 0xe000 から 0xeffff は上位バイトが
+	ld	g0,0xe000   ;   実装されていないのでデータが化けるはず
 	cmp	g0,#-1      ;
 	jnz     .l          ; データが一致しなければ TaC7a
-        ld      sp,#0xf000  ; 一致すれば TaC7b なのでメモリの最後は 0xf000
+        ld      sp,#0xf000  ; 一致すれば TaC7b なのでメモリの最後は 0xefff
 .l      call    _main       ; カーネルのメインに飛ぶ
         halt                ; 万一カーネルが終了したらここで終わる
         jmp     0xf000      ; IPL へジャンプ
