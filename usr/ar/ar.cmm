@@ -98,6 +98,34 @@ void listArchive(char[][]argv) {
 
 //   アーカイブにファイル追加機能
 void addArchive(char[][]argv) {
+  // アーカイブを開く
+  curFile = argv[2];
+  if((in = fopen(curFile, "r+")) == null) {
+    perror(curFile);
+    exit(1);
+  }
+  fgets(buf, 9, in);
+  if (strCmp(buf, "!<arch>\n")!=0) {
+    fprintf(stderr, "illegal file format\n");
+    exit(1);
+  }
+
+  fsize(curFile, tmp);
+  fseek(in, tmp[0], tmp[1]);                       // ファイルの末尾へジャンプ
+
+  out = in;
+
+  for(int i=3; argv[i]!=null; i=i+1){       // すべてのファイルについて
+    writeHeader(argv[i]);                   //   ファイルヘッダ出力
+    xOpen(argv[i]);                         //   ファイルをオープン
+    while(!feof(in)){                       //   ファイルの最後まで
+      char c=getB();                        //    バイト単位で
+      putB(c);                              //      コピーする
+    }
+    fclose(in);                             //   ファイルをクローズ
+  }
+
+  fclose(out);
 }
 
 // 使用方法の表示
