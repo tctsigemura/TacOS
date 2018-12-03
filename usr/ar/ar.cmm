@@ -77,6 +77,29 @@ void createArchive(char[][] argv){
   fclose(out);                              // アーカイブファイルクロース
 }
 
+// アーカイブファイルをオープンしてグローバルヘッダを確認する
+char[] buf=array(9);
+void openArchive(char[][] argv) {
+  xOpen(argv[2]);
+  fgets(buf, 9, in);
+  if (strCmp(buf, "!<arch>\n")!=0) {
+    fprintf(stderr, "illegal file format\n");
+    exit(1);
+  }
+}
+
+//   アーカイブの展開機能
+void extractArchive(char[][]argv) {
+}
+
+//   アーカイブのリスト機能
+void listArchive(char[][]argv) {
+}
+
+//   アーカイブにファイル追加機能
+void addArchive(char[][]argv) {
+}
+
 // 使用方法の表示
 void usage(char[] myname){
   fprintf(stderr, "Usage : %s -c <archive> <file>...\n", myname);
