@@ -100,7 +100,7 @@ void listArchive(char[][]argv) {
 void addArchive(char[][]argv) {
   // アーカイブを開き、ヘッダのチェックをして閉じる
   openArchive(argv);
-  close(in);
+  fclose(in);
   
   // a(追加)で開き直す
   if((out = fopen(argv[2], "a")) == null) {
