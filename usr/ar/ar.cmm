@@ -1,6 +1,20 @@
 #include <stdio.hmm>
 #include <stdlib.hmm>                       // exit() のために必要
 #include <string.hmm>                       // strCmp() のために必要
+#ifndef C
+#include <crt0.hmm>
+#endif
+#define MAXBUF 100
+
+#ifdef C
+int[] _add32(int[] dst,int[] src){
+  int d=dst[1];
+  int s=src[1];
+  d=d+s;
+  dst[1]=d;
+  return dst;
+}
+#endif
 
 // 入力ファイルの読み込み関係
 FILE in;                                    // 入力ファイル
@@ -77,8 +91,9 @@ void createArchive(char[][] argv){
   fclose(out);                              // アーカイブファイルクロース
 }
 
+char[] buf=array(MAXBUF);
+
 // アーカイブファイルをオープンしてグローバルヘッダを確認する
-char[] buf=array(9);
 void openArchive(char[][] argv) {
   xOpen(argv[2]);
   fgets(buf, 9, in);
@@ -89,11 +104,28 @@ void openArchive(char[][] argv) {
 }
 
 //   アーカイブの展開機能
-void extractArchive(char[][]argv) {
+void extractArchive(char[][] argv) {
 }
 
 //   アーカイブのリスト機能
-void listArchive(char[][]argv) {
+int[] pos={0,8};
+int[] tmp2={0,0};
+void listArchive(char[][] argv) {
+  openArchive(argv);
+  while (fgets(buf,MAXBUF,in)!=null){
+    int idx=strChr(buf,'\n');
+    if(idx == -1){
+      fprintf(stderr, "illegal file format\n");
+      exit(1);      
+    }
+    buf[idx]='\0';
+    int s=getW();
+    printf("%-10s %5d\n",buf,s);
+    tmp2[1]=idx+1+4+s;
+    _add32(pos,tmp2);
+    fseek(in,pos[0],pos[1]);
+  }
+  fclose(in);
 }
 
 //   アーカイブにファイル追加機能
