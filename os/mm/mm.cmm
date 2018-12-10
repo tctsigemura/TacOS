@@ -44,6 +44,7 @@
  *
  */
 
+#include <crt0.hmm>
 #include <util.hmm>
 #include <kernel.hmm>
 #include <syscall.hmm>
@@ -67,7 +68,7 @@ public int _end();                              // カーネルの BBS 領域の
 
 void mmInit() {                                 // プログラム起動前の初期化
   memPool.next = _ItoA(addrof(_end));           // 空き領域
-  memPool.next.size = 0xe000 - addrof(_end);    // 空きメモリサイズ
+  memPool.next.size = _memSiz - addrof(_end);   // 空きメモリサイズ
   memPool.next.next = null;
 }
 

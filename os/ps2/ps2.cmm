@@ -20,8 +20,9 @@
  */
 
 /*
- * tty/kbd.cmm : キーボードドライバ
+ * ps2/ps2.cmm : キーボードドライバ
  *
+ * 2018.11.30 : 名前を kbd から ps2 に変更，スキャンコード入力を文字入力に変更
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2015.06.04 : 村田開発開始、include を変更
  * 2012.05.15 : TeC7 用に I/O アドレスなど変更
@@ -33,7 +34,8 @@
 
 #include <util.hmm>
 #include <kernel.hmm>
-#include "kbd.hmm"
+#include "ps2.hmm"
+#include "scConv.hmm"
 
 #define PS2_Data 0x0c
 #define PS2_Ctrl 0x0e
@@ -64,32 +66,34 @@ char kbdFSM(char c) {
 }
 
 // スキャンコードバッファ
-int  sem;					// code を排他制御するセマフォ
-char code = '\0';				// 1文字バッファ	      
+int  sem;                                       // code を排他制御するセマフォ
+RingBuf codeBuf={"1234567890123456",16,0,0,0};  // 16バイトのバッファ本体
 
 // 割り込みハンドラ
 interrupt kbdInt() {
-  char c = chr(in(PS2_Data));			// スキャンコードを取得
-  c = kbdFSM(c);                      		// FSM を使用して変換
-  if (c!='\0') {
-    code = c;					// 有効なら書き込む
-    semV(sem);					// プロセスを起こす
+  char c = chr(in(PS2_Data));                   // スキャンコードを取得
+  c = kbdFSM(c);                                // FSM を使用して変換
+  if (c!='\0' && putBuf(codeBuf, c)) {          // 有効ならバッファに書き込み
+    semV(sem);                                  //   プロセスを起こす
   }
 }
 
-// 初期化ルーチン
-public void keyBoardInit() {
-  int[] vect = _ItoA(0xffe0);
-  vect[6] = addrof(kbdInt);			// 割込みベクタ初期化
-  in(PS2_Data);                       		// 受信バッファのゴミをとる
-  out(PS2_Ctrl,0x40);                 		// PS/2 受信割込み許可
-  sem = newSem(0);                    		// キー入力同期用のセマフォ
+// スキャンコード取得
+char getKeyCode() {
+  semP(sem);                                    // キーボード待ちで止まる
+  return chr(getBuf(codeBuf));                  // バッファから取り出す．
 }
 
-// スキャンコード取得
-public char getKeyCode() {
-  semP(sem);					// キーボード待ちで止まる
-  char c = code;
-  code = '\0';
-  return c;
+// 初期化ルーチン
+public void ps2Init() {
+  int[] vect = _ItoA(0xffe0);
+  vect[6] = addrof(kbdInt);                     // 割込みベクタ初期化
+  in(PS2_Data);                                 // 受信バッファのゴミをとる
+  out(PS2_Ctrl,0x40);                           // PS/2 受信割込み許可
+  sem = newSem(0);                              // キー入力同期用のセマフォ
+}
+
+// キーボードから1文字入力
+public char getPS2() {
+  return scConv(getKeyCode());                  // 1文字入力
 }

@@ -129,7 +129,27 @@ void listArchive(char[][] argv) {
 }
 
 //   アーカイブにファイル追加機能
-void addArchive(char[][] argv) {
+void addArchive(char[][]argv) {
+  // アーカイブを開き、ヘッダのチェックをして閉じる
+  openArchive(argv);
+  fclose(in);
+  
+  // a(追加)で開き直す
+  if((out = fopen(argv[2], "a")) == null) {
+    perror(argv[1]);
+    exit(1);
+  }
+  for(int i=3; argv[i]!=null; i=i+1){       // すべてのファイルについて
+    writeHeader(argv[i]);                   //   ファイルヘッダ出力
+    xOpen(argv[i]);                         //   ファイルをオープン
+    while(!feof(in)){                       //   ファイルの最後まで
+      char c=getB();                        //    バイト単位で
+      putB(c);                              //      コピーする
+    }
+    fclose(in);                             //   ファイルをクローズ
+  }
+
+  fclose(out);
 }
 
 // 使用方法の表示

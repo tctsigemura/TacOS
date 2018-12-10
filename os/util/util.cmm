@@ -22,11 +22,12 @@
 /*
  * util/util.cmm : C-- が動くために必要な関数群
  *
+ * 2018.11.12 : 隅田の成果を取り込む（リングバッファ関連）
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.11 : panic() が #ifdef DEGUB 以外で printf() を使用しないように変更
  * 2016.01.11 : 一部関数をキャメルケースに統一
  * 2016.01.06 : コメント体裁を清書
- * 2015.01.05 : isUpper, isLower, isDigit, isPrint を削除(util.h のマクロに変更)
+ * 2015.01.05 : isUpper,isLower,isDigit,isPrintを削除(util.h のマクロに変更)
  * 2015.12.21 : _uCmp32() を追加
  * 2015.12.14 : strncmp() を dirAccess.cmm に移植
  * 2015.09.07 : strlen(), strcpy() を追加, MEM 配列を復活(重村)
@@ -53,12 +54,14 @@
 
 #include <kernel.hmm>
 #include "util.hmm"
-#include "console.hmm"
+
+#ifdef VGA
+#include <vga.hmm>                                  // TaC7aでVGAを使用する場合
+#endif 
 
 // util の初期化ルーチン
 public void utilInit() {
-  MEM = _ItoA(0);         // 0x0000 を指す char[] 参照（主記憶を意味する)
-  consInit();
+  MEM = _ItoA(0);                                   // MEMは0x0000を指すchar型
 }
 
 // 32bit の大小比較(第1引数の方が大きいとき1、等しいとき0、小さいとき-1)
@@ -100,23 +103,80 @@ public char[] strCpy(char[] dst, char[] src) {
   return dst;                                       // コピー先を返す
 }
 
-// -------------------------------- 入出力ルーチン --------------------------
+// --------------------------- リングバッファ関係 ------------------------
+// 次の添字を求める
+int nextIdx(RingBuf buf, int idx) {
+  int next = idx + 1;                               // 一つ進める
+  if (next>=buf.size) next = 0;                     // バッファサイズをチェック
+  return next;                                      // 次の添字を返す
+}
 
-// 1文字出力
-public void putCh(char c) {			    // VGA と SIO の両方へ出力
-#ifdef SIO
-  if (c=='\n') putSIO('\r');
-  putSIO(c);
+// リングバッファに 1 文字追加
+public boolean putBuf(RingBuf buf, char c) {
+  if (buf.size==buf.cnt) return false;              // バッファがパンクなら終了
+  buf.buf[buf.head] = c;                            // バッファに１文字書いて
+  buf.head = nextIdx(buf, buf.head);                // ポインタを進める
+  buf.cnt = buf.cnt + 1;                            // カウンタを増やす
+  return true;
+}
+
+// リングバッファから 1 文字取得
+public int getBuf(RingBuf buf) {
+  if (buf.cnt==0) return -1;                        // 空の場合は -1 を返す
+  char c = buf.buf[buf.tail];                       // バッファから１文字取って
+  buf.tail = nextIdx(buf, buf.tail);                // tail を進める
+  buf.cnt = buf.cnt - 1;                            // カウンタを減らす
+  return  ord(c);                                   // 文字コードを返す
+}
+
+// --------------------------- デバッグ用表示ルーチン -------------------------
+// 1文字出力（起動時のメッセージなどを表示するための簡易版）
+#ifndef VGA
+void dbgPutSIO(char c) {                            // SIO への出力
+  while ((in(0x0a) & 0x80)==0)
+    ;
+  out(0x08, ord(c));
+}
 #endif
+
+void dbgPutCh(char c) {                             // デバッグ用の表示ルーチン
+#ifdef VGA
   putVGA(c);
+#else
+  if (c=='\n') dbgPutSIO('\r');
+  dbgPutSIO(c);
+#endif
 }
 
 // 文字列出力
-public void putStr(char[] str) {
+public void dbgPutStr(char[] str) {
   for (int i=0; str[i]!='\0'; i=i+1)
-    putCh(str[i]);
+    dbgPutCh(str[i]);
 }
 
+// ------------------------------- エラー表示 ----------------------------
+public void panic(char[] msg, ...) {
+  setPri(DI|KERN);                                  // 割り込み禁止
+
+#ifdef DEBUG
+  int[] args = _args();
+  printF("### panic(PID=%d(", getPid());
+  int[] fp = _addrAdd(args, -6);
+  for (int i=0; i<3; i=i+1) {                       // 関数のトレースを3階層
+    printF("<-(%04x)",fp[1]);
+    fp = _ItoA(fp[0]);
+  }
+  printF(")) ###\n");
+  printF(msg, args[0], args[1], args[2]);
+#else
+  dbgPutStr(msg);
+#endif
+
+  dbgPutCh('\n');
+  while (true) halt();                              // システムを停止する
+}
+
+// --------------------------- デバッグ用簡易printf --------------------------
 #ifdef DEBUG
 char[] __hstr = "0123456789abcdef";
 int  __putnum_w;
@@ -127,33 +187,33 @@ boolean __putnum_m;
 void __putnum_sub(int x, int n) {
   if (x!=0) {
     __putnum_sub(x/__putnum_b, n+1);
-    putCh(__hstr[x%__putnum_b]);
+    dbgPutCh(__hstr[x%__putnum_b]);
   } else {
-    if (__putnum_m&&__putnum_p!=' ') putCh('-');
+    if (__putnum_m&&__putnum_p!=' ') dbgPutCh('-');
     if (n==0) __putnum_w = __putnum_w - 1;
     while (__putnum_w>n) {
-      putCh(__putnum_p);
+      dbgPutCh(__putnum_p);
       __putnum_w = __putnum_w - 1;
     }
-    if (__putnum_m&&__putnum_p==' ') putCh('-');
-    if (n==0) putCh('0');
+    if (__putnum_m&&__putnum_p==' ') dbgPutCh('-');
+    if (n==0) dbgPutCh('0');
   }
 }
 
 // グローバル変数を使用するため割り込み禁止(本来なら割り込み禁止する必要はない)
 void __uputnum(int x, int w, char p, int base) {
-  int r =setPri(DI|KERN);			     // 割り込み禁止 
+  int r =setPri(DI|KERN);                            // 割り込み禁止 
   __putnum_b = base;
   __putnum_m = false;
   __putnum_w = w;
   __putnum_p = p;
   __putnum_sub(x,0);
-  setPri(r);					     // 割り込み復元
+  setPri(r);                                         // 割り込み復元
 }
 
 // グローバル変数を使用するため割り込み禁止(本来なら割り込み禁止する必要はない)
 void __sputnum(int x, int w, char p, int base) {
-  int r =setPri(DI|KERN);			     // 割り込み禁止
+  int r =setPri(DI|KERN);                            // 割り込み禁止
   
   __putnum_b = base;
   __putnum_m = false;
@@ -166,7 +226,7 @@ void __sputnum(int x, int w, char p, int base) {
   __putnum_p = p;
   __putnum_sub(x,0);
 
-  setPri(r);					     // 割り込み復元
+  setPri(r);                                         // 割り込み復元
 }
 
 public int printF(char[] fmt, ...) {  
@@ -182,56 +242,33 @@ public int printF(char[] fmt, ...) {
       int  w = 0;
       while (isDigit(c)) {
         w = w * 10 + (ord(c) - ord('0'));
-	c = fmt[i=i+1];
+        c = fmt[i=i+1];
       }
       if (c=='\0') {
         return n;
       } else if (c=='o') {
         __uputnum(arg,w,p,8);
-	arg = args[n=n+1];
+        arg = args[n=n+1];
       } else if (c=='d') {
         __sputnum(arg,w,p,10);
-	arg = args[n=n+1];
+        arg = args[n=n+1];
       } else if (c=='x') {
         __uputnum(arg,w,p,16);
-	arg = args[n=n+1];
+        arg = args[n=n+1];
       } else if (c=='c') {
-        putCh(chr(arg));
-	arg = args[n=n+1];
+        dbgPutCh(chr(arg));
+        arg = args[n=n+1];
       } else if (c=='s') {
-        putStr(_ItoA(arg));
-	arg = args[n=n+1];
+        dbgPutStr(_ItoA(arg));
+        arg = args[n=n+1];
       } else if (c=='%') {
-        putCh('%');
+        dbgPutCh('%');
       } else {
-        putCh(c);
+        dbgPutCh(c);
       }
     } else 
-      putCh(c);
+      dbgPutCh(c);
   }
   return n;
 }
 #endif
-
-// ------------------------------- エラー表示 ----------------------------
-public void panic(char[] msg, ...) {
-  setPri(DI|KERN);				    // 割り込み禁止
-
-#ifdef DEBUG
-  int[] args = _args();
-  printF("### panic(PID=%d(", getPid());
-  int[] fp = _addrAdd(args, -6);
-  for (int i=0; i<3; i=i+1) {                       // 関数のトレースを3階層
-    printF("<-(%04x)",fp[1]);
-    fp = _ItoA(fp[0]);
-  }
-  printF(")) ###\n");
-  printF(msg, args[0], args[1], args[2]);
-
-#else
-  putStr(msg);
-#endif
-
-  putCh('\n');
-  while (true) halt();				    // システムを停止する
-}
