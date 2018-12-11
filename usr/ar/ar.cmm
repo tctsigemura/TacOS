@@ -72,6 +72,29 @@ void writeHeader(char[] fname){             // ファイルヘッダの書き込
   putW(MAGIC);                              //   マジック番号
 }
 
+// ファイルヘッダの読み込み
+// return ファイルサイズ or -1(ファイルヘッダがない)
+int readHeader(char[] fname, int namemax) {
+  if(fgets(fname, namemax, in) != null) {
+    int idx = strChr(fname, '\n');
+    if(idx == -1) {
+      fprintf(stderr, "illegal file format\n");
+      exit(1);
+    }
+    fname[idx]='\0';
+    // ファイルサイズ
+    int fsz = getW();
+    // マジックナンバー
+    int magic = getW();
+    if(magic != MAGIC) {
+      fprintf(stderr, "illegal file format\n");
+      exit(1);
+    }
+    return fsz;
+  }
+  return -1;
+}
+
 // アーカイブの作成機能
 void createArchive(char[][] argv){
   if((out=fopen(argv[2],"w")) == null){     // アーカイブファイル作成
@@ -112,16 +135,10 @@ int[] pos={0,8};
 int[] tmp2={0,0};
 void listArchive(char[][] argv) {
   openArchive(argv);
-  while (fgets(buf,MAXBUF,in)!=null){
-    int idx=strChr(buf,'\n');
-    if(idx == -1){
-      fprintf(stderr, "illegal file format\n");
-      exit(1);      
-    }
-    buf[idx]='\0';
-    int s=getW();
+  int s;
+  while((s = readHeader(buf,MAXBUF)) != -1){
     printf("%-10s %5d\n",buf,s);
-    tmp2[1]=idx+1+4+s;
+    tmp2[1]=strLen(buf)+1+4+s;
     _add32(pos,tmp2);
     fseek(in,pos[0],pos[1]);
   }
