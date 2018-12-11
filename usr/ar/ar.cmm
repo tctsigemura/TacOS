@@ -172,6 +172,9 @@ void addArchive(char[][]argv) {
 // 使用方法の表示
 void usage(char[] myname){
   fprintf(stderr, "Usage : %s -c <archive> <file>...\n", myname);
+  fprintf(stderr, "        %s -a <archive> <file>...\n", myname);
+  fprintf(stderr, "        %s -x <archive>\n", myname);
+  fprintf(stderr, "        %s -t <archive>\n", myname);
   exit(1);
 }
 
