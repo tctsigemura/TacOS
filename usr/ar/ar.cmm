@@ -1,6 +1,20 @@
 #include <stdio.hmm>
 #include <stdlib.hmm>                       // exit() のために必要
 #include <string.hmm>                       // strCmp() のために必要
+#ifndef C
+#include <crt0.hmm>
+#endif
+#define MAXBUF 100
+
+#ifdef C
+int[] _add32(int[] dst,int[] src){
+  int d=dst[1];
+  int s=src[1];
+  d=d+s;
+  dst[1]=d;
+  return dst;
+}
+#endif
 
 // 入力ファイルの読み込み関係
 FILE in;                                    // 入力ファイル
@@ -58,6 +72,29 @@ void writeHeader(char[] fname){             // ファイルヘッダの書き込
   putW(MAGIC);                              //   マジック番号
 }
 
+// ファイルヘッダの読み込み
+// return ファイルサイズ or -1(ファイルヘッダがない)
+int readHeader(char[] fname, int namemax) {
+  if(fgets(fname, namemax, in) != null) {
+    int idx = strChr(fname, '\n');
+    if(idx == -1) {
+      fprintf(stderr, "illegal file format\n");
+      exit(1);
+    }
+    fname[idx]='\0';
+    // ファイルサイズ
+    int fsz = getW();
+    // マジックナンバー
+    int magic = getW();
+    if(magic != MAGIC) {
+      fprintf(stderr, "illegal file format\n");
+      exit(1);
+    }
+    return fsz;
+  }
+  return -1;
+}
+
 // アーカイブの作成機能
 void createArchive(char[][] argv){
   if((out=fopen(argv[2],"w")) == null){     // アーカイブファイル作成
@@ -77,9 +114,67 @@ void createArchive(char[][] argv){
   fclose(out);                              // アーカイブファイルクロース
 }
 
+char[] buf=array(MAXBUF);
+
+// アーカイブファイルをオープンしてグローバルヘッダを確認する
+void openArchive(char[][] argv) {
+  xOpen(argv[2]);
+  fgets(buf, 9, in);
+  if (strCmp(buf, "!<arch>\n")!=0) {
+    fprintf(stderr, "illegal file format\n");
+    exit(1);
+  }
+}
+
+//   アーカイブの展開機能
+void extractArchive(char[][] argv) {
+}
+
+//   アーカイブのリスト機能
+int[] pos={0,8};
+int[] tmp2={0,0};
+void listArchive(char[][] argv) {
+  openArchive(argv);
+  int s;
+  while((s = readHeader(buf,MAXBUF)) != -1){
+    printf("%-10s %5d\n",buf,s);
+    tmp2[1]=strLen(buf)+1+4+s;
+    _add32(pos,tmp2);
+    fseek(in,pos[0],pos[1]);
+  }
+  fclose(in);
+}
+
+//   アーカイブにファイル追加機能
+void addArchive(char[][]argv) {
+  // アーカイブを開き、ヘッダのチェックをして閉じる
+  openArchive(argv);
+  fclose(in);
+  
+  // a(追加)で開き直す
+  if((out = fopen(argv[2], "a")) == null) {
+    perror(argv[1]);
+    exit(1);
+  }
+  for(int i=3; argv[i]!=null; i=i+1){       // すべてのファイルについて
+    writeHeader(argv[i]);                   //   ファイルヘッダ出力
+    xOpen(argv[i]);                         //   ファイルをオープン
+    while(!feof(in)){                       //   ファイルの最後まで
+      char c=getB();                        //    バイト単位で
+      putB(c);                              //      コピーする
+    }
+    fclose(in);                             //   ファイルをクローズ
+  }
+
+  fclose(out);
+}
+
 // 使用方法の表示
 void usage(char[] myname){
   fprintf(stderr, "Usage : %s -c <archive> <file>...\n", myname);
+  fprintf(stderr, "        %s -a <archive> <file>...\n", myname);
+  fprintf(stderr, "        %s -x <archive>\n", myname);
+  fprintf(stderr, "        %s -t <archive>\n", myname);
   exit(1);
 }
 
@@ -89,6 +184,12 @@ public int main(int argc, char[][] argv){
     usage(argv[0]);                         //   エラー終了
   } else if (strCmp(argv[1], "-c")==0){     // -c アーカイブ作成
     createArchive(argv);                    //   アーカイブの作成機能
+  } else if (strCmp(argv[1], "-x")==0){     // -x アーカイブ展開
+    extractArchive(argv);                   //   アーカイブの展開機能
+  } else if (strCmp(argv[1], "-t")==0){     // -c アーカイブファイルリスト
+    listArchive(argv);                      //   アーカイブのリスト機能
+  } else if (strCmp(argv[1], "-a")==0){     // -a アーカイブファイル追加
+    addArchive(argv);                       //   アーカイブに追加する機能
   } else {                                  // どれでもなければ
     usage(argv[0]);                         //   エラー終了
   }

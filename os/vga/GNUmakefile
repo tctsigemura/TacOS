@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2016 - 2018 by
+# Copyright (C) 2018 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -17,14 +17,13 @@
 # る損害に関しても，その責任を負わない．
 #
 #
-# util/Makefile : 便利ルーチンの Makefile
+# vga/GNUMakefile : VGAの表示ルーチン
 #
-# 2018.11.12    : SIO版の作業開始
-# 2016.01.08    : 著作権表示等を整理
+# 2018.11.30    : 新規作成
 #
 # $Id$
 #
 
-OBJS=crt0.o util.o
+OBJS=vga.o
 
 include ../Makefile.rul

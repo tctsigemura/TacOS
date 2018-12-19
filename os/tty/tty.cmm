@@ -22,6 +22,7 @@
 /*
  * tty/tty.cmm : 端末サーバの本体、キーボード入力の受付とディスプレイ表示をする
  *
+ * 2018.11.30 : ps2 を独立させた
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.03 : 中身を sysConRead() に移動し getBuf() を廃止(重村)
  * 2015.09.08 : strcpy() は util.cmm のものを使うように変更(重村)
@@ -38,18 +39,29 @@
 #include <util.hmm>
 #include <kernel.hmm>
 #include <syscall.hmm>
+
+// -------------------------- 
+#ifdef VGA
+#include <ps2.hmm>
+#include <vga.hmm>
+#define getCh() getPS2()
+#define putCh(c) putVGA(c)
+#else
+#include <sio.hmm>
+#define getCh() getSIO()
+#define putCh(c) putSIO(c)
+#endif
+
 #include "tty.hmm"
-#include "kbd.hmm"
-#include "scConv.hmm"
 
 // -------------------------- conRead システムコール --------------------------
 
 // conRead システムコールの本体 (キーボード入力された文字列をユーザ領域に渡す)
 int sysConRead(char[] buf, int len) {
   int kbdCnt = 0;                                       // buf のインデクス
-  len = len - 1;                                        // '\0' の格納領域を確保
+  len = len - 1;                                        // '\0'の格納領域を確保
   for (;;) {
-    char c = scConv(getKeyCode());                      // 1文字入力
+    char c = getCh();                                   // 1文字入力
     if (kbdCnt>=len || c=='\r' || c=='\n') {            // 指定長以上か改行なら
       buf[kbdCnt] = '\0';
       putCh('\n');
@@ -73,7 +85,10 @@ int sysConRead(char[] buf, int len) {
 // conWrite システムコールの本体 (文字列をディスプレイに表示する)
 //   buf はユーザ領域でフォーマット解読済みの文字列となっている
 int sysConWrite(void[] buf) {
-  putStr(buf);                                          // 文字列を表示する
+  char[] str=buf;                                       // 型変換
+  for (int i=0; str[i]!='\0'; i=i+1) {
+    putCh(str[i]);
+  }
   return 0;
 }
 
@@ -91,7 +106,6 @@ int ttySysCall(int op, int prm1, int prm2) {
 
 // クライアントとランデブする
 public void ttyMain() {
-  keyBoardInit();                                       // ドライバ初期化
   ttyLink = newLink();                                  // リンクを生成する
   while (true) {                                        // システムコールを待つ
     Link l = receive(ttyLink);                          // システムコールを受信

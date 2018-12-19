@@ -28,7 +28,8 @@
 MAKEFLAGS=--no-print-directory
 
 # サブディレクトリ
-SUBDIRS:=ar cat cp dump echo fsize hello ls mkdir mv rm rmdir shell touch # port
+SUBDIRS:=ar cat cp dump echo edit fsize hello ls mkdir mv rm rmdir shell touch
+# port
 
 all :
 	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir); )

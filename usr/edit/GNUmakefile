@@ -17,14 +17,28 @@
 # る損害に関しても，その責任を負わない．
 #
 #
-# util/Makefile : 便利ルーチンの Makefile
+# GNUmakefile : ユーザプログラム用の Makefile
 #
-# 2018.11.12    : SIO版の作業開始
-# 2016.01.08    : 著作権表示等を整理
+# 2018.11.24         : clean で *.dSYM を消すように変更
+# 2016.08.11         : 初期バージョン
 #
 # $Id$
 #
 
-OBJS=crt0.o util.o
+#----------------------------------------------------------------------------
+NAME=edit
+SRCS=${NAME}.cmm
+#----------------------------------------------------------------------------
 
-include ../Makefile.rul
+all : clean ${NAME}.exe ${NAME}
+
+${NAME}.exe : ${SRCS}
+	cm2e -o ${NAME} ${SRCS}
+
+${NAME} : ${SRCS}
+	cm2c -o ${NAME} ${SRCS}
+
+clean :
+	rm -f ${NAME} *.o *.lst *.sym *.exe *.map *~
+	rm -rf ${NAME}.dSYM
+
