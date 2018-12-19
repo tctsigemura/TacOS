@@ -22,14 +22,14 @@ char[] curFile = "";                        // 現在の入力ファイルの名
 
 void xOpen(char[] fname){                   // エラーチェック付きの fopen
   curFile = fname;                          //   現在の入力ファイルを記録
-  if((in = fopen(fname,"r"))==null){        //   オープンする
+  if ((in = fopen(fname,"r"))==null) {      //   オープンする
     perror(curFile);                        //     オープンできない場合は
     exit(1);                                //       エラー終了
   }
 }
 
 char getB(){                                // 1バイト入力ルーチン
-  if (feof(in)){                            //   予想外のEOFなら
+  if (feof(in)) {                           //   予想外のEOFなら
     fprintf(stderr, "%s : undexpected EOF\n", curFile);
     exit(1);                                //     エラー終了
   }
@@ -56,14 +56,14 @@ void putW(int x){                           // 1ワード出力ルーチン
 int[] tmp = array(2);                       // ファイルサイズ用
 
 void writeHeader(char[] fname){             // ファイルヘッダの書き込み
-  if (fsize(fname, tmp)){                   //   ファイルサイズを調べる
+  if (fsize(fname, tmp)) {                  //   ファイルサイズを調べる
     perror(fname);                          //     調べられない場合は
     exit(1);                                //       エラー終了
   }
 #ifdef C
-  if (tmp[0]!=0 || (tmp[1] & ~0xffff)!=0){  //   C言語のintは32ビットと仮定
+  if (tmp[0]!=0 || (tmp[1] & ~0xffff)!=0) { //   C言語のintは32ビットと仮定
 #else
-  if (tmp[0]!=0){                           //   TaC版のintは16ビット
+  if (tmp[0]!=0) {                          //   TaC版のintは16ビット
 #endif
     fprintf(stderr, "%s : too big .o file\n", fname);
   }
@@ -75,9 +75,9 @@ void writeHeader(char[] fname){             // ファイルヘッダの書き込
 // ファイルヘッダの読み込み
 // return ファイルサイズ or -1(ファイルヘッダがない)
 int readHeader(char[] fname, int namemax) {
-  if(fgets(fname, namemax, in) != null) {
+  if (fgets(fname, namemax, in) != null) {
     int idx = strChr(fname, '\n');
-    if(idx == -1) {
+    if (idx == -1) {
       fprintf(stderr, "illegal file format\n");
       exit(1);
     }
@@ -86,7 +86,7 @@ int readHeader(char[] fname, int namemax) {
     int fsz = getW();
     // マジックナンバー
     int magic = getW();
-    if(magic != MAGIC) {
+    if (magic != MAGIC) {
       fprintf(stderr, "illegal file format\n");
       exit(1);
     }
@@ -97,15 +97,15 @@ int readHeader(char[] fname, int namemax) {
 
 // アーカイブの作成機能
 void createArchive(char[][] argv){
-  if((out=fopen(argv[2],"w")) == null){     // アーカイブファイル作成
+  if ((out=fopen(argv[2],"w")) == null) {   // アーカイブファイル作成
     perror(argv[1]);                        //  作成できない場合は
     exit(1);                                //    エラー終了
   }
   fputs("!<arch>\n",out);                   // グローバルヘッダ
-  for(int i=3; argv[i]!=null; i=i+1){       // すべてのファイルについて
+  for (int i=3; argv[i]!=null; i=i+1) {     // すべてのファイルについて
     writeHeader(argv[i]);                   //   ファイルヘッダ出力
     xOpen(argv[i]);                         //   ファイルをオープン
-    while(!feof(in)){                       //   ファイルの最後まで
+    while (!feof(in)) {                     //   ファイルの最後まで
       char c=getB();                        //    バイト単位で
       putB(c);                              //      コピーする
     }
@@ -128,6 +128,21 @@ void openArchive(char[][] argv) {
 
 //   アーカイブの展開機能
 void extractArchive(char[][] argv) {
+  openArchive(argv);
+  int s;
+  while ((s = readHeader(buf,MAXBUF)) != -1) {
+    if ((out=fopen(buf,"w")) == null) {     // 展開するファイル作成
+      perror(argv[1]);                      //  作成できない場合は
+      exit(1);                              //    エラー終了
+    }
+    while (s!=0) {
+      char c=getB();
+      putB(c);
+      s=s-1;
+    }
+    fclose(out);
+  }
+  fclose(in);
 }
 
 //   アーカイブのリスト機能
@@ -136,7 +151,7 @@ int[] tmp2={0,0};
 void listArchive(char[][] argv) {
   openArchive(argv);
   int s;
-  while((s = readHeader(buf,MAXBUF)) != -1){
+  while ((s = readHeader(buf,MAXBUF)) != -1) {
     printf("%-10s %5d\n",buf,s);
     tmp2[1]=strLen(buf)+1+4+s;
     _add32(pos,tmp2);
@@ -152,14 +167,14 @@ void addArchive(char[][]argv) {
   fclose(in);
   
   // a(追加)で開き直す
-  if((out = fopen(argv[2], "a")) == null) {
+  if ((out = fopen(argv[2], "a")) == null) {
     perror(argv[1]);
     exit(1);
   }
-  for(int i=3; argv[i]!=null; i=i+1){       // すべてのファイルについて
+  for (int i=3; argv[i]!=null; i=i+1) {     // すべてのファイルについて
     writeHeader(argv[i]);                   //   ファイルヘッダ出力
     xOpen(argv[i]);                         //   ファイルをオープン
-    while(!feof(in)){                       //   ファイルの最後まで
+    while (!feof(in)) {                     //   ファイルの最後まで
       char c=getB();                        //    バイト単位で
       putB(c);                              //      コピーする
     }
@@ -180,7 +195,7 @@ void usage(char[] myname){
 
 // ar のメイン関数
 public int main(int argc, char[][] argv){
-  if (argc<3){                              // 引数の数が不足
+  if (argc<3) {                             // 引数の数が不足
     usage(argv[0]);                         //   エラー終了
   } else if (strCmp(argv[1], "-c")==0){     // -c アーカイブ作成
     createArchive(argv);                    //   アーカイブの作成機能
