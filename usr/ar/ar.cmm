@@ -201,7 +201,7 @@ public int main(int argc, char[][] argv){
     createArchive(argv);                    //   アーカイブの作成機能
   } else if (strCmp(argv[1], "-x")==0){     // -x アーカイブ展開
     extractArchive(argv);                   //   アーカイブの展開機能
-  } else if (strCmp(argv[1], "-t")==0){     // -c アーカイブファイルリスト
+  } else if (strCmp(argv[1], "-t")==0){     // -t アーカイブファイルリスト
     listArchive(argv);                      //   アーカイブのリスト機能
   } else if (strCmp(argv[1], "-a")==0){     // -a アーカイブファイル追加
     addArchive(argv);                       //   アーカイブに追加する機能
