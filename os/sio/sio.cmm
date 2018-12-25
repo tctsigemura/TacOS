@@ -59,7 +59,7 @@ interrupt sioTrs() {
 }
 
 // SIO へ１文字出力
-public void putSIO(char c) {
+void put(char c) {
   int r=setPri(KERN|DI);                      // SIO割り込みが発生しないように
   if (trsIdle) {                              // トランスミッタがアイドルなら
     out(SIO_Data,ord(c));                     //   送信を開始する
@@ -73,6 +73,11 @@ public void putSIO(char c) {
     putBuf(trsBuf, c);                        //     送信バッファに１文字追加
   }
   setPri(r);
+}
+
+public void putSIO(char c) {                  // LF => CR+LF 変換
+  if (c=='\n') put('\r');
+  put(c);
 }
 
 // 受信関係
