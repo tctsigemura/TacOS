@@ -44,7 +44,7 @@
  *              ヘッダから取得するように変更
  * 2015.05.27 : IPC のセマフォ使用化による変更
  *              (ランデブ内クライアント PCB 取得、exit ルーチン）
- * 2015.05.22 : exit と wait を修正(すぐに結果を返し、wait ルーチンを繰り返す) 
+ * 2015.05.22 : exit と wait を修正(すぐに結果を返し、wait ルーチンを繰り返す)
  * 2015.05.08 : システムコールの種類を示す #define を syscall.h に移植
  * 2015.04.30 : wait システムコールを実装
  * 2015.04.27 : exit システムコールを実装
@@ -172,6 +172,7 @@ int readTextData() {
   return 0;                                         // 正常終了
 }
 
+/*
 // 再配置を行う
 int relocate() {
   int[] TEXT = _ItoA(text);                         // TEXT+DATA を表現する配列
@@ -185,6 +186,7 @@ int relocate() {
   }
   return 0;                                         // 正常終了
 }
+*/
 
 // スタックの底に argc, argv, argv[0], ... を格納する
 void copyArgs(char[][] argv) {
@@ -236,9 +238,10 @@ printF("********************************\n");
 halt();
 #endif
 
-  if ((r=readTextData())==0)                       // テキストとデータを読み
-    r=relocate();                                  //   再配置する
-  closeByte();                                     // ファイルをクローズ   
+  if ((r=readTextData())==0){                      // テキストとデータを読み
+//    r=relocate();                                //   再配置する
+  }
+  closeByte();                                     // ファイルをクローズ
 
   if (r!=0) {                                      // エラーが発生していれば
     free(_ItoA(text));                             //   メモリを解放する
@@ -268,7 +271,7 @@ halt();
   pcb.parent  = p;                                 // 親プロセスを設定
   schProc(pcb);                                    // プロセスを実行可能に
   return pcb.pid;                                  // PID を返す
-} 
+}
 
 //-----------------------------------------------------------------------------
 // プロセスマネージャーの本体(ここで各システムコールを実行する)
@@ -276,7 +279,7 @@ halt();
 
 int pmSysCall(int op, int prm1, int prm2, int prm3, PCB client) {
   int r = -1;
-  if (op==EXEC) { 
+  if (op==EXEC) {
     r = sysExec(_ItoA(prm1), _ItoA(prm2), client);  // exec(path,argv,parent)
   } else
     r = -1;                                         // どれでもなければエラー
