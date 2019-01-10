@@ -103,5 +103,6 @@
 #define EPRIVVIO        (-22)     // 特権例外
 #define EILLINST        (-23)     // 不正命令
 #define ESTKOVRFLW      (-24)     // スタックオーバーフロー
+#define EMEMVIO         (-25)     // メモリ保護違反
  
 #endif
