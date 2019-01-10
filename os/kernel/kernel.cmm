@@ -167,7 +167,7 @@ public void freeSem(int s) {
 //   カウンタの値 > 0 : カウンタから1減らす
 //   カウンタの値 = 0 : 現在実行中のプロセスを実行可能列から外し、
 //                      待ち状態にしてセマフォの待ち行列に登録し、
-//　  　　　　             ディスパッチャを呼び出す 
+//　  　　　　             ディスパッチャを呼び出す
 public void semP(int sd) {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   if (sd<0 || SEM_MAX<=sd || !semInUse[sd])         // 不正なセマフォ番号
@@ -208,10 +208,10 @@ boolean iSemV(int sd) {
 }
 
 // セマフォの V 操作
-//   待ちプロセス無し : カウンタを1増やす    
+//   待ちプロセス無し : カウンタを1増やす
 //   待ちプロセス有り : 待ち行列からプロセスを1つ外して実行可能にした後、
 //                      ディスパッチャを呼び出す
-public void semV(int sd) {  
+public void semV(int sd) {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   if (iSemV(sd)) {                                  // V 操作し必要なら
     yield();                                        //   プロセスを切り替える
@@ -256,7 +256,7 @@ int nextPid() {
   boolean flg = true;                               // PID 重複チェック用フラグ
   int pid = lastPid;                                // PID 候補
 
-  while (flg) {                                     // 
+  while (flg) {                                     //
     pid = pid + 1;                                  // 新しい PID 候補
     if (pid<0) pid = 0;                             // Overflow したら 0 に戻す
     flg = false;                                    // 重複は無いだろう
@@ -363,7 +363,7 @@ public PCB waitChild() {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   PCB p = srchChild();                              // 子プロセスを探す
   if (p!=null && p.stat!=P_ZOMBIE) {                // 子プロセスあるが
-    curProc.evtCnt = -1;                            //   ゾンビではない 
+    curProc.evtCnt = -1;                            //   ゾンビではない
     semP(curProc.evtSem);                           //  子プロセス待ち状態
     p = srchChild();                                //  子プロセスを探す
     if (p==null || p.stat!=P_ZOMBIE)                //  ゾンビな子が居ないのに
@@ -392,7 +392,7 @@ public void zmbProc() {
   // もし親プロセスが先に wait していたら起こす
   if (curProc.parent.evtCnt == -1)                  // 親が wait していたら
     iSemV(curProc.parent.evtSem);                   //   V 操作で起こす
-  
+
   // 自身の PCB を後片付けしプロセスを終了
   freeSem(curProc.evtSem);                          // セマフォを返却し
   delProc(curProc);                                 // 実行可能列から外す
@@ -453,7 +453,7 @@ void procInit() {
   printF("  %d[%d]  ->",g.pid,g.enice);
   for(PCB d=g.next; d!=g; d=d.next)
      printF("  %d[%d]  ->",d.pid,d.enice);
-  printF("\n");  
+  printF("\n");
 #endif
 }
 
@@ -583,9 +583,15 @@ interrupt illInst() {
   exception(EILLINST, "illInst");
 }
 
+//　メモリ保護違反
+interrupt memVio() {
+  exception(EMEMVIO, "memVio");
+}
+
 // 例外処理初期化 : ベクタの初期化
 void excpInit() {                                   // ベクタにハンドラを登録
   int[] VECTOR =  _ItoA(0xffe0);
+  VECTOR[11] = addrof(memVio);
   VECTOR[12] = addrof(zeroDiv);
   VECTOR[13] = addrof(privVio);
   VECTOR[14] = addrof(illInst);
@@ -628,7 +634,7 @@ public void printq() {
   printF("  %d[%d]  ->",g.pid,g.enice);
   for (PCB d=g.next; d!=g; d=d.next)
     printF("  %d[%d]  ->",d.pid,d.enice);
-  printF("\n");  
+  printF("\n");
 
   g=semTbl[linkTbl[mmLink].s1].queue;
   printF(" MM   s1:%d  ->",g.pid);
