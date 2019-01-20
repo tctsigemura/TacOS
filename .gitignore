@@ -6,3 +6,5 @@
 *.lst
 *.sym
 *.dSYM
+*.bin
+
