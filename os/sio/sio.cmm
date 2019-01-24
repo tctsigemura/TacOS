@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2018 by
+ * Copyright (C) 2018 - 2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * sio/sio.cmm : シリアルドライバ
  *
+ * 2019.01.24 : RN4020とFT232両方に入出力するように変更
  * 2018.12.25 : 出力でLFをCR,LFに置き換える機能追加
  * 2018.11.01 : 新規
  *
@@ -33,8 +34,10 @@
 #include <kernel.hmm>
 #include "sio.hmm"
 
-#define SIO_Data 0x08                         // TeC7a 送受信データのI/Oポート
-#define SIO_Ctrl 0x0a                         // TeC7a 制御用のI/Oポート
+#define SIO_Data 0x08                         // FT232 送受信データのI/Oポート
+#define SIO_Ctrl 0x0a                         // FT232 制御用のI/Oポート
+#define RN4_Data 0x28                         // RN4020 送受信データのI/Oポート
+#define RN4_Ctrl 0x2a                         // RN4020 制御用のI/Oポート
 
 RingBuf rcvBuf={"1234567890123456",16,0,0,0}; // 受信バッファ
 RingBuf trsBuf={"1234567890123456",16,0,0,0}; // 送信バッファ
@@ -52,6 +55,7 @@ interrupt sioTrs() {
   } else {                                    // 送信すべきデータがあれば
     int c = getBuf(trsBuf);                   //   次の文字をバッファから取出し
     out(SIO_Data,c);                          //     送信する
+    out(RN4_Data,c);                          //     同じデータをRN4020にも送信
     if (trsWait) {                            //   待っているプロセスがあれば
       trsWait=false;                          //     フラグを下ろして
       semV(trsSem);                           //        起こす
@@ -65,6 +69,7 @@ void put(char c) {
   if (trsIdle) {                              // トランスミッタがアイドルなら
     out(SIO_Data,ord(c));                     //   送信を開始する
     out(SIO_Ctrl,0x00c0);                     //   割込みを許可する
+    out(RN4_Data,ord(c));                     //   同じデータをRN4020にも送信
     trsIdle = false;                          //   トランスミッタは動作中
   } else {                                    // トランスミッタが動作中なら
     if (ISFull(trsBuf)) {                     //   送信バッファに空きが無いなら
@@ -84,6 +89,14 @@ public void putSIO(char c) {                  // LF => CR+LF 変換
 // 受信関係
 int rcvSem;                                   // 受信待ちセマフォ
 
+// RN4020 受信割込み処理ルーチン
+interrupt rn4Rcv()  {
+  char c = chr(in(RN4_Data));                 // 受信データを入力する
+  if (putBuf(rcvBuf, c)) {                    // バッファに書き込めたら
+    semV(rcvSem);                             //   プロセスを起こす
+  }
+}
+
 // SIO 受信割込み処理ルーチン
 interrupt sioRcv()  {
   char c = chr(in(SIO_Data));                 // 受信データを入力する
@@ -101,10 +114,13 @@ public char getSIO() {
 // 初期化
 public void sioInit() {
   int[] vect = _ItoA(0xffe0);
+  vect[2] = addrof(rn4Rcv);                   // 割込みベクタ初期化
   vect[4] = addrof(sioRcv);                   // 割込みベクタ初期化
   vect[5] = addrof(sioTrs);                   // 割込みベクタ初期化
   in(SIO_Data);                               // 受信バッファのゴミをとる
+  in(RN4_Data);                               // 受信バッファのゴミをとる
   out(SIO_Ctrl,0x0040);                       // 受信割込み許可、送信割込み禁止
+  out(RN4_Ctrl,0x0040);                       // 受信割込み許可、送信割込み禁止
   trsSem = newSem(0);                         // 送信用セマフォ
   rcvSem = newSem(0);                         // 受信用セマフォ
 }
