@@ -68,7 +68,7 @@ interrupt sioTrs() {
 
 // SIO へ１文字出力
 void put(char c) {
-  int r=setPri(KERN|DI);                      // SIO割り込みが発生しないように
+  int r=setPri(DI|KERN);                      // SIO割り込みが発生しないように
   if (trsIdle) {                              // トランスミッタがアイドルなら
     out(SIO_Data,ord(c));                     //   送信を開始する
     out(SIO_Ctrl,0x00c0);                     //   割込みを許可する
