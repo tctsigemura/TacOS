@@ -1,8 +1,8 @@
 /*
  * TacOS Source Code
- *    Tokuyama kousen Advanced educational Computer.
+ *    Tokuyama kousen Educational Computer 16bit Ver.
  *
- * Copyright (C) 2011-2018 by
+ * Copyright (C) 2009-2018 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,13 +20,17 @@
  */
 
 /*
- * tty/kbd.hmm : kbd.cmm の外部インタフェース
+ * vga/vga.hmm : vga.cmm の外部インタフェース
  *
+ * 2018.11.30 : 名前を console.hmm からvga.hmm に変更
+ *              consInit() を vgaInit() に変更
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
+ * 2014.05.07 : 村田開発開始
+ * 2012.02.29 : cls を追加
+ * 2012.01.08 : console.cmm の外部インタフェース
  *
  * $Id$
- *
  */
 
-public void keyBoardInit();        // 初期化
-public char getKeyCode();          // スキャンコード取得
+public void putVGA(char c);                 // VGAへの1文字表示
+public void vgaInit();                      // 画面出力の初期化

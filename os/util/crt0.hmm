@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer
  *
- * Copyright (C) 2008-2018 by
+ * Copyright (C) 2008-2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * util/crt0.hmm :crt0.s の外部インターフェイス
  *
+ * 2019.01.27 : I/O特権モード追加
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.20 : _fp() を追加
  * 2016.01.19 : Ld32 と St32 を ld32 と st32 に変更
@@ -40,6 +41,7 @@
 #define EI   0x0080                                 // 割込み許可
 #define DI   0x0000                                 // 割込み不許可
 #define KERN 0x0040                                 // カーネルモード
+#define IPRV 0x0020                                 // I/O特権モード
 #define USER 0x0000                                 // ユーザモード
 public int setPri(int l);                           // フラグ値の変更
 public int in(int p);                               // ポートから入力
@@ -61,3 +63,6 @@ public int[]  _mul32(int[] dst, int src);           // 32bit の乗算ルーチ�
 public int[]  _div32(int[] dst, int src);           // 32bit の除算ルーチン
 #define ld32(dst,h,l) ((dst)[0]=(h),(dst)[1]=(l))   // 32bit のデータのロード
 #define st32(h,l,src) ((h)=(src)[0],(l)=(src)[1])   // 32bit のデータのストア
+
+// グローバル変数
+public int _memSiz;                                 // 主記憶のサイズ

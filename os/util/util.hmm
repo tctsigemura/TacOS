@@ -22,6 +22,8 @@
 /*
  * util/util.hmm : util.cmm の外部インターフェイス
  *
+ * 2018.11.30 : putCh(),putStr() 削除（デバッグ専用のプライベートな関数に変更）
+ * 2018.11.12 : 隅田の成果を取り込む（リングバッファ関連）
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.19 : WordLE を wordLE に変更
  * 2016.01.18 : WordBE と stWordBE を削除
@@ -59,8 +61,7 @@ public int _uCmp32(int[] a, int[] b);
 public char toUpper(char c);
 public int strLen(char[] s);
 public char[] strCpy(char[] dst, char[] src);
-public void putCh(char c);
-public void putStr(char[] str);
+
 public void panic(char[] msg, ...);
 
 #define isDigit(c) (ord('0')<=ord(c) && ord(c)<=ord('9'))
@@ -72,6 +73,22 @@ public void panic(char[] msg, ...);
 // (FAT ファイルシステムから読み込んだものがリトルエンディアン)
 #define wordLE(b, i) ((ord((b)[(i)+1])<<8) | ord((b)[i]))
 #define stWordLE(b,i,s) {(b)[i]=chr(s); b[(i)+1]=chr((s)>>8);}
+
+// リングバッファ関係
+struct RingBuf {
+  char[] buf;                                 // バッファ
+  int    size;                                // バッファサイズ
+  int    head, tail, cnt;                     // ポインタ
+};
+
+public boolean putBuf(RingBuf buf, char c);   // true:正常, false:バッファフル
+public int getBuf(RingBuf buf);               // =-1:EOF, >=0:文字コード
+#define ISEmpty(b) ((b).cnt==0)               // バッファにデータが無い
+#define ISFull(b) ((b).cnt==(b).size)         // バッファに空きが無い
+
+
+// デバッグ関係
+public void dbgPutStr(char[] str);            // ちょっとした動作確認用
 
 #ifdef DEBUG
 public int printF(char[] fmt, ...);

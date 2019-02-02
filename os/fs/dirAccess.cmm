@@ -22,6 +22,7 @@
 /*
  * fs/dirAccess.cmm : DIR エントリを管理するクラス
  *
+ * 2018.12.03 : ディレクトリエントリの削除に関するバグを修正
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.06 : コードレビューを反映
  * 2015.12.01 : 新規作成
@@ -116,7 +117,11 @@ public int readDirEnt(DirEnt dirEnt) {
 void writeFname(char[] s, int ofs) {
   for (int i=0; i<11; i=i+1)
     dirCache[ofs+i] = s[i];
-  if (s[0]=='\xe5') dirCache[ofs]='\x05';    // SJIS漢字コードの0xe5は0x05に変換
+  if (s[0]=='\xe5') {                        // 先頭がSJIS漢字コードの0xe5なら
+    dirCache[ofs]='\x05';                    //   0x05に変換する
+  } else if (s[0]=='\x05') {                 // 0x05はfatSys.cmmの削除マーク
+    dirCache[ofs]='\xe5';                    //   正規削除マーク0xe5に変換する
+  }
 }
 
 // writeDirEnt : dirEnt の情報を DIR FILE に書き込む

@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2018 by
+ * Copyright (C) 2011 - 2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2019.01.27 : I/O特権モード導入に伴い実行モードの判定方法を変更
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2017.12.27 : newLink() のコメントを修正
  * 2017.12.25 : sndrec() で割込み禁止区間を縮小
@@ -90,6 +91,12 @@
 // クリティカルセクションは setPri() で囲む
 // プロセス間通信(IPC)をリンクで実現
 
+#ifdef VGA
+#include <vga.hmm>
+#include <ps2.hmm>
+#else
+#include <sio.hmm>
+#endif
 #include <util.hmm>
 #include <mm.hmm>
 #include <pm.hmm>
@@ -406,12 +413,12 @@ public void zmbProc() {
 //-----------------------------------------------------------------------------
 // カーネルプロセスの PCB とスタック領域を定義
 #define MakePCB(name, stkSiz) char[] name=array((sizeof(PCB)+(stkSiz)+1)&~1)
-MakePCB(mmMem, P_KERN_STKSIZ);                      // MM  の PCB とスタック領域
-MakePCB(fsMem, P_KERN_STKSIZ);                      // FS  の PCB とスタック領域
-MakePCB(pmMem, P_KERN_STKSIZ);                      // PM  の PCB とスタック領域
-MakePCB(ttyMem, P_KERN_STKSIZ);                     // TTY の PCB とスタック領域
-MakePCB(initMem, P_KERN_STKSIZ);                    // INITの PCB とスタック領域
-MakePCB(idleMem, P_KERN_STKSIZ);                    // IDLEの PCB とスタック領域
+MakePCB(mmMem, P_KERN_STKSIZ);                      // MM  のPCBとスタック領域
+MakePCB(fsMem, P_KERN_STKSIZ);                      // FS  のPCBとスタック領域
+MakePCB(pmMem, P_KERN_STKSIZ);                      // PM  のPCBとスタック領域
+MakePCB(ttyMem, P_KERN_STKSIZ);                     // TTY のPCBとスタック領域
+MakePCB(initMem, P_KERN_STKSIZ);                    // INITのPCBとスタック領域
+MakePCB(idleMem, P_KERN_STKSIZ);                    // IDLEのPCBとスタック領域
 MakePCB(sentnel, 0);                                // readyQueue の番兵領域
 
 int[] pmFds = array(P_FILE_MAX);                    // FDS 領域(PM 以外は不要)
@@ -559,7 +566,7 @@ void lnkInit() {
 //----------------------------------------------------------------------------
 // 例外処理ルーチン
 //----------------------------------------------------------------------------
-#define isUser() ((ord(MEM[_fp()+9])&0x00c0)==(EI|USER))// ユーザモードだったか
+#define isUser() ((ord(MEM[_fp()+9])&KERN)==0)      // ユーザプロセス
 
 // 例外がユーザモードで発生したならユーザプロセスを終了させる
 // カーネルモードで発生したならカーネルのバグなので panic()
@@ -597,7 +604,13 @@ void excpInit() {                                   // ベクタにハンドラ�
 //----------------------------------------------------------------------------
 public void main() {
   // 初期化ルーチンの実行
-  utilInit();                                       // util(画面表示)初期化
+#ifdef VGA
+  vgaInit();                                        // コンソール表示初期化
+  ps2Init();                                        // コンソール入力初期化
+#else
+  sioInit();                                        // SIO初期化
+#endif
+  utilInit();                                       // MEM配列初期化
   excpInit();                                       // 例外処理(ベクタ)初期化
   tmrInit();                                        // タイマー(ベクタ,ハード)
   semInit();                                        // セマフォ(semTbl)初期化

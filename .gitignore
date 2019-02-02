@@ -5,3 +5,6 @@
 *.o
 *.lst
 *.sym
+*.dSYM
+*.bin
+

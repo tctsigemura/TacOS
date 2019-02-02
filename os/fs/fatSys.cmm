@@ -22,6 +22,7 @@
 /*
  * fs/fatSys.cmm : FAT16 ファイルシステムのシステムコール処理部分
  *
+ * 2018.12.03 : ディレクトリエントリの削除に関するバグを修正
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.06 : コードレビューを反映
  * 2015.12.02 : ルートディレクトリもオープンできるように、sysOpenDir() を修正
@@ -373,6 +374,9 @@ int mkDirEnt(char[] path) {
   // ファイルとディレクトリ共通で初期化できる部分は初期化しておく
   // (初期化していないのは curEnt.attr と curEnt.clst だけ)
   strCpy(curEnt.name, fname);                   // baseName をコピー
+  if (curEnt.name[0]=='\x05') {                 // 0x05はfatSysの削除マーク
+    curEnt.name[0]='\xe5';                      //   0xe5はdirAccessが0x05に
+  }                                             //     変換する
   curEnt.lenH = 0;                              // ファイルサイズ(上位16bit)
   curEnt.lenL = 0;                              // ファイルサイズ(下位16bit)
 
@@ -430,7 +434,8 @@ public int sysMkDir(char[] path) {
 // delFile : ファイルの本体を削除する
 void delFile() {
   delClstChain(curEnt.clst);                    // クラスタチェーンを解放する
-  curEnt.name[0] = '\xe5';                      // エントリを「削除」に変更
+  curEnt.name[0] = '\x05';                      // エントリを「削除」に変更
+                                                // (dirAccessが0xe5に変換する）
   writeDirEnt(curEnt);                          // DIR エントリを書き込む 
   flushDirEnt();                                // 念のためにフラッシュ
   flushFat();                                   // 念のためにフラッシュ

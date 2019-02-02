@@ -1,8 +1,8 @@
 /*
  * TacOS Source Code
- *    Tokuyama kousen Educational Computer 16bit Ver.
+ *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2009-2018 by
+ * Copyright (C) 2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,15 +20,34 @@
  */
 
 /*
- * util/console.hmm : console.cmm の外部インタフェース
+ * out/out.cmm : out プログラム（io port 値を書き込む）
  *
- * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
- * 2014.05.07 : 村田開発開始
- * 2012.02.29 : cls を追加
- * 2012.01.08 : console.cmm の外部インタフェース
+ * 2019.01.27 : 新規作成
  *
  * $Id$
+ *
  */
 
-public void putVGA(char c);                 // VGAへの1文字表示
-public void consInit();                     // 画面出力の初期化
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <crt0.hmm>
+
+public int main(int argc, char[][] argv) {
+  if (argc!=3) {
+    fprintf(stderr, "Usage: %s <port> <value>\n", argv[0]);
+    fprintf(stderr, "example:\n");
+    fprintf(stderr, " $ %s f8 1234\n", argv[0]);
+    fprintf(stderr, " IO[0xf8] <-- 0x1234\n");
+    return 1;
+  }
+
+  int port = htoi(argv[1]) & ~1;             // 偶数アドレスにする
+  int val  = htoi(argv[2]);
+  printf("IO[0x%02x] <-- 0x%04x\n", port, val);
+
+#ifndef C
+  _out(port, val);
+#endif
+
+  return 0;
+}
