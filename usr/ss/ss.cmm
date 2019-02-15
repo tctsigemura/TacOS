@@ -33,7 +33,7 @@
 #include <stdlib.hmm>
 #include <string.hmm>
 
-#define BLOCK_SIZE 128
+#define BLOCK_SIZE 1
 
 int[] filesize = array(2);
 char[] buffer = array(128);
@@ -82,8 +82,11 @@ public int main(int argc, char[][] argv){
   return 0;
 }
 
+public int sleep(int s);
+
 void output(int length, char[] buffer, boolean wait_for_ack){
   for (int i = 0; i < length; i = i + 1){
+    /* sleep(1); */
     fprintf(stdout, "%d\n", ord(buffer[i]));
   }
   fflush(stdout);
