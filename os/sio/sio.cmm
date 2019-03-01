@@ -22,6 +22,7 @@
 /*
  * sio/sio.cmm : シリアルドライバ
  *
+ * 2019.03.01 : RN4020との接続情報をIPLから引き継ぐように変更(RN4020-RAM使用)
  * 2019.01.24 : RN4020とFT232両方に入出力するように変更
  * 2018.12.25 : 出力でLFをCR,LFに置き換える機能追加
  * 2018.11.01 : 新規
@@ -43,7 +44,7 @@ RingBuf rcvBuf={"1234567890123456",16,0,0,0}; // 受信バッファ
 RingBuf trsBuf={"1234567890123456",16,0,0,0}; // 送信バッファ
 
 // RN4020
-boolean mldpOn=false;
+boolean mldpOn;
 
 // 送信関係
 boolean trsIdle=true;                         // トランスミッタがアイドル状態
@@ -118,11 +119,13 @@ interrupt rn4Rcv()  {
       semV(rcvSem);                           //   プロセスを起こす
     }
     if (sigFsm(errSig, c)) {                  //   切断時によく出るメッセージ？
-        mldpOn = false;                       //     切断中に変更
+      mldpOn = false;                         //     切断中に変更
+      out(0x2e, in(0x2e)&~1);                 //     RN4020-RAMに記録
     }
   } else {                                    // 切断中なら
     if (sigFsm(mldpSig, c)) {                 //   接続時メッセージ？
       mldpOn = true;                          //     接続中に変更
+      out(0x2e, in(0x2e)|1);                  //     RN4020-RAMに記録
     }
   }
 }
@@ -153,4 +156,5 @@ public void sioInit() {
   out(RN4_Ctrl,0x0040);                       // 受信割込み許可、送信割込み禁止
   trsSem = newSem(0);                         // 送信用セマフォ
   rcvSem = newSem(0);                         // 受信用セマフォ
+  mldpOn = (in(0x2e) & 1)!=0;                 // RN4020-RAMから初期値を決める
 }
