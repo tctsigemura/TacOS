@@ -43,16 +43,21 @@ __memSiz ws     1           ; 主記憶の最終アドレスを格納する
 
 .start                      ; IPL からここにジャンプしてくる
         ld      sp,#0xe000  ; TaC7a と仮定しするとメモリの最後は 0xdfff
-	ld	g0,#-1      ;
-	st	g0,0xe000   ; TaC7a なら 0xe000 から 0xeffff は上位バイトが
-	ld	g0,0xe000   ;   実装されていないのでデータが化けるはず
-	cmp	g0,#-1      ;
+	ld	g1,#-1      ;
+	st	g1,0,sp     ; TaC7a なら 0xe000 から 0xeffff は上位バイトが
+	ld	g0,0,sp     ;   実装されていないのでデータが化けるはず
+	cmp	g0,g1       ;
 	jnz     .l          ; データが一致しなければ TaC7a
         ld      sp,#0xf000  ; 一致すれば TaC7b なのでメモリの最後は 0xefff
+	st	g1,0,sp     ; TaC7b の古いファームなら 0xf000 はROM
+	ld	g0,0,sp     ;   化けるようなら古いファーム
+	cmp	g0,g1       ;
+	jnz     .l          ; データが一致しなければ TeC7b の古いファーム
+        ld      sp,#0xffe0  ; 一致すれば TaC7b の新しいファームなので 0xffe0
 .l      st      sp,__memSiz ; TacOSに主記憶のサイズを知らせる
         call    _main       ; カーネルのメインに飛ぶ
-        halt                ; 万一カーネルが終了したらここで終わる
-        jmp     0xf000      ; IPL へジャンプ
+.m      halt                ; 万一カーネルが終了したらここで終わる
+        jmp     .m          ; 
 
 ;; CPU のフラグの値を返すと同時に新しい値に変更 
 _setPri 
