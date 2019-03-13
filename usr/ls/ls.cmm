@@ -33,6 +33,7 @@
 #include <syslib.hmm>
 
 Dir dir = {"            ", 0, 0, 0, 0 };        // ディレクトリの読出しバッファ
+int[] fLen = array(2);
 
 // ディレクトリの一覧を表示する
 int printDir(char[] fname) {
@@ -44,9 +45,10 @@ int printDir(char[] fname) {
 
   printf("FileNameExt Attr Clst FileLength\n");
   while (readDir(fd, dir)>0) {                  // ファイルが続く間
-    printf("%11s 0x%02x %4d 0x%04x%04x\n",      //   ファイルの一覧を出力
-             dir.name, dir.attr, dir.clst,
-             dir.lenH, dir.lenL);
+    fLen[0]=dir.lenH;
+    fLen[1]=dir.lenL;
+    printf("%11s 0x%02x %4d %9ld\n",            //   ファイルの一覧を出力
+            dir.name, dir.attr, dir.clst,fLen);
   }
   close(fd);
   return 0;
