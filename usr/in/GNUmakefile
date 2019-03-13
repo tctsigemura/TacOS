@@ -29,7 +29,7 @@ NAME=in
 SRCS=${NAME}.cmm
 #----------------------------------------------------------------------------
 
-all : clean ${NAME}.exe ${NAME}
+all : clean ${NAME}.exe #${NAME}
 
 ${NAME}.exe : ${SRCS}
 	cm2e -P -o ${NAME} ${SRCS}  # i/o 特権モード
