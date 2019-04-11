@@ -1,7 +1,7 @@
 //#define DEBUG
 
 #if defined(DEBUG)
-# define debug(...) debug(__VA_ARGS__)
+# define debug(...) fprintf(stderr, __VA_ARGS__)
 #else
 # define debug(...) /* __VA_ARGS__ */
 #endif
@@ -9,13 +9,22 @@
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
-#define N 80
+#include <ctype.hmm>
+#define N 81
 char[] lbuf=array(N);
 
-void bwrite(FILE fp, char[] bbuf, int blen) {
-  for (int i=0; i<blen; i=i+1) {
+void bwrite(FILE fp, char[] bbuf, int bsize) {
+  for (int i=0; i<bsize; i=i+1) {
     fputc(bbuf[i], fp);
   }
+}
+
+char[] xbuf = array(3);
+char x2c(char[] xs, int offset) {
+  xbuf[0] = xs[offset];
+  xbuf[1] = xs[offset+1];
+  xbuf[2] = '\0';
+  return chr(htoi(xbuf));
 }
 
 public int main(int argc, char[][] argv) {
@@ -41,28 +50,43 @@ public int main(int argc, char[][] argv) {
   }
 
   fgets(lbuf, N, stdin);
-  int len = atoi(lbuf);
-  debug("filelength:%s:%d\n",lbuf,len);
+  int fsize = atoi(lbuf);
+  debug("filelength:%s:%d\n",lbuf,fsize);
 
   fgets(lbuf, N, stdin);
-  int blen = atoi(lbuf);
-  debug("blocksize:%s:%d\n",lbuf,blen);
+  int bsize = atoi(lbuf);
+  debug("blocksize:%s:%d\n",lbuf,bsize);
 
-  char[] bbuf = malloc(blen);
+  char[] bbuf = malloc(bsize);
 
-  int j=0;
-  for (int i=0; i<len; i=i+1) {
+  int cbsize = 0;
+  int cfsize = 0;
+  while (cfsize<fsize) {
     fgets(lbuf, N, stdin);
-    int c=atoi(lbuf);
-    bbuf[j]=chr(c);
-    j=j+1;
-    if (j==blen) {
-      bwrite(fp, bbuf, blen);
-      j=0;
+    /// [入力のパース]
+    int llen = strLen(lbuf) - 1;
+    for (int k = 0; k < llen; k = k + 2) {
+      if(!isXdigit(lbuf[k]) && !isXdigit(lbuf[k+1])) continue;
+      bbuf[cbsize] = x2c(lbuf, k);
+      cbsize = cbsize + 1;
+      cfsize = cfsize + 1;
+    }
+
+    debug("file: %d / %d, buf: %d / %d\n", cfsize, fsize, cbsize, bsize);
+
+    if(cbsize > bsize || cfsize > fsize) {
+      printf("!overflow!\n");
+      exit(1);
+    }
+    /// [/入力のパース]
+
+    if (cbsize == bsize || cfsize == fsize) {
+      bwrite(fp, bbuf, cbsize);
+      cbsize = 0;
       printf("!Ack\n");
     }
+
   }
-  bwrite(fp, bbuf, j);
   fclose(fp);
 
   return 0;

@@ -33,7 +33,7 @@
 #include <stdlib.hmm>
 #include <string.hmm>
 
-#define BLOCK_SIZE 1
+#define BLOCK_SIZE 16
 #define BUFFER_SIZE 128
 
 int[] filesize = array(2);
@@ -88,8 +88,9 @@ public int sleep(int s);
 void output(int length, char[] buffer, boolean wait_for_ack){
   for (int i = 0; i < length; i = i + 1){
     /* sleep(1); */
-    fprintf(stdout, "%d\n", ord(buffer[i]));
+    fprintf(stdout, "%02x", ord(buffer[i]));
   }
+  fprintf(stdout, "\n");
   fflush(stdout);
 
   /* Ackを待つ */
