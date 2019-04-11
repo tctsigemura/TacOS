@@ -1,0 +1,61 @@
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+#define N 80
+char[] lbuf=array(N);
+
+void bwrite(FILE fp, char[] bbuf, int blen) {
+  for (int i=0; i<blen; i=i+1) {
+    fputc(bbuf[i], fp);
+  }
+}
+
+public int main(int argc, char[][] argv) {
+  if (argc>1) {
+    fprintf(stderr, "Usage: %s\n", argv[0]);
+    return 1;
+  }
+
+  fgets(lbuf, N, stdin);
+  int pos=strRchr(lbuf, '\n');
+  if (pos==-1) {
+    fprintf(stderr, "format error");
+    exit(1);
+  }
+
+  lbuf[pos] = '\0';
+
+  printf("fopen:%s\n",lbuf);
+  FILE fp = fopen(lbuf, "w");
+  if (fp==null) {
+    perror(lbuf);
+    exit(1);
+  }
+
+  fgets(lbuf, N, stdin);
+  int len = atoi(lbuf);
+  printf("filelength:%s:%d\n",lbuf,len);
+
+  fgets(lbuf, N, stdin);
+  int blen = atoi(lbuf);
+  printf("blocksize:%s:%d\n",lbuf,blen);
+
+  char[] bbuf = malloc(blen);
+
+  int j=0;
+  for (int i=0; i<len; i=i+1) {
+    fgets(lbuf, N, stdin);
+    int c=atoi(lbuf);
+    bbuf[j]=chr(c);
+    j=j+1;
+    if (j==blen) {
+      bwrite(fp, bbuf, blen);
+      j=0;
+      printf("Ack\n");
+    }
+  }
+  bwrite(fp, bbuf, j);
+  fclose(fp);
+
+  return 0;
+}
