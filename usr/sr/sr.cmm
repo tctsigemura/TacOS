@@ -1,3 +1,11 @@
+//#define DEBUG
+
+#if defined(DEBUG)
+# define debug(...) debug(__VA_ARGS__)
+#else
+# define debug(...) /* __VA_ARGS__ */
+#endif
+
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
@@ -12,20 +20,20 @@ void bwrite(FILE fp, char[] bbuf, int blen) {
 
 public int main(int argc, char[][] argv) {
   if (argc>1) {
-    fprintf(stderr, "Usage: %s\n", argv[0]);
+    debug("Usage: %s\n", argv[0]);
     return 1;
   }
 
   fgets(lbuf, N, stdin);
   int pos=strRchr(lbuf, '\n');
   if (pos==-1) {
-    fprintf(stderr, "format error");
+    debug("format error");
     exit(1);
   }
 
   lbuf[pos] = '\0';
 
-  printf("fopen:%s\n",lbuf);
+  debug("fopen:%s\n",lbuf);
   FILE fp = fopen(lbuf, "w");
   if (fp==null) {
     perror(lbuf);
@@ -34,11 +42,11 @@ public int main(int argc, char[][] argv) {
 
   fgets(lbuf, N, stdin);
   int len = atoi(lbuf);
-  printf("filelength:%s:%d\n",lbuf,len);
+  debug("filelength:%s:%d\n",lbuf,len);
 
   fgets(lbuf, N, stdin);
   int blen = atoi(lbuf);
-  printf("blocksize:%s:%d\n",lbuf,blen);
+  debug("blocksize:%s:%d\n",lbuf,blen);
 
   char[] bbuf = malloc(blen);
 
@@ -51,7 +59,7 @@ public int main(int argc, char[][] argv) {
     if (j==blen) {
       bwrite(fp, bbuf, blen);
       j=0;
-      printf("Ack\n");
+      printf("!Ack\n");
     }
   }
   bwrite(fp, bbuf, j);

@@ -34,9 +34,10 @@
 #include <string.hmm>
 
 #define BLOCK_SIZE 1
+#define BUFFER_SIZE 128
 
 int[] filesize = array(2);
-char[] buffer = array(128);
+char[] buffer = array(BUFFER_SIZE);
 
 void output(int length, char[] buffer, boolean wait_for_ack);
 
@@ -92,11 +93,16 @@ void output(int length, char[] buffer, boolean wait_for_ack){
   fflush(stdout);
 
   /* Ackを待つ */
-  if (wait_for_ack){
-    fgets(buffer, BLOCK_SIZE, stdin);
-    if (strNcmp(buffer, "Ack\n", 4) != 0){
-      fprintf(stderr, "error\n");
-      exit(-1); /* Ackではないものが返ってきたので異常終了 */
+  while (wait_for_ack){
+    sleep(0);
+    fgets(buffer, BUFFER_SIZE, stdin);
+    if (strNcmp(buffer, "!Ack", 4) != 0){
+      if(buffer[0] == '!') {
+        fprintf(stderr, "error: %s\n", buffer);
+        exit(-1); /* Ackではないものが返ってきたので異常終了 */
+      }
+      continue;
     }
+    break;
   }
 }
