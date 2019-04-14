@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2011 - 2016 by
+# Copyright (C) 2011 - 2019 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -19,6 +19,7 @@
 #
 # Makefile : TacOS
 #
+# 2019.04.14         : コンパイル済みの kernel.bin と *.exe を uSD に保存する
 # 2016.01.07         : 初期バージョン
 #
 # $Id$
@@ -30,10 +31,9 @@ SUBDIRS:=os usr
 
 all :
 	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir); )
+	mv os/kernel.bin uSD
+	mv usr/*/*.exe uSD/bin
 
 clean :
 	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir) clean; )
 	rm -f *~
-
-install :
-	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir) install; )
