@@ -7,21 +7,25 @@
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
+#include <ctype.hmm>
 #ifndef C
 #include <syslib.hmm>                    // TaC版は一部のシステムコールを使う
+#include <crt0.hmm>                      // TaC版は _addrAdd を使用する
+#else
+void[] _addrAdd(void[] p, int i);        // C版ではマニュアルに無いが使用できる
 #endif
 
-#define  LINES  100                      // 編集できる文書の最大行数
-#define  CHARS  81                       // 編集できる文書の１行は最大 80 文字
-#define  BUFLEN 100                      // ファイル名や命令の長さは99文字以内
+#define LINES  100                       // 編集できる文書の最大行数
+#define CHARS  80                        // 編集できる文書の１行は最大 80 文字
+#define BUFLEN 99                        // ファイル名や命令の長さは99文字以内
 
 /*
  * グローバル変数
  */
-char[][] textbuf=array(LINES,CHARS);                  // 文書を記憶するバッファ
+char[][] textBuf=array(LINES,CHARS + 1);              // 文書を記憶するバッファ
 int    lines;                                         // 文書が全部で何行あるか
 int    current;                                       // 現在第何行にいるか
-char[] kbdBuf=array(BUFLEN);                          // キーボード入力用
+char[] kbdBuf=array(BUFLEN + 1);                      // キーボード入力用
 
 /*
  * 1行を入力する関数(サブルーチン) 行末の改行は取り去る
@@ -46,7 +50,20 @@ boolean getLine(char[] buf, int buflen, FILE fp) {
 }
 
 /*
- * ファイルから文書を textbuf へ読み込む関数(サブルーチン)
+ * ヘルプ
+ */
+void help() {
+  fprintf(stderr,"nnn : jump to nnn\n");
+  fprintf(stderr,"p   : print\n");
+  fprintf(stderr,"l   : list\n");
+  fprintf(stderr,"c   : change line content\n");
+  fprintf(stderr,"i   : insert line\n");
+  fprintf(stderr,"d   : delete line\n");
+  fprintf(stderr,"q   : quit\n");
+ }
+
+/*
+ * ファイルから文書を textBuf へ読み込む関数(サブルーチン)
  */
 void loadfile(char[] filename) {
   FILE fp=fopen(filename,"r");                        // ファイルを開く
@@ -54,15 +71,19 @@ void loadfile(char[] filename) {
   if (fp==null) {                                     // オープン失敗
     perror(filename);
   } else {                                            // オープン成功！！
-    while(getLine( textbuf[lines], CHARS, fp)) {      //   EOF になるまで
+    while(getLine(textBuf[lines], CHARS+1, fp)) {     //   EOF になるまで
       lines = lines + 1;                              //    ファイルから入力
+      if (lines>=LINES) {
+        fprintf(stderr,"too many lines\n");
+	break;
+      }
     }
     fclose(fp);                                       //   忘れず閉じる
   }
 }
 
 /*
- * textbuf の文書をファイルへ保存する関数(サブルーチン)
+ * textBuf の文書をファイルへ保存する関数(サブルーチン)
  */
 void savefile(char[] filename) {
 #ifndef C
@@ -74,7 +95,7 @@ void savefile(char[] filename) {
     return;
   }
   for (current=0; current<lines; current=current+1) {
-    fprintf(fp,"%s\n",textbuf[current]);
+    fprintf(fp,"%s\n",textBuf[current]);
   }
   fclose(fp);
 }
@@ -85,9 +106,9 @@ void savefile(char[] filename) {
  */
 void print() {
   if (current!=lines) {
-    fprintf(stderr,"[%d] : %s\n",current,textbuf[current]);
+    fprintf(stderr,"[%d] : %s\n",current+1,textBuf[current]);
   } else {
-    fprintf(stderr,"[%d] : \n",current);
+    fprintf(stderr,"[%d] : \n",current+1);
   }
 }
 
@@ -97,8 +118,8 @@ void print() {
  *     リストコマンドは現在行から最後まで表示する
  */
 void list() {
-  for (int i=current; i<lines; i=i+1) {
-    fprintf(stderr,"[%d] : %s\n",i,textbuf[i]);
+  for (int i=0; i<lines; i=i+1) {
+    fprintf(stderr,"[%d] : %s\n",i+1,textBuf[i]);
   }
 }
 
@@ -107,9 +128,7 @@ void list() {
  *     ジャンプコマンドは現在行を変更する
  */
 void jump() {
-  fprintf(stderr, "line number = ");
-  getLine(kbdBuf,BUFLEN,stdin);                       // ジャンプ先の行番号
-  current=atoi(kbdBuf);                               // 文字列"10" => 整数10
+  current=atoi(kbdBuf) - 1;                           // 文字列"10" => 整数10
   if (current<0) current=0;                           // ジャンプできる範囲？
   if (current>lines) current=lines;
   print();                                            // ジャンプ結果を表示
@@ -121,9 +140,9 @@ void jump() {
  */
 void change() {
   if (current!=lines) {
-    fprintf(stderr,"%s\n",textbuf[current]);          // 現在の状態を出力
+    fprintf(stderr,"%s\n",textBuf[current]);          // 現在の状態を出力
     fprintf(stderr,"input new content ");
-    getLine(textbuf[current],CHARS,stdin);            // 新しい内容を入力
+    getLine(textBuf[current],CHARS+1,stdin);          // 新しい内容を入力
   } else {
     fprintf(stderr,"current line = EOF\n");
   }
@@ -135,9 +154,9 @@ void change() {
 void insert() {
   int i;
   for (i=lines; i>current; i=i+1)
-    strCpy(textbuf[i], textbuf[i-1]);
+    strCpy(textBuf[i], textBuf[i-1]);
   fprintf(stderr, "new line ");
-  getLine(textbuf[current],CHARS,stdin);              // 新しい行を入力
+  getLine(textBuf[current],CHARS+1,stdin);            // 新しい行を入力
   lines = lines + 1;
   current = current + 1;
 }
@@ -148,26 +167,12 @@ void insert() {
 void delete() {
   int i;
   if (current!=lines) {
-    for (i=current+1; i<lines; i=i+1)
-      strCpy(textbuf[i-1], textbuf[i]);
-    lines=lines-1;
-  } else {
-    fprintf(stderr,"current line = EOF\n");
+    for (i=current+1; i<lines; i=i+1) {
+      strCpy(textBuf[i-1], textBuf[i]);
+    }
+    lines = lines - 1;
   }
 }
-
-/*
- * ヘルプ
- */
-void help() {
-  fprintf(stderr,"j : jump\n");
-  fprintf(stderr,"p : print\n");
-  fprintf(stderr,"l : list\n");
-  fprintf(stderr,"c : change line content\n");
-  fprintf(stderr,"i : insert line\n");
-  fprintf(stderr,"d : delete line\n");
-  fprintf(stderr,"q : quit\n");
- }
 
 /*
  * エディタプログラムのメインルーチン
@@ -182,22 +187,24 @@ public int main(int argc, char[][] argv) {
   current = 0;                                        // 現在行は1行目
 
   while(true) {
-    fprintf(stderr,"[%d] command: ",current);
-    if (!getLine(kbdBuf,BUFLEN,stdin)) {    // EOF
+    fprintf(stderr,"[%d] command: ",current+1);       // プロンプトを表示
+    if (!getLine(kbdBuf,BUFLEN+1,stdin)) {            // EOF
       break;
-    } else if (strCmp(kbdBuf,"j")==0) {     // j: ジャンプコマンド
+    }
+
+    if (isDigit(kbdBuf[0])) {                         // 数: ジャンプコマンド
       jump();
-    } else if (strCmp(kbdBuf,"p")==0) {     // p: プリントコマンド
+    } else if (strCmp(kbdBuf,"p")==0) {               // p: プリントコマンド
       print();
-    } else if (strCmp(kbdBuf,"l")==0) {     // l: リストコマンド
+    } else if (strCmp(kbdBuf,"l")==0) {               // l: リストコマンド
       list();
-    } else if (strCmp(kbdBuf,"c")==0) {     // c: 変更コマンド
+    } else if (strCmp(kbdBuf,"c")==0) {               // c: 変更コマンド
       change();
-    } else if (strCmp(kbdBuf,"q")==0) {     // q: quit(終了)コマンド
+    } else if (strCmp(kbdBuf,"q")==0) {               // q: quit(終了)コマンド
       break;
-    } else if (strCmp(kbdBuf,"i")==0) {     // i: １行挿入コマンド
+    } else if (strCmp(kbdBuf,"i")==0) {               // i: １行挿入コマンド
       insert();
-    } else if (strCmp(kbdBuf,"d")==0) {     // d: １行削除)コマンド
+    } else if (strCmp(kbdBuf,"d")==0) {               // d: １行削除)コマンド
       delete();
     } else {
       help();

@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2018 by
+ * Copyright (C) 2018 - 2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * fsize/fsize.cmm : fsize プログラム
  *
+ * 2019.03.13 : lToL()の使用をやめる
  * 2018.11.12 : 新規作成
  *
  * $Id$
@@ -43,7 +44,7 @@ public int main(int argc, char[][] argv) {
       perror(argv[i]);
       err = 1;
     } else {
-      printf("%s : %ld\n", argv[i], lToL(size));
+      printf("%s : %ld\n", argv[i], size);
     }
   }
   return err;
