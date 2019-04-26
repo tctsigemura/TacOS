@@ -174,7 +174,7 @@ public void freeSem(int s) {
 //   カウンタの値 > 0 : カウンタから1減らす
 //   カウンタの値 = 0 : 現在実行中のプロセスを実行可能列から外し、
 //                      待ち状態にしてセマフォの待ち行列に登録し、
-//　  　　　　             ディスパッチャを呼び出す 
+//　  　　　　             ディスパッチャを呼び出す
 public void semP(int sd) {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   if (sd<0 || SEM_MAX<=sd || !semInUse[sd])         // 不正なセマフォ番号
@@ -215,10 +215,10 @@ boolean iSemV(int sd) {
 }
 
 // セマフォの V 操作
-//   待ちプロセス無し : カウンタを1増やす    
+//   待ちプロセス無し : カウンタを1増やす
 //   待ちプロセス有り : 待ち行列からプロセスを1つ外して実行可能にした後、
 //                      ディスパッチャを呼び出す
-public void semV(int sd) {  
+public void semV(int sd) {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   if (iSemV(sd)) {                                  // V 操作し必要なら
     yield();                                        //   プロセスを切り替える
@@ -263,7 +263,7 @@ int nextPid() {
   boolean flg = true;                               // PID 重複チェック用フラグ
   int pid = lastPid;                                // PID 候補
 
-  while (flg) {                                     // 
+  while (flg) {                                     //
     pid = pid + 1;                                  // 新しい PID 候補
     if (pid<0) pid = 0;                             // Overflow したら 0 に戻す
     flg = false;                                    // 重複は無いだろう
@@ -370,7 +370,7 @@ public PCB waitChild() {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   PCB p = srchChild();                              // 子プロセスを探す
   if (p!=null && p.stat!=P_ZOMBIE) {                // 子プロセスあるが
-    curProc.evtCnt = -1;                            //   ゾンビではない 
+    curProc.evtCnt = -1;                            //   ゾンビではない
     semP(curProc.evtSem);                           //  子プロセス待ち状態
     p = srchChild();                                //  子プロセスを探す
     if (p==null || p.stat!=P_ZOMBIE)                //  ゾンビな子が居ないのに
@@ -399,7 +399,7 @@ public void zmbProc() {
   // もし親プロセスが先に wait していたら起こす
   if (curProc.parent.evtCnt == -1)                  // 親が wait していたら
     iSemV(curProc.parent.evtSem);                   //   V 操作で起こす
-  
+
   // 自身の PCB を後片付けしプロセスを終了
   freeSem(curProc.evtSem);                          // セマフォを返却し
   delProc(curProc);                                 // 実行可能列から外す
@@ -416,7 +416,6 @@ public void zmbProc() {
 MakePCB(mmMem, P_KERN_STKSIZ);                      // MM  のPCBとスタック領域
 MakePCB(fsMem, P_KERN_STKSIZ);                      // FS  のPCBとスタック領域
 MakePCB(pmMem, P_KERN_STKSIZ);                      // PM  のPCBとスタック領域
-MakePCB(ttyMem, P_KERN_STKSIZ);                     // TTY のPCBとスタック領域
 MakePCB(initMem, P_KERN_STKSIZ);                    // INITのPCBとスタック領域
 MakePCB(idleMem, P_KERN_STKSIZ);                    // IDLEのPCBとスタック領域
 MakePCB(sentnel, 0);                                // readyQueue の番兵領域
@@ -441,16 +440,14 @@ void procInit() {
   newProc(addrof(mmMain),0,0,EI|KERN,_AtoA(mmMem),null); // MM
   newProc(addrof(fsMain),1,0,EI|KERN,_AtoA(fsMem),null); // FS
   newProc(addrof(pmMain),2,0,EI|KERN,_AtoA(pmMem),pmFds);// PM
-  newProc(addrof(ttyMain),3,0,EI|KERN,_AtoA(ttyMem),null); // TTY
   initProc = _AtoA(initMem);                        // INIT の PCB を記録
-  newProc(addrof(initMain),4,0,EI|KERN,initProc,null); // INIT
+  newProc(addrof(initMain),3,0,EI|KERN,initProc,null); // INIT
   newProc(addrof(idle),P_LOW_PRI+1,0,EI|KERN,_AtoA(idleMem),null); // IDLE
 
   // 各カーネルプロセスを実行可能にする(readyQueue に登録する)
   schProc(_AtoA(mmMem));                            // MM
   schProc(_AtoA(fsMem));                            // FS
   schProc(_AtoA(pmMem));                            // PM
-  schProc(_AtoA(ttyMem));                           // TTY
   schProc(initProc);                                // INIT
   schProc(_AtoA(idleMem));                          // IDLE
 
@@ -460,7 +457,7 @@ void procInit() {
   printF("  %d[%d]  ->",g.pid,g.enice);
   for(PCB d=g.next; d!=g; d=d.next)
      printF("  %d[%d]  ->",d.pid,d.enice);
-  printF("\n");  
+  printF("\n");
 #endif
 }
 
@@ -641,7 +638,7 @@ public void printq() {
   printF("  %d[%d]  ->",g.pid,g.enice);
   for (PCB d=g.next; d!=g; d=d.next)
     printF("  %d[%d]  ->",d.pid,d.enice);
-  printF("\n");  
+  printF("\n");
 
   g=semTbl[linkTbl[mmLink].s1].queue;
   printF(" MM   s1:%d  ->",g.pid);
@@ -691,24 +688,6 @@ public void printq() {
      printF("  %d  ->",d.pid);
   printF("\n");
   g=semTbl[linkTbl[pmLink].s3].queue;
-  printF("      s3:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[ttyLink].s1].queue;
-  printF(" TTY  s1:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[ttyLink].s2].queue;
-  printF("      s2:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[ttyLink].s3].queue;
   printF("      s3:%d  ->",g.pid);
   for (PCB d=g.next; d!=g; d=d.next)
      printF("  %d  ->",d.pid);

@@ -40,7 +40,7 @@
 #include <kernel.hmm>
 #include <syscall.hmm>
 
-// -------------------------- 
+// --------------------------
 #ifdef VGA
 #include <ps2.hmm>
 #include <vga.hmm>
@@ -100,18 +100,10 @@ int ttySysCall(int op, int prm1, int prm2) {
     op = sysConRead(_ItoA(prm1), prm2);                 // conRead(buf, len)
   } else if (op==CONWRITE) {
     op = sysConWrite(_ItoA(prm1));                      // conWrite(buf)
+  } else if (op==CONCTL) {
+    //TODO
   } else  op= -1;                                       // エラー
   return op;
-}
-
-// クライアントとランデブする
-public void ttyMain() {
-  ttyLink = newLink();                                  // リンクを生成する
-  while (true) {                                        // システムコールを待つ
-    Link l = receive(ttyLink);                          // システムコールを受信
-    int r = ttySysCall(l.op, l.prm1, l.prm2);           // システムコールを指示
-    send(ttyLink, r);                                   // 結果を返す
-  }
 }
 
 //----------------------------------------------------------------------------
@@ -120,12 +112,12 @@ public void ttyMain() {
 //----------------------------------------------------------------------------
 // conRead システムコール
 public int conRead(void[] buf, int len) {
-  int r = sndrec(ttyLink, CONREAD, _AtoI(buf), len, 0);
+  int r = ttySysCall(CONREAD, _AtoI(buf), len, 0);
   return r;
 }
 
 // conWrite システムコール
 public int conWrite(void[] buf) {
-  int r = sndrec(ttyLink, CONWRITE, _AtoI(buf), 0, 0);
+  int r = ttySysCall(CONWRITE, _AtoI(buf), 0, 0);
   return r;
 }
