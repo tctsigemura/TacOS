@@ -82,6 +82,7 @@ struct RingBuf {
 };
 
 public boolean putBuf(RingBuf buf, char c);   // true:正常, false:バッファフル
+public boolean unputBuf(RingBuf buf);         // true:正常, false:バッファエンプティ
 public int getBuf(RingBuf buf);               // =-1:EOF, >=0:文字コード
 #define ISEmpty(b) ((b).cnt==0)               // バッファにデータが無い
 #define ISFull(b) ((b).cnt==(b).size)         // バッファに空きが無い
