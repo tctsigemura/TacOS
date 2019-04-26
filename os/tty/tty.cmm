@@ -92,6 +92,18 @@ int sysConWrite(void[] buf) {
   return 0;
 }
 
+// -------------------------- conCtl システムコール ---------------------------
+
+// conCtl システムコールの本体
+int conCtl(int request, int argp) {
+  if (request==CONCTL_SETMODE) {
+    //TODO
+  } else if (request==CONCTL_SETBUF) {
+    //TODO
+  }
+  return 0;
+}
+
 // ----------------------------- 要求待ち受け部 -------------------------------
 
 // 端末サーバの本体(ここで各システムコールを実行する)
@@ -101,7 +113,7 @@ int ttySysCall(int op, int prm1, int prm2) {
   } else if (op==CONWRITE) {
     op = sysConWrite(_ItoA(prm1));                      // conWrite(buf)
   } else if (op==CONCTL) {
-    //TODO
+    op = sysConCtl(prm1, prm2);
   } else  op= -1;                                       // エラー
   return op;
 }
@@ -112,12 +124,18 @@ int ttySysCall(int op, int prm1, int prm2) {
 //----------------------------------------------------------------------------
 // conRead システムコール
 public int conRead(void[] buf, int len) {
-  int r = ttySysCall(CONREAD, _AtoI(buf), len, 0);
+  int r = ttySysCall(CONREAD, _AtoI(buf), len);
   return r;
 }
 
 // conWrite システムコール
 public int conWrite(void[] buf) {
-  int r = ttySysCall(CONWRITE, _AtoI(buf), 0, 0);
+  int r = ttySysCall(CONWRITE, _AtoI(buf), 0);
+  return r;
+}
+
+// conCtl システムコール
+public int conCtl(int request, int argp) {
+  int r = ttySysCall(CONCTL, request, argp);
   return r;
 }
