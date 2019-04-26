@@ -73,8 +73,9 @@
 #define SEEK            12
 #define CONREAD         13
 #define CONWRITE        14
-#define MALLOC          15
-#define FREE            16
+#define CONCTL          15
+#define MALLOC          16
+#define FREE            17
 
 // システムコールのエラー番号
 #define ENAME           (-1)      // ファイル名が不正
@@ -103,5 +104,5 @@
 #define EPRIVVIO        (-22)     // 特権例外
 #define EILLINST        (-23)     // 不正命令
 #define ESTKOVRFLW      (-24)     // スタックオーバーフロー
- 
+
 #endif
