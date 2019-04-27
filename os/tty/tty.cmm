@@ -46,15 +46,25 @@
 #include <vga.hmm>
 #define getCh() getPS2()
 #define putCh(c) putVGA(c)
+#define getChNonblock() (-1)
 #else
 #include <sio.hmm>
 #define getCh() getSIO()
 #define putCh(c) putSIO(c)
+#define getChNonblock() getSIONonblock()
 #endif
 
 #include "tty.hmm"
 
 int ttyMode = TTY_MODE_BLOCK|TTY_MODE_COOKED;
+
+int getChar() {
+  if ((ttyMode&TTY_MODE_BLOCK)!=0) {
+    return getCh();
+  } else {
+    return getChNonblock();
+  }
+}
 
 // -------------------------- conRead システムコール --------------------------
 
@@ -64,12 +74,18 @@ int sysConRead(char[] buf, int len) {
   len = len - 1;                                        // '\0'の格納領域を確保
   if ((ttyMode&TTY_MODE_COOKED)!=0) {                   // COOKEDモードの場合
     for (;;) {
-      char c = getCh();                                 //   1文字入力
+      int i = getChar();                                //   1文字入力
+      if (i<0) {                                        //   読み込めなかった場合
+        buf[kbdCnt] = '\0';
+        break;
+      }
+      char c = chr(i);
       if (kbdCnt>=len || c=='\r' || c=='\n') {          //   指定長以上か改行なら
         buf[kbdCnt] = '\0';
         putCh('\n');
         break;
-      } else if (0x20<=ord(c) && ord(c)<=0x7e && kbdCnt<len) { // 表示可能な文字
+      }
+      if (0x20<=ord(c) && ord(c)<=0x7e && kbdCnt<len) { // 表示可能な文字
         buf[kbdCnt] = c;
         putCh(c);
         kbdCnt = kbdCnt + 1;
@@ -82,7 +98,12 @@ int sysConRead(char[] buf, int len) {
     }
   } else {                                                // RAWモード
     for (;;) {
-      char c = getCh();
+      int i = getChar();                                //   1文字入力
+      if (i<0) {                                        //   読み込めなかった場合
+        buf[kbdCnt] = '\0';
+        break;
+      }
+      char c = chr(i);
       if(kbdCnt>=len) {
         buf[kbdCnt] = '\0';
         break;
