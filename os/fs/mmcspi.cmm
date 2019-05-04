@@ -76,7 +76,7 @@ interrupt restart() {                   // 割込が発生したら
        semV(sem);                       // 待っていたプロセスを起こす
 }
 
-// initMccSpi : microSD カードの初期化
+// initMmcSpi : microSD カードの初期化
 public void initMmcSpi() {
        int[] Vector = _ItoA(0xffe0);    // 割り込みベクタ登録
        Vector[8]=addrof(restart);
