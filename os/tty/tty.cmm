@@ -61,9 +61,8 @@ int ttyMode = TTY_MODE_COOKED;
 int getChar() {
   if ((ttyMode&TTY_MODE_NONBLOCK)==0) {
     return getCh();
-  } else {
-    return getChNonblock();
   }
+  return getChNonblock();
 }
 
 // -------------------------- conRead システムコール --------------------------
