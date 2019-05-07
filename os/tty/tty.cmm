@@ -54,6 +54,8 @@
 
 #include "tty.hmm"
 
+int ttyMode = TTY_MODE_COOKED | TTY_MODE_BLOCK;
+
 // -------------------------- conRead システムコール --------------------------
 
 // conRead システムコールの本体 (キーボード入力された文字列をユーザ領域に渡す)
@@ -97,7 +99,7 @@ int sysConWrite(void[] buf) {
 // conCtl システムコールの本体
 int conCtl(int request, int argp) {
   if (request==CONCTL_SETMODE) {
-    //TODO
+    ttyMode = argp;
   } else if (request==CONCTL_SETBUF) {
     //TODO
   }
