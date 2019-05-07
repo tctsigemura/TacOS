@@ -44,9 +44,9 @@
 #ifdef VGA
 #include <ps2.hmm>
 #include <vga.hmm>
-#define getCh() getPS2()
+#define getCh() ord(getPS2())
 #define putCh(c) putVGA(c)
-#define getChNonblock() (-1)
+#define getChNonblock() getCh()
 #else
 #include <sio.hmm>
 #define getCh() getSIO()
@@ -56,10 +56,10 @@
 
 #include "tty.hmm"
 
-int ttyMode = TTY_MODE_BLOCK|TTY_MODE_COOKED;
+int ttyMode = TTY_MODE_COOKED;
 
 int getChar() {
-  if ((ttyMode&TTY_MODE_BLOCK)!=0) {
+  if ((ttyMode&TTY_MODE_NONBLOCK)==0) {
     return getCh();
   } else {
     return getChNonblock();
@@ -131,8 +131,10 @@ int sysConWrite(void[] buf) {
 // -------------------------- conCtl システムコール ---------------------------
 
 // conCtl システムコールの本体
-int conCtl(int request, int argp) {
-  if (request==CONCTL_SETMODE) {
+int sysConCtl(int request, int argp) {
+  if(request==CONCTL_GETMODE) {
+    return ttyMode;
+  } else if (request==CONCTL_SETMODE) {
     ttyMode = argp;
   } else if (request==CONCTL_SETBUF) {
     //TODO

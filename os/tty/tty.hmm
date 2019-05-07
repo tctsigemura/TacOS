@@ -61,11 +61,10 @@ public int conWrite(void[] buf);
 public int conCtl(int request, int argp);
 
 // conCtl() に渡す request 番号
+#define CONCTL_GETMODE        0x0000      // 入出力のモードを取得する
 #define CONCTL_SETMODE        0x0001      // 入出力のモードを変更する
 #define CONCTL_SETBUF         0x0003      // conRead の内部バッファサイズを変更する
 
 // CONCTL_SETMODE
-#define TTY_MODE_RAW          0x0000
 #define TTY_MODE_COOKED       0x0001
-#define TTY_MODE_BLOCK        0x0000
 #define TTY_MODE_NONBLOCK     0x0002

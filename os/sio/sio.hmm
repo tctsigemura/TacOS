@@ -29,5 +29,6 @@
  */
 
 public void putSIO(char c);               // １文字出力
-public char getSIO();                     // １文字入力
+public int getSIO();                      // １文字入力
+public int getSIONonblock();              // １文字入力（ノンブロック）
 public void sioInit();                    // 初期化
