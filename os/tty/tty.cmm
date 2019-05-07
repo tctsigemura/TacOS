@@ -46,15 +46,25 @@
 #include <vga.hmm>
 #define getCh() getPS2()
 #define putCh(c) putVGA(c)
+#define getChNonblock() (-1)
 #else
 #include <sio.hmm>
 #define getCh() getSIO()
 #define putCh(c) putSIO(c)
+#define getChNonblock() getSIONonblock()
 #endif
 
 #include "tty.hmm"
 
-int ttyMode = TTY_MODE_COOKED | TTY_MODE_BLOCK;
+int ttyMode = TTY_MODE_BLOCK|TTY_MODE_COOKED;
+
+int getChar() {
+  if ((ttyMode&TTY_MODE_BLOCK)!=0) {
+    return getCh();
+  } else {
+    return getChNonblock();
+  }
+}
 
 // -------------------------- conRead システムコール --------------------------
 
@@ -62,21 +72,45 @@ int ttyMode = TTY_MODE_COOKED | TTY_MODE_BLOCK;
 int sysConRead(char[] buf, int len) {
   int kbdCnt = 0;                                       // buf のインデクス
   len = len - 1;                                        // '\0'の格納領域を確保
-  for (;;) {
-    char c = getCh();                                   // 1文字入力
-    if (kbdCnt>=len || c=='\r' || c=='\n') {            // 指定長以上か改行なら
-      buf[kbdCnt] = '\0';
-      putCh('\n');
-      break;
-    } else if (0x20<=ord(c) && ord(c)<=0x7e && kbdCnt<len) { // 表示可能な文字
-      buf[kbdCnt] = c;
-      putCh(c);
-      kbdCnt = kbdCnt + 1;
-    } else if (c=='\x08'&& kbdCnt>0) {                  // バックスペースなら
-      putCh('\x08');                                    //   カーソル位置を左に
-      putCh(' ');                                       //   空白を出力
-      putCh('\x08');                                    //   カーソル位置を左に
-      kbdCnt = kbdCnt - 1;
+  if ((ttyMode&TTY_MODE_COOKED)!=0) {                   // COOKEDモードの場合
+    for (;;) {
+      int i = getChar();                                //   1文字入力
+      if (i<0) {                                        //   読み込めなかった場合
+        buf[kbdCnt] = '\0';
+        break;
+      }
+      char c = chr(i);
+      if (kbdCnt>=len || c=='\r' || c=='\n') {          //   指定長以上か改行なら
+        buf[kbdCnt] = '\0';
+        putCh('\n');
+        break;
+      }
+      if (0x20<=ord(c) && ord(c)<=0x7e && kbdCnt<len) { // 表示可能な文字
+        buf[kbdCnt] = c;
+        putCh(c);
+        kbdCnt = kbdCnt + 1;
+      } else if (c=='\x08'&& kbdCnt>0) {                //   バックスペースなら
+        putCh('\x08');                                  //     カーソル位置を左に
+        putCh(' ');                                     //     空白を出力
+        putCh('\x08');                                  //     カーソル位置を左に
+        kbdCnt = kbdCnt - 1;
+      }
+    }
+  } else {                                                // RAWモード
+    for (;;) {
+      int i = getChar();                                //   1文字入力
+      if (i<0) {                                        //   読み込めなかった場合
+        buf[kbdCnt] = '\0';
+        break;
+      }
+      char c = chr(i);
+      if(kbdCnt>=len) {
+        buf[kbdCnt] = '\0';
+        break;
+      } else {
+        buf[kbdCnt] = c;
+        kbdCnt = kbdCnt + 1;
+      }
     }
   }
   return kbdCnt;
