@@ -58,10 +58,11 @@
 ;12     seek
 ;13     conRead
 ;14     conWrite
-;15     malloc
-;16     free
+;15     conCtl
+;16     malloc
+;17     free
 
-.nSys   equ     15          ; システムコール数を定義
+.nSys   equ     16          ; システムコール数を定義
 
 ; .sysTbl ラベルは dw と同じ行に書くこと(同じセグメントのラベルにするため)
 .sysTbl dw      _exec       ; 0  exec
