@@ -22,6 +22,7 @@
 /*
  * tty/tty.cmm : 端末サーバの本体、キーボード入力の受付とディスプレイ表示をする
  *
+ * 2019.05.10 : VGA, PS2を削除; 非サーバ化
  * 2018.11.30 : ps2 を独立させた
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.03 : 中身を sysConRead() に移動し getBuf() を廃止(重村)
@@ -47,6 +48,8 @@
 #define getChNonblock() getSIONonblock()
 
 #include "tty.hmm"
+
+int ttySem;
 
 int ttyMode = TTY_MODE_COOKED;
 
@@ -135,6 +138,7 @@ int sysConCtl(int request, int argp) {
 
 // セマフォで衝突回避
 int ttySysCall(int op, int prm1, int prm2) {
+  semP(ttySem);
   if (op==CONREAD) {
     op = sysConRead(_ItoA(prm1), prm2);                 // conRead(buf, len)
   } else if (op==CONWRITE) {
@@ -142,6 +146,7 @@ int ttySysCall(int op, int prm1, int prm2) {
   } else if (op==CONCTL) {
     op = sysConCtl(prm1, prm2);                         // conCtl(request, argp)
   } else  op= -1;                                       // エラー
+  semV(ttySem);
   return op;
 }
 
@@ -165,4 +170,9 @@ public int conWrite(void[] buf) {
 public int conCtl(int request, int argp) {
   int r = ttySysCall(CONCTL, request, argp);
   return r;
+}
+
+// 初期化
+public void ttyInit() {
+  ttySem = newSem(1);
 }
