@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011-2018 by
+ * Copyright (C) 2011-2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -41,18 +41,10 @@
 #include <syscall.hmm>
 
 // --------------------------
-#ifdef VGA
-#include <ps2.hmm>
-#include <vga.hmm>
-#define getCh() ord(getPS2())
-#define putCh(c) putVGA(c)
-#define getChNonblock() getCh()
-#else
 #include <sio.hmm>
 #define getCh() getSIO()
 #define putCh(c) putSIO(c)
 #define getChNonblock() getSIONonblock()
-#endif
 
 #include "tty.hmm"
 

@@ -146,8 +146,8 @@ public int getSIO() {
 
 // SIO から１文字入力 (まだ入力がなかったら -1)
 public int getSIONonblock() {
-  if (rcvSem <= 0) return -1;
-  rcvSem = rcvSem - 1;                        // セマフォを操作
+  if (valueOfSem(rcvSem) <= 0) return -1;
+  semP(rcvSem);                               // セマフォを操作
   return getBuf(rcvBuf);
 }
 
