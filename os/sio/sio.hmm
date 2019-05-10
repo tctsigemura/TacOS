@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2018 by
+ * Copyright (C) 2018-2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * sio/sio.hmm : sio.cmm の外部インタフェース
  *
+ * 2019.05.10 : ノンブロッキングの読み込みを追加
  * 2018.11.01 : 新規作成
  *
  * $Id$
