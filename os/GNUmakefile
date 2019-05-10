@@ -19,6 +19,7 @@
 #
 # GNUmakefile
 #
+# 2019.05.10         : VGA, PS2を削除
 # 2018.11.12         : SIO版の作業開始
 # 2015.08.31         : c-- コンパイラの -K オプションに対応(重村)
 # 2015.06.04	     : SUBDIRS に tty を追加
@@ -31,18 +32,13 @@
 # デバッグ
 #DEBUG=DEBUG=1
 
-# キーボードディスプレイをコンソールにする場合（そうでなければSIOがコンソール）
-#VGA=VGA=1
+# SIOがコンソール
 
 #　ディレクトリを移動する際のログを出力しない
 MAKEFLAGS=--no-print-directory
 
 # make 対象のサブディレクトリ crt0 が含まれる util を最初にすること！！
-ifdef VGA
-SUBDIRS:=util kernel fs vga ps2 tty mm pm
-else
 SUBDIRS:=util kernel fs sio tty mm pm
-endif
 
 # OBJS に SUBDIRS で生成された各 mod.o ファイルをディレクトリパス付きで代入
 OBJS=$(foreach dir, $(SUBDIRS), $(dir)/mod.o )
@@ -58,13 +54,12 @@ all : clean kernel.bin
 # (4) kernel.o を 0x0000 番地にロードした kernel.bin を生成
 # (5) メモリマップを kernel.map に格納
 kernel.bin :
-	$(foreach dir,$(SUBDIRS),${MAKE} ${VGA} ${DEBUG} --directory=$(dir);)
+	$(foreach dir,$(SUBDIRS),${MAKE} ${DEBUG} --directory=$(dir);)
 	ld-- kernel.o ${OBJS} > kernel.sym
 	size-- kernel.o
 	objbin-- 0x0000 kernel.bin kernel.o | sort --key=1 > kernel.map
 
 
 clean :
-	rm -f kernel.bin kernel.map kernel.s *.o *.sym *.lst  *~ 
+	rm -f kernel.bin kernel.map kernel.s *.o *.sym *.lst  *~
 	$(foreach dir,$(SUBDIRS),$(MAKE) --directory=$(dir) clean;)
-

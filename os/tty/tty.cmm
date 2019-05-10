@@ -133,23 +133,21 @@ int sysConCtl(int request, int argp) {
   return 0;
 }
 
-// ----------------------------- 要求待ち受け部 -------------------------------
-
-// 端末サーバの本体(ここで各システムコールを実行する)
+// セマフォで衝突回避
 int ttySysCall(int op, int prm1, int prm2) {
   if (op==CONREAD) {
     op = sysConRead(_ItoA(prm1), prm2);                 // conRead(buf, len)
   } else if (op==CONWRITE) {
     op = sysConWrite(_ItoA(prm1));                      // conWrite(buf)
   } else if (op==CONCTL) {
-    op = sysConCtl(prm1, prm2);
+    op = sysConCtl(prm1, prm2);                         // conCtl(request, argp)
   } else  op= -1;                                       // エラー
   return op;
 }
 
 //----------------------------------------------------------------------------
 // システムコールインターフェイス
-//   クライアントプロセスが以下のルーチンを呼出しサーバと IPC する
+//   クライアントプロセスが以下のルーチンを呼出す
 //----------------------------------------------------------------------------
 // conRead システムコール
 public int conRead(void[] buf, int len) {

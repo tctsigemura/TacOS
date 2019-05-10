@@ -19,6 +19,7 @@
 #
 # Makefile.rul : ユーザプログラム用の Makefile.rul
 #
+# 2019.05.10   : vga, ps2を削除
 # 2018.01.27   : cm2e を使用するように書き換え
 # 2016.01.08   : 整理して著作権表示追加
 #
@@ -30,14 +31,8 @@ ifdef DEBUG
 CMFLAGS+=-DDEBUG
 endif
 
-# コンソールを使用する場合
-ifdef VGA
-CMFLAGS+=-DVGA
-CMFLAGS+=-DVRAM=0xe000
-endif
-
 CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../pm -I../tty \
-                      -I../vga -I../ps2 -I../sio
+                      -I../ps2 -I../sio
 
 # make するソースのサフィックス（拡張子） の一覧
 .SUFFIXES: .o .cmm .s

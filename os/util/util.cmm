@@ -55,10 +55,6 @@
 #include <kernel.hmm>
 #include "util.hmm"
 
-#ifdef VGA
-#include <vga.hmm>                                  // TaC7aでVGAを使用する場合
-#endif
-
 // util の初期化ルーチン
 public void utilInit() {
   MEM = _ItoA(0);                                   // MEMは0x0000を指すchar型
@@ -140,21 +136,15 @@ public int getBuf(RingBuf buf) {
 
 // --------------------------- デバッグ用表示ルーチン -------------------------
 // 1文字出力（起動時のメッセージなどを表示するための簡易版）
-#ifndef VGA
 void dbgPutSIO(char c) {                            // SIO への出力
   while ((in(0x0a) & 0x80)==0)
     ;
   out(0x08, ord(c));
 }
-#endif
 
 void dbgPutCh(char c) {                             // デバッグ用の表示ルーチン
-#ifdef VGA
-  putVGA(c);
-#else
   if (c=='\n') dbgPutSIO('\r');
   dbgPutSIO(c);
-#endif
 }
 
 // 文字列出力
