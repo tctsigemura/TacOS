@@ -170,6 +170,12 @@ public void freeSem(int s) {
   semInUse[s] = false;                              // 未使用に変更
 }
 
+// セマフォの値を取得
+public void valueOfSem(int sd) {
+  Sem s = semTbl[sd];
+  return s.cnt;
+}
+
 // セマフォの P 操作
 //   カウンタの値 > 0 : カウンタから1減らす
 //   カウンタの値 = 0 : 現在実行中のプロセスを実行可能列から外し、
