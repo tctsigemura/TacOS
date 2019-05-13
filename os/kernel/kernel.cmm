@@ -167,7 +167,7 @@ public void freeSem(int s) {
 }
 
 // セマフォの値を取得
-public void valueOfSem(int sd) {
+public int valueOfSem(int sd) {
   Sem s = semTbl[sd];
   return s.cnt;
 }
