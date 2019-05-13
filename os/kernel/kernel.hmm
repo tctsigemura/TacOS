@@ -140,7 +140,7 @@ public void freeSem(int sd);
  *   引数   : int sd セマフォ番号
  *   解説   : sd で指定されたセマフォの現在の値を返す
  */
-public void valueOfSem(int sd);
+public int valueOfSem(int sd);
 
 
 /*----------------------------------------------------------------------------
