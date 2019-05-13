@@ -168,6 +168,8 @@ public void freeSem(int s) {
 
 // セマフォの値を取得
 public int valueOfSem(int sd) {
+  if (sd<0 || SEM_MAX<=sd || !semInUse[sd])         // 不正なセマフォ番号
+    panic("valueOfSem(%d)", sd);
   Sem s = semTbl[sd];
   return s.cnt;
 }
