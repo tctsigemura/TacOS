@@ -166,10 +166,23 @@ public void freeSem(int s) {
   semInUse[s] = false;                              // 未使用に変更
 }
 
-// セマフォの値を取得
-public int valueOfSem(int sd) {
+// セマフォの P 操作 (ノンブロック)
+//   カウンタの値 > 0 : カウンタから1減らし、0を返す
+//   カウンタの値 = 0 : -1を返す
+public int nonblockSemP(int sd) {
+  int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
+  if (sd<0 || SEM_MAX<=sd || !semInUse[sd])         // 不正なセマフォ番号
+    panic("nonblockSemP(%d)", sd);
   Sem s = semTbl[sd];
-  return s.cnt;
+  int ret;
+  if (s.cnt>0) {
+    s.cnt = s.cnt - 1;
+    ret = 0;
+  } else {
+    ret = -1;
+  }
+  setPri(r);                                        // 割り込み状態を復元する
+  return ret;
 }
 
 // セマフォの P 操作
