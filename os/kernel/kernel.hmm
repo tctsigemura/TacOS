@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.hmm : kernel.cmm の外部インタフェース
  *
+ * 2019.05.14 : nonblockSemP() を追加
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2015.11.17 : newProc() の引数を追加
  * 2015.09.06 : tmrRst() を廃止(重村)
@@ -136,11 +137,12 @@ public void freeSem(int sd);
 
 /*----------------------------------------------------------------------------
  *   名前   : valueOfSem
- *   戻り値 : int セマフォの値
+ *   戻り値 : int 0 (成功) -1 (失敗)
  *   引数   : int sd セマフォ番号
- *   解説   : sd で指定されたセマフォの現在の値を返す
+ *   解説   : 指定されたセマフォに P 操作を行う
+ *            値が 0 以下のセマフォに P 操作した場合、-1が返る
  */
-public int valueOfSem(int sd);
+public int nonblockSemP(int sd);
 
 
 /*----------------------------------------------------------------------------
@@ -205,4 +207,3 @@ public void debug(boolean flag);
 public void printq();
 public void printtbl();
 #endif
-
