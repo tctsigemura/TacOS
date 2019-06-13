@@ -55,4 +55,19 @@ public int conRead(void[] buf, int len);
  */
 public int conWrite(void[] buf);
 
+/*----------------------------------------------------------------------------
+ *   名前   : conCtl
+ *   戻り値 : 0
+ *   引数   : int request 実行する操作
+ *         : int argp 操作のパラメータ
+ *   解説   : ttyのモードなどを操作する
+ */
+public int conCtl(int request, int argp);
 
+// conCtl() に渡す request 番号
+#define CONCTL_GETMODE        0
+#define CONCTL_SETMODE        1
+
+// CONCTL_SETMODE
+#define TTY_MODE_COOKED       1
+#define TTY_MODE_NONBLOCK     2

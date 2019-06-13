@@ -22,7 +22,7 @@
 /*
  * tty/tty.cmm : 端末サーバの本体、キーボード入力の受付とディスプレイ表示をする
  *
- * 2019.06.13 : VGA, PS2を削除
+ * 2019.06.13 : VGA, PS2を削除; conCtl() を追加
  * 2018.11.30 : ps2 を独立させた
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.03 : 中身を sysConRead() に移動し getBuf() を廃止(重村)
@@ -122,4 +122,10 @@ public int conRead(void[] buf, int len) {
 public int conWrite(void[] buf) {
   int r = sndrec(ttyLink, CONWRITE, _AtoI(buf), 0, 0);
   return r;
+}
+
+// conCtl システムコール
+public int conCtl(int request, int argp) {
+  //TODO
+  return 0;
 }
