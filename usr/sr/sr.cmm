@@ -12,7 +12,9 @@
 #include <ctype.hmm>
 #define ACK "!Ack\n"
 #define N 81
+#define BSIZE_MAX ((N-2)*3/4)
 char[] lbuf=array(N);
+char[] bbuf=array(BSIZE_MAX);
 
 void bwrite(FILE fp, char[] bbuf, int bsize) {
   for (int i=0; i<bsize; i=i+1) {
@@ -82,8 +84,10 @@ public int main(int argc, char[][] argv) {
   fgets(lbuf, N, stdin);
   int bsize = atoi(lbuf);
   debug("blocksize:%s:%d\n",lbuf,bsize);
-
-  char[] bbuf = malloc(bsize);
+  if (bsize > BSIZE_MAX) {
+    fprintf(stderr, "Error: block size is up to %d\n", BSIZE_MAX);
+    exit(1);
+  }
 
   int cbsize = 0;
   int cfsize = 0;
@@ -92,7 +96,7 @@ public int main(int argc, char[][] argv) {
     /// [入力のパース]
     int llen = strLen(lbuf) - 1;
     if (llen % 4 != 0) { // 入力サイズが4の倍数になっていない→エラー終了
-      fprintf(stderr, "Error: input length must be 4n");
+      fprintf(stderr, "Error: input length must be 4n\n");
       exit(1);
     }
     for (int k = 0; k < llen; k = k + 4) {
