@@ -39,7 +39,7 @@
 #define ACK "!Ack"
 #ifdef DEBUG
 #define DEBUG_OUT " [<debug output>]"
-#define debug(...) if (debugOut != null) fprintf(debugOut, __VA_ARGS__)
+#define debug(...) { if (debugOut != null) fprintf(debugOut, __VA_ARGS__); }
 FILE debugOut;
 #else
 #define debug(...)
@@ -69,7 +69,7 @@ public int main(int argc, char[][] argv){
 
   FILE fp = fopen(argv[1], "r");
   if (fp == null){ /* ファイルがない */
-    fprintf(stderr, "file not found\n");
+    perror("fopen");
     return 1;
   }
 
@@ -109,28 +109,21 @@ public int main(int argc, char[][] argv){
   return 0;
 }
 
-int b64e(char[] outbuf, char[] buffer, int length, int offset);
-char[] outbuf = array(5);
+int b64e(char[] buffer, int length, int offset);
 
 void output(int length, char[] buffer, boolean wait_for_ack){
   for (int i = 0; i < length; i = i + 3){
-    b64e(outbuf, buffer, length, i);
-    fprintf(stdout, "%s", outbuf);
+    b64e(buffer, length, i);
   }
-  fprintf(stdout, "\n");
+  printf("\n");
   fflush(stdout);
 
   /* Ackを待つ */
   while (wait_for_ack){
     fgets(buffer, BUFFER_SIZE, stdin);
-    if (strNcmp(buffer, "!Ack", 4) != 0){
-      if (buffer[0] == '!') {
-        fprintf(stderr, "error: %s\n", buffer);
-        exit(-1); /* Ackではないものが返ってきたので異常終了 */
-      }
-      continue;
+    if (strCmp(buffer, ACK) == 0) {
+      break;
     }
-    break;
   }
 }
 
@@ -140,7 +133,8 @@ char[] b64tbl = "=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 char b2a(int b) {
   return b64tbl[b+1];
 }
-int b64e(char[] outbuf, char[] buffer, int length, int index) {
+
+int b64e(char[] buffer, int length, int index) {
   int w, x, y, z;
   int offset = 0;
   w = x = y = z = -1;
@@ -159,10 +153,9 @@ int b64e(char[] outbuf, char[] buffer, int length, int index) {
       }
     }
   }
-  outbuf[0] = b2a(w);
-  outbuf[1] = b2a(x);
-  outbuf[2] = b2a(y);
-  outbuf[3] = b2a(z);
-  outbuf[4] = '\0';
+  putchar(b2a(w));
+  putchar(b2a(x));
+  putchar(b2a(y));
+  putchar(b2a(z));
   return offset;
 }

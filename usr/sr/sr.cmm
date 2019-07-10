@@ -24,20 +24,25 @@ boolean isB64(char c) {
   return isAlnum(c) || '+' == c || '/' == c;
 }
 
-char[] b64tbl = "=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 int a2b(char a) {
   if ('=' == a) return -1;
-  if (isUpper(a)) return ord(a) - 0x41;
-  if (isLower(a)) return ord(a) - 0x61 + 26;
-  if (isDigit(a)) return ord(a) - 0x30 + 52;
+  if (isUpper(a)) return ord(a) - ord('A');
+  if (isLower(a)) return ord(a) - ord('a') + 26;
+  if (isDigit(a)) return ord(a) - ord('0') + 52;
   if ('+' == a) return 62;
   if ('/' == a) return 63;
-  return -2;
+  fprintf(stderr, "Error: invalid character\n");
+  exit(1);
+  return -2; /* エラー避け */
 }
+
 int b64d(char[] out, int outB, char[] in, int inB) {
   int w = a2b(in[inB]);
   int x = a2b(in[inB + 1]);
-  if (w < 0 || x < 0) return 0;
+  if (w < 0 || x < 0) {
+    fprintf(stderr, "Error: === is not allowed\n");
+    exit(1);
+  }
   out[outB] = chr((w << 2 | x >> 4) & 0xff);
   int y = a2b(in[inB + 2]);
   if (y < 0) return 1;
@@ -86,9 +91,13 @@ public int main(int argc, char[][] argv) {
     fgets(lbuf, N, stdin);
     /// [入力のパース]
     int llen = strLen(lbuf) - 1;
+    if (llen % 4 != 0) { // 入力サイズが4の倍数になっていない→エラー終了
+      fprintf(stderr, "Error: input length must be 4n");
+      exit(1);
+    }
     for (int k = 0; k < llen; k = k + 4) {
       if (!isB64(lbuf[k]) || !isB64(lbuf[k+1]) || !isB64(lbuf[k+2]) || !isB64(lbuf[k+3])){
-        printf("Error: unexpected character\n");
+        fprintf(stderr, "Error: invalid character\n");
         exit(1);
       }
       int dlen = b64d(bbuf, cbsize, lbuf, k);
@@ -99,7 +108,7 @@ public int main(int argc, char[][] argv) {
     debug("file: %d / %d, buf: %d / %d\n", cfsize, fsize, cbsize, bsize);
 
     if (cbsize > bsize || cfsize > fsize) {
-      printf("!overflow!\n");
+      fprintf(stderr, "!overflow!\n");
       exit(1);
     }
     /// [/入力のパース]
