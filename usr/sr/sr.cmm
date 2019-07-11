@@ -1,0 +1,128 @@
+//#define DEBUG
+
+#if defined(DEBUG)
+# define debug(...) fprintf(stderr, __VA_ARGS__)
+#else
+# define debug(...) /* __VA_ARGS__ */
+#endif
+
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+#include <ctype.hmm>
+#define ACK "!Ack\n"
+#define N 81
+#define BSIZE_MAX ((N-2)*3/4)
+char[] lbuf=array(N);
+char[] bbuf=array(BSIZE_MAX);
+
+void bwrite(FILE fp, char[] bbuf, int bsize) {
+  for (int i=0; i<bsize; i=i+1) {
+    fputc(bbuf[i], fp);
+  }
+}
+
+boolean isB64(char c) {
+  return isAlnum(c) || '+' == c || '/' == c;
+}
+
+int a2b(char a) {
+  if ('=' == a) return -1;
+  if (isUpper(a)) return ord(a) - ord('A');
+  if (isLower(a)) return ord(a) - ord('a') + 26;
+  if (isDigit(a)) return ord(a) - ord('0') + 52;
+  if ('+' == a) return 62;
+  if ('/' == a) return 63;
+  fprintf(stderr, "Error: invalid character\n");
+  exit(1);
+  return -2; /* エラー避け */
+}
+
+int b64d(char[] out, int outB, char[] in, int inB) {
+  int w = a2b(in[inB]);
+  int x = a2b(in[inB + 1]);
+  if (w < 0 || x < 0) {
+    fprintf(stderr, "Error: === is not allowed\n");
+    exit(1);
+  }
+  out[outB] = chr((w << 2 | x >> 4) & 0xff);
+  int y = a2b(in[inB + 2]);
+  if (y < 0) return 1;
+  out[outB + 1] = chr((x << 4 | y >> 2) & 0xff);
+  int z = a2b(in[inB + 3]);
+  if (z < 0) return 2;
+  out[outB + 2] = chr((y << 6 | z) & 0xff);
+  return 3;
+}
+
+public int main(int argc, char[][] argv) {
+  if (argc>1) {
+    debug("Usage: %s\n", argv[0]);
+    return 1;
+  }
+
+  fgets(lbuf, N, stdin);
+  int pos=strRchr(lbuf, '\n');
+  if (pos==-1) {
+    debug("format error");
+    exit(1);
+  }
+
+  lbuf[pos] = '\0';
+
+  debug("fopen:%s\n",lbuf);
+  FILE fp = fopen(lbuf, "w");
+  if (fp==null) {
+    perror(lbuf);
+    exit(1);
+  }
+
+  fgets(lbuf, N, stdin);
+  int fsize = atoi(lbuf);
+  debug("filelength:%s:%d\n",lbuf,fsize);
+
+  fgets(lbuf, N, stdin);
+  int bsize = atoi(lbuf);
+  debug("blocksize:%s:%d\n",lbuf,bsize);
+  if (bsize > BSIZE_MAX) {
+    fprintf(stderr, "Error: block size is up to %d\n", BSIZE_MAX);
+    exit(1);
+  }
+
+  int cbsize = 0;
+  int cfsize = 0;
+  while (cfsize<fsize) {
+    fgets(lbuf, N, stdin);
+    /// [入力のパース]
+    int llen = strLen(lbuf) - 1;
+    if (llen % 4 != 0) { // 入力サイズが4の倍数になっていない→エラー終了
+      fprintf(stderr, "Error: input length must be 4n\n");
+      exit(1);
+    }
+    for (int k = 0; k < llen; k = k + 4) {
+      if (!isB64(lbuf[k]) || !isB64(lbuf[k+1]) || !isB64(lbuf[k+2]) || !isB64(lbuf[k+3])){
+        fprintf(stderr, "Error: invalid character\n");
+        exit(1);
+      }
+      int dlen = b64d(bbuf, cbsize, lbuf, k);
+      cbsize = cbsize + dlen;
+      cfsize = cfsize + dlen;
+    }
+
+    debug("file: %d / %d, buf: %d / %d\n", cfsize, fsize, cbsize, bsize);
+
+    if (cbsize > bsize || cfsize > fsize) {
+      fprintf(stderr, "!overflow!\n");
+      exit(1);
+    }
+    /// [/入力のパース]
+
+    bwrite(fp, bbuf, cbsize);
+    cbsize = 0;
+    printf(ACK);
+
+  }
+  fclose(fp);
+
+  return 0;
+}
