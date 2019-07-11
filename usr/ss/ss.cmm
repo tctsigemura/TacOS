@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2016 by
+ * Copyright (C) 2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -28,23 +28,13 @@
   *
   */
 
-
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
 
-#define DEBUG
 #define BLOCK_SIZE 24
 #define BUFFER_SIZE 128
 #define ACK "!Ack"
-#ifdef DEBUG
-#define DEBUG_OUT " [<debug output>]"
-#define debug(...) { if (debugOut != null) fprintf(debugOut, __VA_ARGS__); }
-FILE debugOut;
-#else
-#define debug(...)
-#define DEBUG_OUT ""
-#endif
 
 int[] filesize = array(2);
 char[] buffer = array(BUFFER_SIZE);
@@ -52,14 +42,10 @@ char[] buffer = array(BUFFER_SIZE);
 void output(int length, char[] buffer, boolean wait_for_ack);
 
 public int main(int argc, char[][] argv){
-  if (argc < 2){ /* ファイル名がない */
-    fprintf(stderr, "Usage: %s <filename> [<as filename>]%s\n", argv[0], DEBUG_OUT);
+  if (argc!=2 && argc!=3) { /* ファイル名がない */
+    fprintf(stderr, "Usage: %s <filename> [<as filename>]\n", argv[0]);
     return 1;
   }
-#ifdef DEBUG
-  if (argc >= 4) debugOut = fopen(argv[3], "w");
-  else debugOut = null;
-#endif
 
   /* ファイル長を取得 */
   if (fsize(argv[1], filesize)){
@@ -69,18 +55,16 @@ public int main(int argc, char[][] argv){
 
   FILE fp = fopen(argv[1], "r");
   if (fp == null){ /* ファイルがない */
-    perror("fopen");
+    perror(argv[1]);
     return 1;
   }
 
   char[] filename = argv[1];
-  if (argc >= 3) filename = argv[2];
+  if (argc==3) filename = argv[2];
 
   printf("%s\n", filename); /* ファイル名を出力 */
   printf("%d\n", filesize[1]); /* ファイル長の下位32bit */
   printf("%d\n", BLOCK_SIZE); /* ブロックサイズ */
-
-  //int checksum = 0;
 
   int wholelen = 0;
   int length = 0;
@@ -92,20 +76,13 @@ public int main(int argc, char[][] argv){
     if (length == BLOCK_SIZE){
       output(length, buffer, true);
       wholelen = wholelen + length;
-      debug("output %3d\n", wholelen);
       length = 0;
     }
   }
   if (length > 0) {
     output(length, buffer, false);
     wholelen = wholelen + length;
-    debug("output %3d (fin)\n", wholelen);
   }
-
-#ifdef DEBUG
-  if (debugOut != null) fclose(debugOut);
-#endif
-
   return 0;
 }
 
@@ -121,14 +98,15 @@ void output(int length, char[] buffer, boolean wait_for_ack){
   /* Ackを待つ */
   while (wait_for_ack){
     fgets(buffer, BUFFER_SIZE, stdin);
-    if (strCmp(buffer, ACK) == 0) {
+    if (strNcmp(buffer, ACK, strLen(ACK)) == 0) {
       break;
     }
   }
 }
 
 // Base64で出力するためのメソッド
-char[] b64tbl = "=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+char[] b64tbl =
+        "=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 char b2a(int b) {
   return b64tbl[b+1];
