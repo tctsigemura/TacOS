@@ -22,6 +22,7 @@
 /*
  * lcdtest/util.cmm : 拡張ポートに接続した液晶ディスプレイの動作テスト
  *
+ * 2019.08.15 : クロックを定常LOWに変更
  * 2019.08.09 : 新規作成
  *
  * $Id$
@@ -31,40 +32,41 @@
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <crt0.hmm>
+#include "util.hmm"
 
 void spiWriteByte(int val) {
   int v = val;
   for (int i=0; i<8; i=i+1) {
-    _out(0x18, 0xd8|((v>>6)&2)); // xRst='1', xCS='0', so=v,   clk='0'
-    _out(0x18, 0xd9|((v>>6)&2)); // xRst='1', xCS='0', so=v,   clk='1'
+    _out(0x18, 0xc8|((v>>6)&2)); // xRst='1', xCS='0', so=v,   clk='0'
+    _out(0x18, 0xc9|((v>>6)&2)); // xRst='1', xCS='0', so=v,   clk='1'
     v = v << 1;
   }
 }
 
 public void spiWriteDat(char[] dat, int len) {
   _out(0x1c, 0x81);            // データモード
-  _out(0x18, 0xdd);            // xRst='1', xCS='1', so='0', clk='1'
-  _out(0x18, 0xdd);            // xRst='1', xCS='1', so='0', clk='1'
-  _out(0x18, 0xdd);            // xRst='1', xCS='1', so='0', clk='1'
-  _out(0x18, 0xd9);            // xRst='1', xCS='0', so='0', clk='1'
-  _out(0x18, 0xd9);            // xRst='1', xCS='0', so='0', clk='1'
-  _out(0x18, 0xd9);            // xRst='1', xCS='0', so='0', clk='1'
+  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
+  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
+  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
+  _out(0x18, 0xc8);            // xRst='1', xCS='0', so='0', clk='0'
+  _out(0x18, 0xc8);            // xRst='1', xCS='0', so='0', clk='0'
+  _out(0x18, 0xc8);            // xRst='1', xCS='0', so='0', clk='0'
   for (int i=0; i<len; i=i+1) {
     spiWriteByte(ord(dat[i]));
   }
-  _out(0x18, 0xdd);            // xRst='1', xCS='1', so='0', clk='1'
+  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
 }
 
 public void spiWriteCom(char[] com) {
   _out(0x1c, 0x80);            // コマンドモード
-  _out(0x18, 0xdd);            // xRst='1', xCS='1', so='0', clk='1'
-  _out(0x18, 0xdd);            // xRst='1', xCS='1', so='0', clk='1'
-  _out(0x18, 0xdd);            // xRst='1', xCS='1', so='0', clk='1'
-  _out(0x18, 0xd9);            // xRst='1', xCS='0', so='0', clk='1'
-  _out(0x18, 0xd9);            // xRst='1', xCS='0', so='0', clk='1'
-  _out(0x18, 0xd9);            // xRst='1', xCS='0', so='0', clk='1'
+  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
+  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
+  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
+  _out(0x18, 0xc8);            // xRst='1', xCS='0', so='0', clk='0'
+  _out(0x18, 0xc8);            // xRst='1', xCS='0', so='0', clk='0'
+  _out(0x18, 0xc8);            // xRst='1', xCS='0', so='0', clk='0'
   for (int i=0; com[i]!='\xff'; i=i+1) {
     spiWriteByte(ord(com[i]));
   }
-  _out(0x18, 0xdd);            // xRst='1', xCS='1', so='0', clk='1'
+  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='1'
 }
