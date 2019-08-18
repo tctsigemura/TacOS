@@ -33,29 +33,45 @@
 #include <crt0.hmm>
 #include "util.hmm"
 
-void spiWriteByte(int val) {
+void spiWriteByte(int val, int pio) {
   int v = val;
+  int pio0 = pio;                      // clk='0' のポート値
+  int pio1 = pio0 | 0x02;              // clk='1' のポート値
   for (int i=0; i<8; i=i+1) {
-    _out(0x18, 0xc8|((v>>6)&2)); // xRst='1', xCS='0', so=v,   clk='0'
-    _out(0x18, 0xc9|((v>>6)&2)); // xRst='1', xCS='0', so=v,   clk='1'
+    int b = (v>>7) & 1;
+    _out(0x18, pio0|b);                // so=v, clk='0'
+    _out(0x18, pio1|b);                // so=v, clk='1'
     v = v << 1;
   }
 }
 
-public void spiWriteString(char mode, char[] str) {
-  if (mode=='C') {
-    _out(0x1c, 0x80);  // コマンドモード
-  } else {
-    _out(0x1c, 0x81);  // データモード
+public void spiWriteLcdCom(char[] com) {
+  char[] c = com;
+  int    v = 0xcc;                     // A0='0', xCS='0', clk='0'
+  _out(0x18, 0xdc);                    // A0='0', xCS='1', clk='0'
+  _out(0x18, 0xdc);                    // A0='0', xCS='1', clk='0'
+  _out(0x18, 0xdc);                    // A0='0', xCS='1', clk='0'
+  _out(0x18, v);
+  _out(0x18, v);
+  _out(0x18, v);
+  for (int i=0; c[i]!='\xff'; i=i+1) {
+    spiWriteByte(ord(c[i]), v);
   }
-  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
-  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
-  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
-  _out(0x18, 0xc8);            // xRst='1', xCS='0', so='0', clk='0'
-  _out(0x18, 0xc8);            // xRst='1', xCS='0', so='0', clk='0'
-  _out(0x18, 0xc8);            // xRst='1', xCS='0', so='0', clk='0'
-  for (int i=0; str[i]!='\xff'; i=i+1) {
-    spiWriteByte(ord(str[i]));
+  _out(0x18, 0xdc);                    // A0='0', xCS='1', clk='0'
+}
+
+public void spiWriteLcdDat(char[] dat, int len) {
+  char[] d = dat;
+  int    l = len;
+  int    v = 0xec;                     // A0='1', xCS='0', clk='0'
+  _out(0x18, 0xfc);                    // A0='1', xCS='1', clk='0'
+  _out(0x18, 0xfc);                    // A0='1', xCS='1', clk='0'
+  _out(0x18, 0xfc);                    // A0='1', xCS='1', clk='0'
+  _out(0x18, v);
+  _out(0x18, v);
+  _out(0x18, v);
+  for (int i=0; i<l; i=i+1) {
+    spiWriteByte(ord(d[i]), v);
   }
-  _out(0x18, 0xcc);            // xRst='1', xCS='1', so='0', clk='0'
+  _out(0x18, 0xfc);                    // A0='1', xCS='1', clk='0'
 }

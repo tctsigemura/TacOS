@@ -28,4 +28,5 @@
  *
  */
 
-public void spiWriteString(char mode, char[] str);
+public void spiWriteLcdCom(char[] buf);
+public void spiWriteLcdDat(char[] buf, int len);
