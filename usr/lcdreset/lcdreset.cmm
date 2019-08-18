@@ -22,6 +22,7 @@
 /*
  * lcdreset/lcdreset.cmm : 拡張ポートに接続した液晶ディスプレイの動作テスト
  *
+ * 2019.08.18 : 液晶の上下を逆にする
  * 2019.08.15 : クロックを定常LOWに変更
  * 2019.08.09 : 新規作成
  *
@@ -35,14 +36,14 @@
 #include <crt0.hmm>
 #include "util.hmm"
 
-char[] initComm = { '\x40', '\xa1', '\xc0', '\xa6',
+char[] initComm = { '\x40', '\xa0', '\xc8', '\xa6',
                     '\xa2', '\x2f', '\xf8', '\x00',
                     '\x27', '\x81', '\x10', '\xac',
                     '\x00', '\xaf', '\xff' };          // 0xff = EOF
 
 char[] locateComm = { '\xb0',   // page address
                       '\x10',   // column address Hi = 0x00
-                      '\x00',   // column address Lo = 0x00
+                      '\x04',   // column address Lo = 0x04
                       '\xff' }; // EOF
 
 char[] zero = array(129);
