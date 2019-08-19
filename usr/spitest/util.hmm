@@ -20,38 +20,17 @@
  */
 
 /*
- * lcd/lcdtest.cmm : 拡張ポートに接続した液晶ディスプレイの動作テスト
+ * lcdreset/util.hmm : 拡張ポートに接続した液晶ディスプレイの動作テスト
  *
- * 2019.08.18 : 液晶の上下を逆にする
  * 2019.08.09 : 新規作成
  *
  * $Id$
  *
  */
 
-#include <stdio.hmm>
-#include <stdlib.hmm>
-#include <string.hmm>
-#include <crt0.hmm>
-#include "util.hmm"
-#include "font.hmm"
+#define DRQ  (_in(0x18)&0x80)
 
-char[] locateComm = { '\xb0',   // page address
-                      '\x10',   // column address Hi = 0x00
-                      '\x04',   // column address Lo = 0x04
-                      '\xff' }; // EOF
-
-public int main(int argc, char[][] argv) {
-  spiWriteCom(locateComm);
-  int code = 0x20;
-  for (int i=0; i<8; i=i+1) {
-    locateComm[0] = chr(0xb0 | i);    // page address
-    spiWriteCom(locateComm);
-    for (int j=0; j<16; j=j+1) {
-      spiWriteDat(font(code), 8);
-      code = code + 1;
-      if (code >= 0x7f) code = 0x20;
-    }
-  }
-  return 0;
-}
+public void spiWriteLcdCom(char[] buf);
+public void spiWriteLcdDat(char[] buf, int len);
+public void spiWriteMp3Com(int addr, int arg);
+public void spiWriteMp3Dat(char[] dbuf, int len);

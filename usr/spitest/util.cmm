@@ -30,6 +30,7 @@
 
 #include <stdio.hmm>
 #include <stdlib.hmm>
+#include <syslib.hmm>
 #include <crt0.hmm>
 #include "util.hmm"
 
@@ -45,14 +46,10 @@ void spiWriteByte(int val, int pio) {
   }
 }
 
+// LCD に連続したコマンドを送る
 public void spiWriteLcdCom(char[] com) {
   char[] c = com;
   int    v = 0xcc;                     // A0='0', xCS='0', clk='0'
-  _out(0x18, 0xdc);                    // A0='0', xCS='1', clk='0'
-  _out(0x18, 0xdc);                    // A0='0', xCS='1', clk='0'
-  _out(0x18, 0xdc);                    // A0='0', xCS='1', clk='0'
-  _out(0x18, v);
-  _out(0x18, v);
   _out(0x18, v);
   for (int i=0; c[i]!='\xff'; i=i+1) {
     spiWriteByte(ord(c[i]), v);
@@ -60,18 +57,39 @@ public void spiWriteLcdCom(char[] com) {
   _out(0x18, 0xdc);                    // A0='0', xCS='1', clk='0'
 }
 
+// LCD に連続したデータを送る
 public void spiWriteLcdDat(char[] dat, int len) {
   char[] d = dat;
   int    l = len;
   int    v = 0xec;                     // A0='1', xCS='0', clk='0'
-  _out(0x18, 0xfc);                    // A0='1', xCS='1', clk='0'
-  _out(0x18, 0xfc);                    // A0='1', xCS='1', clk='0'
-  _out(0x18, 0xfc);                    // A0='1', xCS='1', clk='0'
-  _out(0x18, v);
-  _out(0x18, v);
   _out(0x18, v);
   for (int i=0; i<l; i=i+1) {
     spiWriteByte(ord(d[i]), v);
   }
   _out(0x18, 0xfc);                    // A0='1', xCS='1', clk='0'
 }
+
+// MP3 デコーダにコマンドを送る
+public void spiWriteMp3Com(int addr, int arg) {
+  int    v = 0xf8;                     // xCS='0', clk='0'
+  _out(0x18, v);
+  while (DRQ==0) { sleep(1); }
+  spiWriteByte(0x02, v);               // SPI Write コマンド
+  spiWriteByte(addr, v);               // レジスタアドレス
+  spiWriteByte(arg>>8, v);             // データの上位8ビット
+  spiWriteByte(arg, v);                // データの下位8ビット
+  _out(0x18, 0xfc);                    // xCS='1', clk='0'
+}
+
+// MP3 デコーダにデータを送る
+public void spiWriteMp3Dat(char[] dbuf, int len) {
+  char[] d = dbuf;
+  int    v = 0xf4;                     // xDCS='0', clk='0'
+  _out(0x18, v);
+  for (int i=0; i<len; i=i+1) {
+    while (DRQ==0) { sleep(1); }
+    spiWriteByte(ord(d[i]), v);        // SPI にデータを送る
+  }
+  _out(0x18, 0xfc);                    // xDCS='1', clk='0'
+}
+

@@ -1,0 +1,152 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2019 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * lcd/lcdtest.cmm : 拡張ポートに接続した液晶ディスプレイの動作テスト
+ *
+ * 2019.08.18 : 液晶の上下を逆にする
+ * 2019.08.09 : 新規作成
+ *
+ * $Id$
+ *
+ */
+
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <syslib.hmm>
+#include <string.hmm>
+#include <crt0.hmm>
+#include "util.hmm"
+#include "font.hmm"
+
+// LCD をリセットする
+char[] initCom = { '\x40', '\xa0', '\xc8', '\xa6',
+                   '\xa2', '\x2f', '\xf8', '\x00',
+                   '\x27', '\x81', '\x10', '\xac',
+                   '\x00', '\xaf', '\xff' };          // 0xff=EOF
+
+void lcdReset() {
+  _out(0x18, 0x7c);                   // LCD リセット信号ON
+  sleep(1);                           // 1ms 待つ
+  _out(0x18, 0xfc);                   // LCD リセット信号OFF
+  sleep(1);                           // 1ms 待つ
+  spiWriteLcdCom(initCom);            // LCD 初期化コマンド
+}
+
+// MP3 デコーダをリセットする
+void mp3Reset() {
+  _out(0x18, 0xbc);                   // MP3 リセット信号OFF
+  _out(0x18, 0xfc);                   // MP3 リセット信号OFF (80ns以上)
+  sleep(15);                          // 15ms 待つ(2ms以上)
+  if (DRQ==0) {
+    fprintf(stderr, "\nTime out for DRQ!\n");
+    exit(1);
+  }
+  spiWriteMp3Com(0x00, 0x0800);       // mode <- NEW mode
+  spiWriteMp3Com(0x03, 0x30d4);       // clock adjust <- 25MHz
+  sleep(1);
+  spiWriteMp3Com(0x0b, 0x2020);       // volume set to (-16dB, -16dB)
+  sleep(1);
+}
+
+// 表示関係
+#define MaxFname 16
+char[] lineBuf = array(128);
+char[] locateCom = { '\xb0',   // page address
+                     '\x10',   // column address Hi = 0x00
+                     '\x04',   // column address Lo = 0x04
+                     '\xff' }; // EOF
+
+void locateXY(int x, int y) {
+  int x8 = x * 8;
+  locateCom[0] = chr(0xb0 | y);             // page address
+  locateCom[1] = chr(0x10 | (x8>>4));       // column address Hi
+  locateCom[2] = chr(0x04 + (x8 & 0x0f));   // column address Lo
+  spiWriteLcdCom(locateCom);
+}
+
+void printLine(int l, char[] str) {
+  for (int i=0; i<128; i=i+1) {       // 1行バッファをクリアする
+    lineBuf[i] = '\x00';
+  }
+  for (int i=0; str[i]!='\0'; i=i+1) {
+    if (i>=MaxFname) {
+      fprintf(stderr, "too long string \"%s\"\n", str);
+      exit(1);
+    }
+    char[] f = font(ord(str[i]));
+    for (int j=0; j<8; j=j+1) {
+      lineBuf[i*8+j] = f[j];
+    }
+  }
+  locateXY(0, l);
+  spiWriteLcdDat(lineBuf, 128);
+}
+
+// １曲演奏する
+#define BUFSIZ 512
+char[] datBuf = array(BUFSIZ);
+
+void play(char[] fname) {
+  int fd = open(fname, READ);
+  if (fd<0) {
+    perror(fname);
+    exit(1);
+  }
+  for (;;) {
+    int l = read(fd, datBuf, BUFSIZ);
+    if (l<=0) break;
+    spiWriteMp3Dat(datBuf, l);
+  }
+  close(fd);
+}
+
+// メインルーチン
+char[] strBuf = array(5+MaxFname+1);  //  "/mp3/" + Fname + "\0"
+public int main(int argc, char[][] argv) {
+  // ハードウェアのリセット
+  lcdReset();
+  mp3Reset();
+
+  // LCE のデモ
+  int code = 0x20;
+  for (int i=0; i<8; i=i+1) {
+    locateXY(0, i);
+    for (int j=0; j<16; j=j+1) {
+      spiWriteLcdDat(font(code), 8);
+      code = code + 1;
+      if (code >= 0x7f) code = 0x20;
+    }
+  }
+
+  // 引数の曲を全て演奏する
+  for (int i=1; i<argc; i=i+1) {
+    if (strLen(argv[i])>20) {
+      fprintf(stderr, "%s : too long\n", argv[i]);
+      exit(1);
+    }
+    printLine(1, argv[i]);
+    strCpy(strBuf, "/mp3/");
+    strCat(strBuf, argv[i]);
+    play(strBuf);
+  }
+  return 0;
+}
