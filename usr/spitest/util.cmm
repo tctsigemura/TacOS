@@ -1,0 +1,95 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2019 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * lcdreset/util.cmm : 拡張ポートに接続した液晶ディスプレイの動作テスト
+ *
+ * 2019.08.09 : 新規作成
+ *
+ * $Id$
+ *
+ */
+
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <syslib.hmm>
+#include <crt0.hmm>
+#include "util.hmm"
+
+void spiWriteByte(int val, int pio) {
+  int v = val;
+  int pio0 = pio;                      // clk='0' のポート値
+  int pio1 = pio0 | 0x02;              // clk='1' のポート値
+  for (int i=0; i<8; i=i+1) {
+    int b = (v>>7) & 1;
+    _out(0x18, pio0|b);                // so=v, clk='0'
+    _out(0x18, pio1|b);                // so=v, clk='1'
+    v = v << 1;
+  }
+}
+
+// LCD に連続したコマンドを送る
+public void spiWriteLcdCom(char[] com) {
+  char[] c = com;
+  int    v = 0xcc;                     // A0='0', xCS='0', clk='0'
+  _out(0x18, v);
+  for (int i=0; c[i]!='\xff'; i=i+1) {
+    spiWriteByte(ord(c[i]), v);
+  }
+  _out(0x18, 0xdc);                    // A0='0', xCS='1', clk='0'
+}
+
+// LCD に連続したデータを送る
+public void spiWriteLcdDat(char[] dat, int len) {
+  char[] d = dat;
+  int    l = len;
+  int    v = 0xec;                     // A0='1', xCS='0', clk='0'
+  _out(0x18, v);
+  for (int i=0; i<l; i=i+1) {
+    spiWriteByte(ord(d[i]), v);
+  }
+  _out(0x18, 0xfc);                    // A0='1', xCS='1', clk='0'
+}
+
+// MP3 デコーダにコマンドを送る
+public void spiWriteMp3Com(int addr, int arg) {
+  int    v = 0xf8;                     // xCS='0', clk='0'
+  _out(0x18, v);
+  while (DRQ==0) { sleep(1); }
+  spiWriteByte(0x02, v);               // SPI Write コマンド
+  spiWriteByte(addr, v);               // レジスタアドレス
+  spiWriteByte(arg>>8, v);             // データの上位8ビット
+  spiWriteByte(arg, v);                // データの下位8ビット
+  _out(0x18, 0xfc);                    // xCS='1', clk='0'
+}
+
+// MP3 デコーダにデータを送る
+public void spiWriteMp3Dat(char[] dbuf, int len) {
+  char[] d = dbuf;
+  int    v = 0xf4;                     // xDCS='0', clk='0'
+  _out(0x18, v);
+  for (int i=0; i<len; i=i+1) {
+    while (DRQ==0) { sleep(1); }
+    spiWriteByte(ord(d[i]), v);        // SPI にデータを送る
+  }
+  _out(0x18, 0xfc);                    // xDCS='1', clk='0'
+}
+
