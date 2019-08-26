@@ -22,6 +22,7 @@
 /*
  * lcd/lcdtest.cmm : 拡張ポートに接続した液晶ディスプレイの動作テスト
  *
+ * 2019.08.26 : 液晶の上下をもとに戻す．リセット機能を util.cmm に移動する．
  * 2019.08.18 : 液晶の上下を逆にする
  * 2019.08.09 : 新規作成
  *
@@ -37,49 +38,19 @@
 #include "util.hmm"
 #include "font.hmm"
 
-// LCD をリセットする
-char[] initCom = { '\x40', '\xa0', '\xc8', '\xa6',
-                   '\xa2', '\x2f', '\xf8', '\x00',
-                   '\x27', '\x81', '\x10', '\xac',
-                   '\x00', '\xaf', '\xff' };          // 0xff=EOF
-
-void lcdReset() {
-  _out(0x18, 0x7c);                   // LCD リセット信号ON
-  sleep(1);                           // 1ms 待つ
-  _out(0x18, 0xfc);                   // LCD リセット信号OFF
-  sleep(1);                           // 1ms 待つ
-  spiWriteLcdCom(initCom);            // LCD 初期化コマンド
-}
-
-// MP3 デコーダをリセットする
-void mp3Reset() {
-  _out(0x18, 0xbc);                   // MP3 リセット信号OFF
-  _out(0x18, 0xfc);                   // MP3 リセット信号OFF (80ns以上)
-  sleep(15);                          // 15ms 待つ(2ms以上)
-  if (DRQ==0) {
-    fprintf(stderr, "\nTime out for DRQ!\n");
-    exit(1);
-  }
-  spiWriteMp3Com(0x00, 0x0800);       // mode <- NEW mode
-  spiWriteMp3Com(0x03, 0x30d4);       // clock adjust <- 25MHz
-  sleep(1);
-  spiWriteMp3Com(0x0b, 0x2020);       // volume set to (-16dB, -16dB)
-  sleep(1);
-}
-
 // 表示関係
-#define MaxFname 16
+#define MaxFname 8
 char[] lineBuf = array(128);
 char[] locateCom = { '\xb0',   // page address
                      '\x10',   // column address Hi = 0x00
-                     '\x04',   // column address Lo = 0x04
+                     '\x00',   // column address Lo = 0x00
                      '\xff' }; // EOF
 
 void locateXY(int x, int y) {
   int x8 = x * 8;
   locateCom[0] = chr(0xb0 | y);             // page address
   locateCom[1] = chr(0x10 | (x8>>4));       // column address Hi
-  locateCom[2] = chr(0x04 + (x8 & 0x0f));   // column address Lo
+  locateCom[2] = chr(0x00 + (x8 & 0x0f));   // column address Lo
   spiWriteLcdCom(locateCom);
 }
 
@@ -87,11 +58,11 @@ void printLine(int l, char[] str) {
   for (int i=0; i<128; i=i+1) {       // 1行バッファをクリアする
     lineBuf[i] = '\x00';
   }
+  if (strLen(str)>16) {
+    fprintf(stderr, "too long string \"%s\"\n", str);
+    exit(1);
+  }
   for (int i=0; str[i]!='\0'; i=i+1) {
-    if (i>=MaxFname) {
-      fprintf(stderr, "too long string \"%s\"\n", str);
-      exit(1);
-    }
     char[] f = font(ord(str[i]));
     for (int j=0; j<8; j=j+1) {
       lineBuf[i*8+j] = f[j];
@@ -119,14 +90,23 @@ void play(char[] fname) {
   close(fd);
 }
 
-// メインルーチン
-char[] strBuf = array(5+MaxFname+1);  //  "/mp3/" + Fname + "\0"
-public int main(int argc, char[][] argv) {
-  // ハードウェアのリセット
-  lcdReset();
-  mp3Reset();
+void usage(char[] myname) {
+  fprintf(stderr, "Usage : %s [<mp3file>...]\n", myname);
+  fprintf(stderr, "<mp3file> : mp3ファイル(拡張子無し)\n");
+}
 
-  // LCE のデモ
+// メインルーチン
+char[] strBuf = array(5+MaxFname+5);  //  "/MP3/" + Fname + ".MP3\0"
+public int main(int argc, char[][] argv) {
+  if (argc>1 && strCmp(argv[1], "-h")==0) {
+    usage(argv[0]);
+    exit(1);
+  }
+  // ハードウェアのリセット
+  spiResetLcd();
+  spiResetMp3();
+
+  // LCD のデモ
   int code = 0x20;
   for (int i=0; i<8; i=i+1) {
     locateXY(0, i);
@@ -139,13 +119,14 @@ public int main(int argc, char[][] argv) {
 
   // 引数の曲を全て演奏する
   for (int i=1; i<argc; i=i+1) {
-    if (strLen(argv[i])>20) {
+    if (strLen(argv[i])>MaxFname) {
       fprintf(stderr, "%s : too long\n", argv[i]);
       exit(1);
     }
     printLine(1, argv[i]);
-    strCpy(strBuf, "/mp3/");
+    strCpy(strBuf, "/MP3/");
     strCat(strBuf, argv[i]);
+    strCat(strBuf, ".MP3");
     play(strBuf);
   }
   return 0;

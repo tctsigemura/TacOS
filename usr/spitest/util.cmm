@@ -22,6 +22,7 @@
 /*
  * lcdreset/util.cmm : 拡張ポートに接続した液晶ディスプレイの動作テスト
  *
+ * 2019.08.26 : SPI のハードウェア化に対応，リセット機能を追加
  * 2019.08.09 : 新規作成
  *
  * $Id$
@@ -34,62 +35,92 @@
 #include <crt0.hmm>
 #include "util.hmm"
 
-void spiWriteByte(int val, int pio) {
-  int v = val;
-  int pio0 = pio;                      // clk='0' のポート値
-  int pio1 = pio0 | 0x02;              // clk='1' のポート値
-  for (int i=0; i<8; i=i+1) {
-    int b = (v>>7) & 1;
-    _out(0x18, pio0|b);                // so=v, clk='0'
-    _out(0x18, pio1|b);                // so=v, clk='1'
-    v = v << 1;
-  }
+#define DRQ  (_in(0x18)&0x80)
+#define BUSY (_in(0x22)!=0)
+
+#define spiWriteByte(v)    \
+{                          \
+   while(BUSY){};          \
+   _out(0x20, v);          \
 }
 
 // LCD に連続したコマンドを送る
 public void spiWriteLcdCom(char[] com) {
   char[] c = com;
-  int    v = 0xcc;                     // A0='0', xCS='0', clk='0'
-  _out(0x18, v);
+  _out(0x18, 0xcc);                    // A0='0', xCS='0', clk='0'
+  _out(0x22, 0x01);                    // SPI クロックを 12.288MHz にする
   for (int i=0; c[i]!='\xff'; i=i+1) {
-    spiWriteByte(ord(c[i]), v);
+    spiWriteByte(ord(c[i]));
   }
+  while (BUSY) {}                      // SPI の busy が消えるのを待つ
   _out(0x18, 0xdc);                    // A0='0', xCS='1', clk='0'
+}
+
+// LCD をリセットする
+char[] initCom = { '\x40', '\xa1', '\xc0', '\xa6',
+                   '\xa2', '\x2f', '\xf8', '\x00',
+                   '\x27', '\x81', '\x10', '\xac',
+                   '\x00', '\xaf', '\xff' };          // 0xff=EOF
+
+public void spiResetLcd() {
+  _out(0x18, 0x7c);                    // LCD リセット信号ON
+  sleep(1);                            // 1ms 待つ
+  _out(0x18, 0xfc);                    // LCD リセット信号OFF
+  sleep(1);                            // 1ms 待つ
+  spiWriteLcdCom(initCom);             // LCD 初期化コマンド
 }
 
 // LCD に連続したデータを送る
 public void spiWriteLcdDat(char[] dat, int len) {
   char[] d = dat;
   int    l = len;
-  int    v = 0xec;                     // A0='1', xCS='0', clk='0'
-  _out(0x18, v);
+  _out(0x18, 0xec);                     // A0='1', xCS='0', clk='0'
+  _out(0x22, 0x01);                     // SPI クロックを 12.288MHz にする
   for (int i=0; i<l; i=i+1) {
-    spiWriteByte(ord(d[i]), v);
+    spiWriteByte(ord(d[i]));
   }
-  _out(0x18, 0xfc);                    // A0='1', xCS='1', clk='0'
+  while(BUSY){};                        // SPI の busy が消えるのを待つ
+  _out(0x18, 0xfc);                     // A0='1', xCS='1', clk='0'
 }
 
 // MP3 デコーダにコマンドを送る
 public void spiWriteMp3Com(int addr, int arg) {
-  int    v = 0xf8;                     // xCS='0', clk='0'
-  _out(0x18, v);
+  _out(0x18, 0xf8);                     // xCS='0', clk='0'
+  _out(0x22, 0x03);                     // SPI クロックを 6.144MHz にする
   while (DRQ==0) { sleep(1); }
-  spiWriteByte(0x02, v);               // SPI Write コマンド
-  spiWriteByte(addr, v);               // レジスタアドレス
-  spiWriteByte(arg>>8, v);             // データの上位8ビット
-  spiWriteByte(arg, v);                // データの下位8ビット
-  _out(0x18, 0xfc);                    // xCS='1', clk='0'
+  spiWriteByte(0x02);                   // SPI Write コマンド
+  spiWriteByte(addr);                   // レジスタアドレス
+  spiWriteByte(arg>>8);                 // データの上位8ビット
+  spiWriteByte(arg);                    // データの下位8ビット
+  while(BUSY){};                        // SPI の busy が消えるのを待つ
+  _out(0x18, 0xfc);                     // xCS='1', clk='0'
+}
+
+// MP3 デコーダをリセットする
+public void spiResetMp3() {
+  _out(0x18, 0xbc);                    // MP3 リセット信号OFF
+  _out(0x18, 0xfc);                    // MP3 リセット信号OFF (80ns以上)
+  sleep(15);                           // 15ms 待つ(2ms以上)
+  if (DRQ==0) {
+    fprintf(stderr, "\nTime out for DRQ!\n");
+    exit(1);
+  }
+  spiWriteMp3Com(0x00, 0x0800);        // mode <- NEW mode
+  spiWriteMp3Com(0x03, 0x30d4);        // clock adjust <- 25MHz
+  sleep(1);
+  spiWriteMp3Com(0x0b, 0x2020);        // volume set to (-16dB, -16dB)
+  sleep(1);
 }
 
 // MP3 デコーダにデータを送る
 public void spiWriteMp3Dat(char[] dbuf, int len) {
   char[] d = dbuf;
-  int    v = 0xf4;                     // xDCS='0', clk='0'
-  _out(0x18, v);
+  _out(0x18, 0xf4);                    // xDCS='0', clk='0'
+  _out(0x22, 0x03);                    // SPI クロックを 6.144MHz にする
   for (int i=0; i<len; i=i+1) {
     while (DRQ==0) { sleep(1); }
-    spiWriteByte(ord(d[i]), v);        // SPI にデータを送る
+    spiWriteByte(ord(d[i]));           // SPI にデータを送る
   }
+  while(BUSY){};                       // SPI の busy が消えるのを待つ
   _out(0x18, 0xfc);                    // xDCS='1', clk='0'
 }
-
