@@ -465,15 +465,44 @@ void procInit() {
 }
 
 //----------------------------------------------------------------------------
+// CPU使用率レベルメータ
+//----------------------------------------------------------------------------
+int loadLevelMeter;                                 // 負荷レベルメータ
+int loadHistory;                                    // 過去160msの履歴
+
+void dispLoadLevel() {                              // レベルメータ処理ルーチン
+  int delta = 0;                                    // 表示の変動
+  if (curProc!=_AtoA(idleMem)) {                    // プロセス実行中なら
+    delta = 1;                                      //   増加する
+  }
+  if ((loadHistory & 0x8000) != 0) {                // 履歴が消える場合は
+    delta = delta - 1;                              //   減少する
+  }
+
+  if (delta>0) {
+    loadLevelMeter = (loadLevelMeter<<1) | 0x0001;  // レベルメータが伸びる
+  } else if (delta<0) {
+    loadLevelMeter = (loadLevelMeter>>1) & 0x7fff;  // レベルメータが縮む
+  }
+  out(0x00f8, loadLevelMeter);                      // データランプに表示する
+
+  loadHistory = loadHistory << 1;                   // 履歴を更新する
+  if (curProc!=_AtoA(idleMem)) {                    // プロセス実行中なら
+    loadHistory = loadHistory | 0x0001;             //   履歴にビットを立てる
+  }
+}
+
+//----------------------------------------------------------------------------
 // タイマー管理
 //----------------------------------------------------------------------------
 #define TICK 10                                     // 割り込みは 10ms 単位
 
 // タイマー割り込みハンドラ(10ms 毎に割り込みによって起動される)
 interrupt tmrIntr() {
-  boolean disp = false;                             // ディスパッチの必要性
+  dispLoadLevel();                                  // レベルメータ処理ルーチン
 
   // 起きないといけないプロセスを起こしてまわる
+  boolean disp = false;                             // ディスパッチの必要性
   for (int i=0; i<PRC_MAX; i=i+1) {
     PCB p = procTbl[i];
     if (p!=null && p.evtCnt>0) {                    // タイマー稼働中なら
@@ -486,7 +515,7 @@ interrupt tmrIntr() {
     }
   }
 
-  if (disp) yield();                             // 必要ならディスパッチ
+  if (disp) yield();                                // 必要ならディスパッチ
 }
 
 // タイマー初期化 : 割り込みベクタとハードウェアを初期化する

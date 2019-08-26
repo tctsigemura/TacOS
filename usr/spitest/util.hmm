@@ -22,15 +22,14 @@
 /*
  * lcdreset/util.hmm : 拡張ポートに接続した液晶ディスプレイの動作テスト
  *
+ * 2019.08.26 : SPI のハードウェア化に対応，リセット機能を追加
  * 2019.08.09 : 新規作成
- *
- * $Id$
  *
  */
 
-#define DRQ  (_in(0x18)&0x80)
-
 public void spiWriteLcdCom(char[] buf);
+public void spiResetLcd();
 public void spiWriteLcdDat(char[] buf, int len);
 public void spiWriteMp3Com(int addr, int arg);
+public void spiResetMp3();
 public void spiWriteMp3Dat(char[] dbuf, int len);
