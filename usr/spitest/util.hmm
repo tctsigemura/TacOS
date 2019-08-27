@@ -30,6 +30,7 @@
 public void spiWriteLcdCom(char[] buf);
 public void spiResetLcd();
 public void spiWriteLcdDat(char[] buf, int len);
-public void spiWriteMp3Com(int addr, int arg);
+public void spiWriteMp3Reg(int addr, int arg);
+public int  spiReadMp3Reg(int addr);
 public void spiResetMp3();
 public void spiWriteMp3Dat(char[] dbuf, int len);
