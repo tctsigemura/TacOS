@@ -83,8 +83,8 @@ public void spiWriteLcdDat(char[] dat, int len) {
   _out(0x18, 0xfc);                     // A0='1', xCS='1', clk='0'
 }
 
-// MP3 デコーダにコマンドを送る
-public void spiWriteMp3Com(int addr, int arg) {
+// MP3 デコーダのレジスタに書く
+public void spiWriteMp3Reg(int addr, int arg) {
   _out(0x18, 0xf8);                     // xCS='0', clk='0'
   _out(0x22, 0x03);                     // SPI クロックを 6.144MHz にする
   while (DRQ==0) { sleep(1); }
@@ -96,6 +96,25 @@ public void spiWriteMp3Com(int addr, int arg) {
   _out(0x18, 0xfc);                     // xCS='1', clk='0'
 }
 
+// MP3 デコーダのレジスタを読む
+public int spiReadMp3Reg(int addr) {
+  _out(0x18, 0xf8);                     // xCS='0', clk='0'
+  _out(0x22, 0x06);                     // SPI クロックを 3.57MHz にする
+  while (DRQ==0) { sleep(1); }          //  読出しはクロックを遅くする必要あり
+  spiWriteByte(0x03);                   // SPI Read コマンド
+  spiWriteByte(addr);                   // レジスタアドレス
+  while(BUSY){};                        // SPI の busy が消えるのを待つ
+  _out(0x20, 0);                        // データの上位8ビット読出しを指示
+  while(BUSY){};                        // SPI の busy が消えるのを待つ
+  int val = _in(0x20);                  // データの上位8ビットを取り出す
+  while(BUSY){};                        // SPI の busy が消えるのを待つ
+  _out(0x20, 0);                        // データの下位8ビット読出しを指示
+  while(BUSY){};                        // SPI の busy が消えるのを待つ
+  val = (val << 8) | _in(0x20);         // データの下位8ビットを取り出す
+  _out(0x18, 0xfc);                     // xCS='1', clk='0'
+  return val;
+}
+
 // MP3 デコーダをリセットする
 public void spiResetMp3() {
   _out(0x18, 0xbc);                    // MP3 リセット信号OFF
@@ -105,10 +124,10 @@ public void spiResetMp3() {
     fprintf(stderr, "\nTime out for DRQ!\n");
     exit(1);
   }
-  spiWriteMp3Com(0x00, 0x0800);        // mode <- NEW mode
-  spiWriteMp3Com(0x03, 0x30d4);        // clock adjust <- 25MHz
+  spiWriteMp3Reg(0x00, 0x0800);        // mode <- NEW mode
+  spiWriteMp3Reg(0x03, 0x30d4);        // clock adjust <- 25MHz
   sleep(1);
-  spiWriteMp3Com(0x0b, 0x2020);        // volume set to (-16dB, -16dB)
+  spiWriteMp3Reg(0x0b, 0x2020);        // volume set to (-16dB, -16dB)
   sleep(1);
 }
 

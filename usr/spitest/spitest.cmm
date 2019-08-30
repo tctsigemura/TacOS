@@ -75,6 +75,7 @@ void printLine(int l, char[] str) {
 // １曲演奏する
 #define BUFSIZ 512
 char[] datBuf = array(BUFSIZ);
+char[][] ch = {"mono","stereo"};
 
 void play(char[] fname) {
   int fd = open(fname, READ);
@@ -82,11 +83,25 @@ void play(char[] fname) {
     perror(fname);
     exit(1);
   }
-  for (;;) {
+  spiWriteMp3Reg(0x4, 0);                             // Decode Time をリセット
+  fprintf(stderr, "File = %s\n", fname);
+  for (int i=0;;) {
     int l = read(fd, datBuf, BUFSIZ);
     if (l<=0) break;
     spiWriteMp3Dat(datBuf, l);
+    i = i + BUFSIZ;
+    if (i>=4*1024) {                                  // 4KiB 毎に
+      int audata = spiReadMp3Reg(0x5);                // Misc. audio data
+      int smpRte = ((audata>>1)&0x7fff)/5;            // sample rate / 10
+      fprintf(stderr,
+              "\r%d0Hz,%s,Time=%ds",
+              smpRte,                                 // sample rate / 10
+	      ch[audata & 1],                         // mono=0, stereo=1
+              spiReadMp3Reg(0x4));                    // Decode Time
+      i = 0;
+    }
   }
+  fprintf(stderr, "\n");
   close(fd);
 }
 
