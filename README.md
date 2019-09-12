@@ -14,6 +14,9 @@ TaCはFPGA(Xilinx Spartan-6)に組み込まれた原始的なパーソナルコ�
 USBまたはBlutooth経由のシリアル接続で端末を接続し，
 ハードディスク代わりのマイクロSDカードを準備することで
 1980年代前半の8bitパソコン程度（？）の能力を発揮します。
+詳しくは，[TeC7のマニュアル]
+(https://github.com/tctsigemura/TeC7/raw/master/Manual/manual.pdf)
+をご参照下さい．
 
 TaCのCPUは、49MHzで動作する、
 メモリ空間64KiBのオリジナル16bitCPUです。
@@ -123,7 +126,7 @@ FAT16マイクロSDカードに書き込んでTaCで実行することができ�
 |     |
 |     + shell   コマンドインタプリタ
 |     |
-|     + spitest オプションのLCDとMP3デコーダボードの動作テスト
+|     + spitest オプションのLCD・MP3デコーダボードの動作テスト
 |     |
 |     + touch   ファイルを作成
 |     |
@@ -133,5 +136,5 @@ FAT16マイクロSDカードに書き込んでTaCで実行することができ�
       |
       + kernel.bin
       |
-      + bin     コマンド
+      + bin     ユーティリティの実行形式を格納したディレクリ
 ```
