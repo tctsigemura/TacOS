@@ -14,8 +14,7 @@ TaCはFPGA(Xilinx Spartan-6)に組み込まれた原始的なパーソナルコ�
 USBまたはBlutooth経由のシリアル接続で端末を接続し，
 ハードディスク代わりのマイクロSDカードを準備することで
 1980年代前半の8bitパソコン程度（？）の能力を発揮します。
-詳しくは，[TeC7のマニュアル]
-(https://github.com/tctsigemura/TeC7/raw/master/Manual/manual.pdf)
+詳しくは，[TeC7のマニュアル](https://github.com/tctsigemura/TeC7/raw/master/Manual/manual.pdf)
 をご参照下さい．
 
 TaCのCPUは、49MHzで動作する、
