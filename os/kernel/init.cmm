@@ -44,7 +44,7 @@ int[] sta = array(1);                           // ステータス格納領域�
 public void initMain() {
   while (true) {
     int pid = exec("/bin/shell.exe", null);     // シェルプロセスを生成する
-    if (pid<0) conWrite("Shell doesn't start\n");// シェルが生成できなかった
+    if (pid<0) conWrite("Shell doesn't start\n", 20);// シェルが生成できなかった
     while (wait(sta)!=pid)                      // 親のないプロセスの終了待ち
       ;                                         // もしもシェルが終了したら
   }                                             //   ループして再度起動

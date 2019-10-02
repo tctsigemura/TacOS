@@ -22,6 +22,7 @@
 /*
  * tty/tty.cmm : 端末サーバの本体、キーボード入力の受付とディスプレイ表示をする
  *
+ * 2019.10.02 : conWrite() に長さを指定するように変更
  * 2019.09.26 : conRead() が getSIO() を呼ぶように変更
  * 2019.06.13 : VGA, PS2を削除; conCtl() を追加
  * 2018.11.30 : ps2 を独立させた
@@ -45,7 +46,7 @@
 // --------------------------
 #include <sio.hmm>
 #define getStr(buf, len) getSIO(buf, len)
-#define putCh(c) putSIO(c)
+#define putStr(buf, len) putSIO(buf, len)
 
 #include "tty.hmm"
 
@@ -60,12 +61,9 @@ int sysConRead(char[] buf, int len) {
 
 // conWrite システムコールの本体 (文字列をディスプレイに表示する)
 //   buf はユーザ領域でフォーマット解読済みの文字列となっている
-int sysConWrite(void[] buf) {
+int sysConWrite(void[] buf, int len) {
   char[] str=buf;                                       // 型変換
-  for (int i=0; str[i]!='\0'; i=i+1) {
-    putCh(str[i]);
-  }
-  return 0;
+  return putStr(buf, len);
 }
 
 // ----------------------------- 要求待ち受け部 -------------------------------
@@ -75,7 +73,7 @@ int ttySysCall(int op, int prm1, int prm2) {
   if (op==CONREAD) {
     op = sysConRead(_ItoA(prm1), prm2);                 // conRead(buf, len)
   } else if (op==CONWRITE) {
-    op = sysConWrite(_ItoA(prm1));                      // conWrite(buf)
+    op = sysConWrite(_ItoA(prm1), prm2);                // conWrite(buf)
   } else  op= -1;                                       // エラー
   return op;
 }
@@ -101,20 +99,18 @@ public int conRead(void[] buf, int len) {
 }
 
 // conWrite システムコール
-public int conWrite(void[] buf) {
-  int r = sndrec(ttyLink, CONWRITE, _AtoI(buf), 0, 0);
+public int conWrite(void[] buf, int len) {
+  int r = sndrec(ttyLink, CONWRITE, _AtoI(buf), len, 0);
   return r;
 }
 
 // conCtl システムコール
 public int conCtl(int request, int argp) {
   if (request==CONCTL_SETMODE) {
-    int ctl = 0;
-    if (request==TTY_MODE_COOKED) ctl = ctl | SIO_COOKED;
-    if (request==TTY_MODE_ECHO) ctl = ctl | SIO_ECHO;
+    setSIOCtl(argp);                                    // sio.hmm参照
     return 0;
   } else if (request==CONCTL_GETMODE) {
     return getSIOCtl();
   }
-  return -1;                                            // 定義されていない操作をした
+  return -1;                                            // 未定義の操作
 }
