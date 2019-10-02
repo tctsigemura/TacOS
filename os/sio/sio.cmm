@@ -210,8 +210,16 @@ public void sioInit() {
   mldpOn = (in(0x2e) & 1)!=0;                 // RN4020-RAMから初期値を決める
 }
 
+// 入出力の設定を取得
+public int getSIOCtl() {
+  int ctl = 0;
+  if (cooked) ctl = ctl | SIO_COOKED;
+  if (echoBack) ctl = ctl | SIO_ECHO;
+  return ctl;
+}
+
 // 入出力の設定を変更
 public void setSIOCtl(int ctl) {
   cooked = (ctl&SIO_COOKED)!=0;
-  echoBack = (ctl&SIO_COOKED)!=0;
+  echoBack = (ctl&SIO_ECHO)!=0;
 }

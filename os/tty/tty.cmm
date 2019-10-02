@@ -108,6 +108,13 @@ public int conWrite(void[] buf) {
 
 // conCtl システムコール
 public int conCtl(int request, int argp) {
-  //TODO
-  return 0;
+  if (request==CONCTL_SETMODE) {
+    int ctl = 0;
+    if (request==TTY_MODE_COOKED) ctl = ctl | SIO_COOKED;
+    if (request==TTY_MODE_ECHO) ctl = ctl | SIO_ECHO;
+    return 0;
+  } else if (request==CONCTL_GETMODE) {
+    return getSIOCtl();
+  }
+  return -1;                                            // 定義されていない操作をした
 }

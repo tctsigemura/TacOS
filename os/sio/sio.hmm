@@ -33,5 +33,7 @@ public void putSIO(char c);               // １文字出力
 public int getSIO(char[] buf, int len);   // 入力
 public void sioInit();                    // 初期化
 public void setSIOCtl(int ctl);           // 入出力の設定を変更
+public int getSIOCtl();                   // 入出力の設定を取得
 
 #define SIO_COOKED    0x0001              // cooked モード
+#define SIO_ECHO      0x0002              // echo モード
