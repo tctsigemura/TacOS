@@ -22,6 +22,7 @@
 /*
  * tty/tty.cmm : 端末サーバの本体、キーボード入力の受付とディスプレイ表示をする
  *
+ * 2019.09.26 : conRead() が getSIO() を呼ぶように変更
  * 2019.06.13 : VGA, PS2を削除; conCtl() を追加
  * 2018.11.30 : ps2 を独立させた
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
@@ -43,7 +44,7 @@
 
 // --------------------------
 #include <sio.hmm>
-#define getCh() getSIO()
+#define getStr(buf, len) getSIO(buf, len)
 #define putCh(c) putSIO(c)
 
 #include "tty.hmm"
@@ -52,26 +53,7 @@
 
 // conRead システムコールの本体 (キーボード入力された文字列をユーザ領域に渡す)
 int sysConRead(char[] buf, int len) {
-  int kbdCnt = 0;                                       // buf のインデクス
-  len = len - 1;                                        // '\0'の格納領域を確保
-  for (;;) {
-    char c = getCh();                                   // 1文字入力
-    if (kbdCnt>=len || c=='\r' || c=='\n') {            // 指定長以上か改行なら
-      buf[kbdCnt] = '\0';
-      putCh('\n');
-      break;
-    } else if (0x20<=ord(c) && ord(c)<=0x7e && kbdCnt<len) { // 表示可能な文字
-      buf[kbdCnt] = c;
-      putCh(c);
-      kbdCnt = kbdCnt + 1;
-    } else if (c=='\x08'&& kbdCnt>0) {                  // バックスペースなら
-      putCh('\x08');                                    //   カーソル位置を左に
-      putCh(' ');                                       //   空白を出力
-      putCh('\x08');                                    //   カーソル位置を左に
-      kbdCnt = kbdCnt - 1;
-    }
-  }
-  return kbdCnt;
+  return getStr(buf, len);                              // 入力
 }
 
 // -------------------------- conWrite システムコール -------------------------

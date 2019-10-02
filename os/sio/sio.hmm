@@ -22,6 +22,7 @@
 /*
  * sio/sio.hmm : sio.cmm の外部インタフェース
  *
+ * 2019.09.25 : getSIO() を1文字入力から可変長入力に変更
  * 2018.11.01 : 新規作成
  *
  * $Id$
@@ -29,5 +30,8 @@
  */
 
 public void putSIO(char c);               // １文字出力
-public char getSIO();                     // １文字入力
+public int getSIO(char[] buf, int len);   // 入力
 public void sioInit();                    // 初期化
+public void setSIOCtl(int ctl);           // 入出力の設定を変更
+
+#define SIO_COOKED    0x0001              // cooked モード

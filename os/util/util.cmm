@@ -108,6 +108,13 @@ int nextIdx(RingBuf buf, int idx) {
   return next;                                      // 次の添字を返す
 }
 
+// 前の添字を求める
+int prevIdx(RingBuf buf, int idx) {
+  int prev = idx - 1;                               // 一つ戻す
+  if (prev==-1) prev = buf.size-1;                  // バッファサイズをチェック
+  return prev;                                      // 前の添字を返す
+}
+
 // リングバッファに 1 文字追加
 public boolean putBuf(RingBuf buf, char c) {
   if (buf.size==buf.cnt) return false;              // バッファがパンクなら終了
@@ -124,6 +131,14 @@ public int getBuf(RingBuf buf) {
   buf.tail = nextIdx(buf, buf.tail);                // tail を進める
   buf.cnt = buf.cnt - 1;                            // カウンタを減らす
   return  ord(c);                                   // 文字コードを返す
+}
+
+// リングバッファから 1 文字削除
+public boolean unputBuf(RingBuf buf) {
+  if (buf.cnt==0) return false;                     // バッファが空なら終了
+  buf.head = prevIdx(buf, buf.head);
+  buf.cnt = buf.cnt - 1;
+  return true;
 }
 
 // --------------------------- デバッグ用表示ルーチン -------------------------

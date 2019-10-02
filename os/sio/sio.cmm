@@ -22,6 +22,7 @@
 /*
  * sio/sio.cmm : シリアルドライバ
  *
+ * 2019.09.25 : 複数文字の入力をするように変更、cookedモードを追加
  * 2019.03.01 : RN4020との接続情報をIPLから引き継ぐように変更(RN4020-RAM使用)
  * 2019.01.24 : RN4020とFT232両方に入出力するように変更
  * 2018.12.25 : 出力でLFをCR,LFに置き換える機能追加
@@ -40,7 +41,7 @@
 #define RN4_Data 0x28                         // RN4020 送受信データのI/Oポート
 #define RN4_Ctrl 0x2a                         // RN4020 制御用のI/Oポート
 
-RingBuf rcvBuf={"1234567890123456",16,0,0,0}; // 受信バッファ
+RingBuf rcvBuf={"12345678901234567890123456789012345678901234567890123456789012345678901234567890",80,0,0,0}; // 受信バッファ
 RingBuf trsBuf={"1234567890123456",16,0,0,0}; // 送信バッファ
 
 // RN4020
@@ -50,6 +51,10 @@ boolean mldpOn;
 boolean trsIdle=true;                         // トランスミッタがアイドル状態
 boolean trsWait=false;                        // 送信待ちプロセスがある
 int trsSem;                                   // 送信待ち用のセマフォ
+
+// 入出力の設定
+boolean cooked=true;                          // 前処理をする
+boolean echoBack=true;                        // エコーバックをする
 
 // SIO 送信割込み処理ルーチン
 interrupt sioTrs() {
@@ -92,6 +97,7 @@ public void putSIO(char c) {                  // LF => CR+LF 変換
 
 // 受信関係
 int rcvSem;                                   // 受信待ちセマフォ
+int reqLen=0;                                 // conReadで要求された長さ (0:conRead中ではない)
 
 // メッセージの一致を調べる FSM
 int mldpCnt=0;
@@ -133,15 +139,60 @@ interrupt rn4Rcv()  {
 // SIO 受信割込み処理ルーチン
 interrupt sioRcv()  {
   char c = chr(in(SIO_Data));                 // 受信データを入力する
-  if (putBuf(rcvBuf, c)) {                    // バッファに書き込めたら
-    semV(rcvSem);                             //   プロセスを起こす
+  if (cooked) {                               // cookedモード
+    if (c=='\n' || c=='\r') {                 //   改行
+      if (putBuf(rcvBuf, c)) {                //     バッファに書き込めたら
+        if (echoBack) putSIO('\n');           //       エコーバック
+        if (reqLen>0) semV(rcvSem);           //       conRead中はユーザーを起こす
+      }
+    } else if (0x20<=ord(c) && ord(c)<=0x7e) {//   通常の文字
+      if (!putBuf(rcvBuf, c)) {               //     バッファに書き込む。満杯なら
+        if (reqLen>0) semV(rcvSem);           //       conReadはユーザーを起こす
+        else return;                          //       そうでないときは入力を無視する
+      }
+      if (echoBack) putSIO(c);                //     エコーバック
+      if (rcvBuf.cnt==reqLen) semV(rcvSem);   //     要求された長さに達したらユーザーを起こす
+    } else if (c=='\x08') {                   //   Backspace
+      if (unputBuf(rcvBuf) && echoBack) {     //     入力バッファから１文字削除、成功ならエコーバック
+        putSIO('\x08');
+        putSIO(' ');
+        putSIO('\x08');
+      }
+    }
+  } else {                                    // rawモード
+    if (!putBuf(rcvBuf, c)) {                 //   バッファに書き込めなかったら
+      if (reqLen>0) semV(rcvSem);             //     conRead中はユーザーを起こす
+      else return;                            //     そうでないときは入力を無視する
+    }
+    if (rcvBuf.cnt==reqLen) semV(rcvSem);     //   要求された長さに達したらユーザーを起こす
   }
 }
 
-// SIO から１文字入力
-public char getSIO() {
-  semP(rcvSem);                               // 受信を待って
-  return chr(getBuf(rcvBuf));                 // 一文字取り出す
+// 読み込み処理ルーチン
+public int getSIO(char[] buf, int len) {
+  if (cooked) len = len - 1;                  // '\0'のスペースを確保
+  int count=0;
+
+  for (;;) {
+    while (count<len) {                       // バッファに入っている文字を読み出す
+      int i = getBuf(rcvBuf);
+      if (i<0) break;
+      buf[count] = chr(i);
+      count = count+1;
+    }
+    if (count==len) break;                    // 要求文字数に達したら終了
+    if (cooked) {                             // cooked
+      char c = buf[count-1];                  //   末尾の文字
+      if (c=='\r' || c=='\n') break;          //   改行なら終了
+    }
+    reqLen = len - count;
+    semP(rcvSem);
+  }
+
+  reqLen = -1;                                // reqLenを戻す
+
+  if (cooked) buf[count] = '\0';              // '\0'を末尾に入れる
+  return count;                               // 文字数を返す
 }
 
 // 初期化
@@ -157,4 +208,10 @@ public void sioInit() {
   trsSem = newSem(0);                         // 送信用セマフォ
   rcvSem = newSem(0);                         // 受信用セマフォ
   mldpOn = (in(0x2e) & 1)!=0;                 // RN4020-RAMから初期値を決める
+}
+
+// 入出力の設定を変更
+public void setSIOCtl(int ctl) {
+  cooked = (ctl&SIO_COOKED)!=0;
+  echoBack = (ctl&SIO_COOKED)!=0;
 }

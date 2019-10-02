@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer
  *
- * Copyright (C) 2008-2018 by
+ * Copyright (C) 2008-2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * util/util.hmm : util.cmm の外部インターフェイス
  *
+ * 2019.09.25 : unputBuf() 追加
  * 2018.11.30 : putCh(),putStr() 削除（デバッグ専用のプライベートな関数に変更）
  * 2018.11.12 : 隅田の成果を取り込む（リングバッファ関連）
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
@@ -83,6 +84,7 @@ struct RingBuf {
 
 public boolean putBuf(RingBuf buf, char c);   // true:正常, false:バッファフル
 public int getBuf(RingBuf buf);               // =-1:EOF, >=0:文字コード
+public boolean unputBuf(RingBuf buf);         // true:正常, false:バッファエンプティ
 #define ISEmpty(b) ((b).cnt==0)               // バッファにデータが無い
 #define ISFull(b) ((b).cnt==(b).size)         // バッファに空きが無い
 
