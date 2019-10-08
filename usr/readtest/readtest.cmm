@@ -1,0 +1,70 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2019 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+ /*
+  * ss/ss.cmm : ファイル送信プログラム
+  *
+  * 2019.01.28 : 新規作成
+  *
+  * $Id$
+  *
+  */
+
+#include <stdio.hmm>
+#include <syslib.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+
+#define BUF 80
+char[] buf = array(80);
+
+public int main(int argc, char[][] argv) {
+  int len;
+
+  int mode = ttyCtl(ttyCtl_GETMODE, 0);       // 現在のモードを取得
+  printf("current mode = %d\n", mode);
+
+  printf("input: ");
+  fflush(stdout);
+
+  fgets(buf, BUF, stdin);
+  printf("[%d] %s", strLen(buf), buf);
+
+
+  printf("noecho input: ");
+  fflush(stdout);
+  int noechoMode = mode & ~ttyCtl_MODE_ECHO;
+  ttyCtl(ttyCtl_SETMODE, noechoMode);         // NOECHOモードに変更
+  fgets(buf, BUF, stdin);
+  ttyCtl(ttyCtl_SETMODE, mode);               // 元のモードに戻す
+  printf("\n[%d] %s", strLen(buf), buf);
+
+  printf("raw input (10): ");
+  fflush(stdout);
+  int rawMode = mode & ~ttyCtl_MODE_COOKED;
+  ttyCtl(ttyCtl_SETMODE, rawMode);            // RAWモードに変更
+  int count = ttyRead(buf, 10);
+  buf[10] = '\0';                             // bufの終端を設定
+  ttyCtl(ttyCtl_SETMODE, mode);               // 元のモードに戻す
+  printf("\n[%d] %s", count, buf);
+
+  return 0;
+}
