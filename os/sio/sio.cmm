@@ -125,27 +125,8 @@ boolean sigFsm(char[] sig, char c) {
 char[] mldpSig="MLDP\r\nApp:on\r\n";
 char[] errSig="ERR\r\nERR\r\n";
 
-interrupt rn4Rcv()  {
-  char c = chr(in(RN4_Data));                 // 受信データを入力する
-  if (mldpOn) {                               // 接続中なら
-    if (putBuf(rcvBuf, c)) {                  // バッファに書き込めたら
-      semV(rcvSem);                           //   プロセスを起こす
-    }
-    if (sigFsm(errSig, c)) {                  //   切断時によく出るメッセージ？
-      mldpOn = false;                         //     切断中に変更
-      out(0x2e, in(0x2e)&~1);                 //     RN4020-RAMに記録
-    }
-  } else {                                    // 切断中なら
-    if (sigFsm(mldpSig, c)) {                 //   接続時メッセージ？
-      mldpOn = true;                          //     接続中に変更
-      out(0x2e, in(0x2e)|1);                  //     RN4020-RAMに記録
-    }
-  }
-}
-
-// SIO 受信割込み処理ルーチン
-interrupt sioRcv()  {
-  char c = chr(in(SIO_Data));                 // 受信データを入力する
+// 受信した文字の処理
+void rcvProc(char c) {
   if (cooked) {                               // cookedモード
     if (c=='\n' || c=='\r') {                 //   改行
       if (putBuf(rcvBuf, c)) {                //     バッファに書き込めたら
@@ -165,7 +146,9 @@ interrupt sioRcv()  {
       }
     }
   } else {                                    // rawモード
-    if (!putBuf(rcvBuf, c)) {                 //   バッファに書き込めなかったら
+    if (putBuf(rcvBuf, c)) {                  //   バッファに書き込めたら
+      if (echoBack) put(c);                   //     エコーバック
+    } else {                                  //   バッファに書き込めなかったら
       if (reqLen>0) semV(rcvSem);             //     ttyRead中はユーザーを起こす
       else return;                            //     そうでないときは入力を無視する
     }
@@ -173,28 +156,56 @@ interrupt sioRcv()  {
   }
 }
 
+// Bluetooth
+interrupt rn4Rcv()  {
+  char c = chr(in(RN4_Data));                 // 受信データを入力する
+  if (mldpOn) {                               // 接続中なら
+    rcvProc(c);                               //   受信処理
+    if (sigFsm(errSig, c)) {                  //   切断時によく出るメッセージ？
+      mldpOn = false;                         //     切断中に変更
+      out(0x2e, in(0x2e)&~1);                 //     RN4020-RAMに記録
+    }
+  } else {                                    // 切断中なら
+    if (sigFsm(mldpSig, c)) {                 //   接続時メッセージ？
+      mldpOn = true;                          //     接続中に変更
+      out(0x2e, in(0x2e)|1);                  //     RN4020-RAMに記録
+    }
+  }
+}
+
+// SIO 受信割込み処理ルーチン
+interrupt sioRcv()  {
+  char c = chr(in(SIO_Data));                 // 受信データを入力する
+  rcvProc(c);                                 // 受信処理
+}
+
 // 読み込み処理ルーチン
 public int getSIO(char[] buf, int len) {
   if (cooked) len = len - 1;                  // '\0'のスペースを確保
   int count=0;
+  int r;
 
-  for (;;) {
-    while (count<len) {                       // バッファに入っている文字を読み出す
+  for (;;) {                                  // 読み込み処理
+    r = setPri(DI|KERN);                      //   割り込み禁止、カーネル
+    while (count<len) {                       //   バッファに入っている文字を読み出す
       int i = getBuf(rcvBuf);
       if (i<0) break;
       buf[count] = chr(i);
       count = count+1;
     }
-    if (count==len) break;                    // 要求文字数に達したら終了
-    if (cooked) {                             // cooked
-      char c = buf[count-1];                  //   末尾の文字
-      if (c=='\r' || c=='\n') break;          //   改行なら終了
+    if (count==len) break;                    //   要求文字数に達したら終了
+    if (cooked) {                             //   cooked
+      char c = buf[count-1];                  //     末尾の文字
+      if (c=='\r' || c=='\n') break;          //     改行なら終了
     }
     reqLen = len - count;
-    semP(rcvSem);
+    setPri(r);                                //   割り込み状態を復元
+    semP(rcvSem);                             //   次の入力を待つ
   }
 
-  reqLen = -1;                                // reqLenを戻す
+  r = setPri(DI|KERN);                        // 割り込み禁止、カーネル
+  reqLen = 0;                                 // reqLenを戻す
+  setPri(r);                                  // 割り込み状態を復元
 
   if (cooked) buf[count] = '\0';              // '\0'を末尾に入れる
   return count;                               // 文字数を返す
@@ -217,14 +228,18 @@ public void sioInit() {
 
 // 入出力の設定を取得
 public int getSIOCtl() {
+  int r = setPri(DI|KERN);                  // 割り込み禁止、カーネル
   int ctl = 0;
   if (cooked) ctl = ctl | SIO_COOKED;
   if (echoBack) ctl = ctl | SIO_ECHO;
+  setPri(r);                                // 割り込み状態を復元
   return ctl;
 }
 
 // 入出力の設定を変更
 public void setSIOCtl(int ctl) {
+  int r = setPri(DI|KERN);                  // 割り込み禁止、カーネル
   cooked = (ctl&SIO_COOKED)!=0;
   echoBack = (ctl&SIO_ECHO)!=0;
+  setPri(r);                                // 割り込み状態を復元
 }
