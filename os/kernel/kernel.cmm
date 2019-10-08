@@ -635,7 +635,7 @@ public void main() {
   tmrInit();                                        // タイマー(ベクタ,ハード)
   semInit();                                        // セマフォ(semTbl)初期化
   lnkInit();                                        // リンク(lnkTbl)初期化
-  sioInit();                                        // SIO初期化
+  ttyInit();                                        // TTY初期化
   procInit();                                       // プロセス(procTbl)初期化
 
   // システムスタート

@@ -33,38 +33,44 @@ public int ttyLink;                                 // 端末サーバへのリ�
 public void ttyMain();                              // 待ち受けルーチン
 
 /*----------------------------------------------------------------------------
- *   名前   : conRead
+ *   名前   : ttyRead
  *   戻り値 : 読み込んだ文字数
  *   引数   : char[] buf 入力された文字列を格納するバッファ
  *            次のようなプログラムで準備しておく
  *              -----------------------------------------------------------
  *              char[] buf = malloc(81);            // 1行の最大入力数は80文字
- *              conRead(buf, 81);
+ *              ttyRead(buf, 81);
  *              -----------------------------------------------------------
  *          : int len バッファの長さ
  *   解説   : キーボード入力された1行分の文字列(Enter が押されるまで(<80文字))を
  *            取得する
  */
-public int conRead(void[] buf, int len);
+public int ttyRead(void[] buf, int len);
 
 /*----------------------------------------------------------------------------
- *   名前   : conWrite
+ *   名前   : ttyWrite
  *   戻り値 : 書き込んだ文字数
  *   引数   : void[] buf  出力したい文字列を格納するバッファ
  *         : int len  バッファの長さ
  *   解説   : 文字列をディスプレイに表示する
  */
-public int conWrite(void[] buf, int len);
+public int ttyWrite(void[] buf, int len);
 
 /*----------------------------------------------------------------------------
- *   名前   : conCtl
+ *   名前   : ttyCtl
  *   戻り値 : 操作の結果
  *   引数   : int request 実行する操作
- *         : int argp 操作のパラメータ
+ *         : int mode 操作のパラメータ
  *   解説   : ttyのモードなどを操作する
  */
-public int conCtl(int request, int argp);
+public int ttyCtl(int request, int mode);
 
-// conCtl() に渡す request 番号
-#define CONCTL_GETMODE        0
-#define CONCTL_SETMODE        1
+/*----------------------------------------------------------------------------
+ *   名前   : ttyInit
+ *   解説   : ttyを初期化する
+ */
+public void ttyInit();
+
+// ttyCtl() に渡す request 番号
+#define TTYCTL_GETMODE        0
+#define TTYCTL_SETMODE        1

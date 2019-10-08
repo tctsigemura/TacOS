@@ -104,7 +104,7 @@ public int putSIO(char[] buf, int len) {
 
 // 受信関係
 int rcvSem;                                   // 受信待ちセマフォ
-int reqLen=0;                                 // conReadで要求された長さ (0:conRead中ではない)
+int reqLen=0;                                 // ttyReadで要求された長さ (0:ttyRead中ではない)
 
 // メッセージの一致を調べる FSM
 int mldpCnt=0;
@@ -150,11 +150,11 @@ interrupt sioRcv()  {
     if (c=='\n' || c=='\r') {                 //   改行
       if (putBuf(rcvBuf, c)) {                //     バッファに書き込めたら
         if (echoBack) putSIO("\n", 1);        //       エコーバック
-        if (reqLen>0) semV(rcvSem);           //       conRead中はユーザーを起こす
+        if (reqLen>0) semV(rcvSem);           //       ttyRead中はユーザーを起こす
       }
     } else if (0x20<=ord(c) && ord(c)<=0x7e) {//   通常の文字
       if (!putBuf(rcvBuf, c)) {               //     バッファに書き込む。満杯なら
-        if (reqLen>0) semV(rcvSem);           //       conReadはユーザーを起こす
+        if (reqLen>0) semV(rcvSem);           //       ttyReadはユーザーを起こす
         else return;                          //       そうでないときは入力を無視する
       }
       if (echoBack) put(c);                   //     エコーバック
@@ -166,7 +166,7 @@ interrupt sioRcv()  {
     }
   } else {                                    // rawモード
     if (!putBuf(rcvBuf, c)) {                 //   バッファに書き込めなかったら
-      if (reqLen>0) semV(rcvSem);             //     conRead中はユーザーを起こす
+      if (reqLen>0) semV(rcvSem);             //     ttyRead中はユーザーを起こす
       else return;                            //     そうでないときは入力を無視する
     }
     if (rcvBuf.cnt==reqLen) semV(rcvSem);     //   要求された長さに達したらユーザーを起こす

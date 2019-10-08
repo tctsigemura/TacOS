@@ -20,7 +20,7 @@
 ;
 ; kernel/trap.s : SVC ハンドラ(トラップ)
 ;
-; 2019.06.13 : CONCTL を追加
+; 2019.06.13 : ttyCtl を追加
 ; 2016.01.11 : システムコール番号のエラーチェックを変更
 ; 2016.01.06 : .sysNumErr を修正
 ; 2016.01.02 : SLEEP を追加
@@ -57,9 +57,9 @@
 ;10     read
 ;11     write
 ;12     seek
-;13     conRead
-;14     conWrite
-;15     conCtl
+;13     ttyRead
+;14     ttyWrite
+;15     ttyCtl
 ;16     malloc
 ;17     free
 
@@ -79,9 +79,9 @@
         dw      _read       ; 10 read
         dw      _write      ; 11 write
         dw      _seek       ; 12 seek
-        dw      _conRead    ; 13 conRead
-        dw      _conWrite   ; 14 conWrite
-        dw      _conCtl     ; 15 conCtl
+        dw      _ttyRead    ; 13 ttyRead
+        dw      _ttyWrite   ; 14 ttyWrite
+        dw      _ttyCtl     ; 15 ttyCtl
 ; MM の malloc(#16)と free(#17)は OS 内部専用システムコールなので SVC で扱わない
 
 ; ---------------------------- SVC ハンドラ(トラップ) -------------------------

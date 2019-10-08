@@ -22,6 +22,7 @@
 /*
  * tty/tty.cmm : 端末サーバの本体、キーボード入力の受付とディスプレイ表示をする
  *
+ * 2019.10.07 : メソッドの名前を con -> tty と変更
  * 2019.10.02 : conWrite() に長さを指定するように変更
  * 2019.09.26 : conRead() が getSIO() を呼ぶように変更
  * 2019.06.13 : VGA, PS2を削除; conCtl() を追加
@@ -50,18 +51,18 @@
 
 #include "tty.hmm"
 
-// -------------------------- conRead システムコール --------------------------
+// -------------------------- ttyRead システムコール --------------------------
 
-// conRead システムコールの本体 (キーボード入力された文字列をユーザ領域に渡す)
-int sysConRead(char[] buf, int len) {
+// ttyRead システムコールの本体 (キーボード入力された文字列をユーザ領域に渡す)
+int sysTTYRead(char[] buf, int len) {
   return getStr(buf, len);                              // 入力
 }
 
-// -------------------------- conWrite システムコール -------------------------
+// -------------------------- ttyWrite システムコール -------------------------
 
-// conWrite システムコールの本体 (文字列をディスプレイに表示する)
+// ttyWrite システムコールの本体 (文字列をディスプレイに表示する)
 //   buf はユーザ領域でフォーマット解読済みの文字列となっている
-int sysConWrite(void[] buf, int len) {
+int sysTTYWrite(void[] buf, int len) {
   char[] str=buf;                                       // 型変換
   return putStr(buf, len);
 }
@@ -70,10 +71,10 @@ int sysConWrite(void[] buf, int len) {
 
 // 端末サーバの本体(ここで各システムコールを実行する)
 int ttySysCall(int op, int prm1, int prm2) {
-  if (op==CONREAD) {
-    op = sysConRead(_ItoA(prm1), prm2);                 // conRead(buf, len)
-  } else if (op==CONWRITE) {
-    op = sysConWrite(_ItoA(prm1), prm2);                // conWrite(buf)
+  if (op==TTYREAD) {
+    op = sysTTYRead(_ItoA(prm1), prm2);                 // ttyRead(buf, len)
+  } else if (op==TTYWRITE) {
+    op = sysTTYWrite(_ItoA(prm1), prm2);                // ttyWrite(buf)
   } else  op= -1;                                       // エラー
   return op;
 }
@@ -92,25 +93,29 @@ public void ttyMain() {
 // システムコールインターフェイス
 //   クライアントプロセスが以下のルーチンを呼出しサーバと IPC する
 //----------------------------------------------------------------------------
-// conRead システムコール
-public int conRead(void[] buf, int len) {
-  int r = sndrec(ttyLink, CONREAD, _AtoI(buf), len, 0);
+// ttyRead システムコール
+public int ttyRead(void[] buf, int len) {
+  int r = sndrec(ttyLink, TTYREAD, _AtoI(buf), len, 0);
   return r;
 }
 
-// conWrite システムコール
-public int conWrite(void[] buf, int len) {
-  int r = sndrec(ttyLink, CONWRITE, _AtoI(buf), len, 0);
+// ttyWrite システムコール
+public int ttyWrite(void[] buf, int len) {
+  int r = sndrec(ttyLink, TTYWRITE, _AtoI(buf), len, 0);
   return r;
 }
 
-// conCtl システムコール
-public int conCtl(int request, int argp) {
-  if (request==CONCTL_SETMODE) {
-    setSIOCtl(argp);                                    // sio.hmm参照
+// ttyCtl システムコール
+public int ttyCtl(int request, int mode) {
+  if (request==TTYCTL_SETMODE) {
+    setSIOCtl(mode);                                    // sio.hmm参照
     return 0;
-  } else if (request==CONCTL_GETMODE) {
+  } else if (request==TTYCTL_GETMODE) {
     return getSIOCtl();
   }
   return -1;                                            // 未定義の操作
+}
+
+public void ttyInit() {
+  sioInit();                                            // sioを初期化
 }
