@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2019.10.09 : ttyの非サーバ化に伴い、TTYのプロセス作成部分を削除
  * 2019.08.30 : main() で sioInit() と semInit() の順番を訂正（バグ）
  * 2019.06.13 : VGA, PS2を削除
  * 2019.01.27 : I/O特権モード導入に伴い実行モードの判定方法を変更
@@ -413,7 +414,6 @@ public void zmbProc() {
 MakePCB(mmMem, P_KERN_STKSIZ);                      // MM  のPCBとスタック領域
 MakePCB(fsMem, P_KERN_STKSIZ);                      // FS  のPCBとスタック領域
 MakePCB(pmMem, P_KERN_STKSIZ);                      // PM  のPCBとスタック領域
-MakePCB(ttyMem, P_KERN_STKSIZ);                     // TTY のPCBとスタック領域
 MakePCB(initMem, P_KERN_STKSIZ);                    // INITのPCBとスタック領域
 MakePCB(idleMem, P_KERN_STKSIZ);                    // IDLEのPCBとスタック領域
 MakePCB(sentnel, 0);                                // readyQueue の番兵領域
@@ -438,7 +438,6 @@ void procInit() {
   newProc(addrof(mmMain),0,0,EI|KERN,_AtoA(mmMem),null); // MM
   newProc(addrof(fsMain),1,0,EI|KERN,_AtoA(fsMem),null); // FS
   newProc(addrof(pmMain),2,0,EI|KERN,_AtoA(pmMem),pmFds);// PM
-  newProc(addrof(ttyMain),3,0,EI|KERN,_AtoA(ttyMem),null); // TTY
   initProc = _AtoA(initMem);                        // INIT の PCB を記録
   newProc(addrof(initMain),4,0,EI|KERN,initProc,null); // INIT
   newProc(addrof(idle),P_LOW_PRI+1,0,EI|KERN,_AtoA(idleMem),null); // IDLE
@@ -447,7 +446,6 @@ void procInit() {
   schProc(_AtoA(mmMem));                            // MM
   schProc(_AtoA(fsMem));                            // FS
   schProc(_AtoA(pmMem));                            // PM
-  schProc(_AtoA(ttyMem));                           // TTY
   schProc(initProc);                                // INIT
   schProc(_AtoA(idleMem));                          // IDLE
 
@@ -712,24 +710,6 @@ public void printq() {
      printF("  %d  ->",d.pid);
   printF("\n");
   g=semTbl[linkTbl[pmLink].s3].queue;
-  printF("      s3:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[ttyLink].s1].queue;
-  printF(" TTY  s1:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[ttyLink].s2].queue;
-  printF("      s2:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[ttyLink].s3].queue;
   printF("      s3:%d  ->",g.pid);
   for (PCB d=g.next; d!=g; d=d.next)
      printF("  %d  ->",d.pid);

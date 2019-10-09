@@ -51,57 +51,27 @@
 
 #include "tty.hmm"
 
-// -------------------------- ttyRead システムコール --------------------------
-
-// ttyRead システムコールの本体 (キーボード入力された文字列をユーザ領域に渡す)
-int sysTTYRead(char[] buf, int len) {
-  return getStr(buf, len);                              // 入力
-}
-
-// -------------------------- ttyWrite システムコール -------------------------
-
-// ttyWrite システムコールの本体 (文字列をディスプレイに表示する)
-//   buf はユーザ領域でフォーマット解読済みの文字列となっている
-int sysTTYWrite(void[] buf, int len) {
-  char[] str=buf;                                       // 型変換
-  return putStr(buf, len);
-}
-
-// ----------------------------- 要求待ち受け部 -------------------------------
-
-// 端末サーバの本体(ここで各システムコールを実行する)
-int ttySysCall(int op, int prm1, int prm2) {
-  if (op==TTYREAD) {
-    op = sysTTYRead(_ItoA(prm1), prm2);                 // ttyRead(buf, len)
-  } else if (op==TTYWRITE) {
-    op = sysTTYWrite(_ItoA(prm1), prm2);                // ttyWrite(buf)
-  } else  op= -1;                                       // エラー
-  return op;
-}
-
-// クライアントとランデブする
-public void ttyMain() {
-  ttyLink = newLink();                                  // リンクを生成する
-  while (true) {                                        // システムコールを待つ
-    Link l = receive(ttyLink);                          // システムコールを受信
-    int r = ttySysCall(l.op, l.prm1, l.prm2);           // システムコールを指示
-    send(ttyLink, r);                                   // 結果を返す
-  }
-}
+// セマフォ
+int readSem, writeSem;
 
 //----------------------------------------------------------------------------
 // システムコールインターフェイス
-//   クライアントプロセスが以下のルーチンを呼出しサーバと IPC する
+//   クライアントプロセスが以下のルーチンを呼出す
 //----------------------------------------------------------------------------
 // ttyRead システムコール
 public int ttyRead(void[] buf, int len) {
-  int r = sndrec(ttyLink, TTYREAD, _AtoI(buf), len, 0);
+  semP(readSem);
+  int r = getStr(buf, len);
+  semV(readSem);
   return r;
 }
 
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
-  int r = sndrec(ttyLink, TTYWRITE, _AtoI(buf), len, 0);
+  char[] str = buf;                                     // 型変換
+  semP(writeSem);
+  int r = putStr(str, len);
+  semV(writeSem);
   return r;
 }
 
@@ -118,4 +88,6 @@ public int ttyCtl(int request, int mode) {
 
 public void ttyInit() {
   sioInit();                                            // sioを初期化
+  readSem = newSem(1);
+  writeSem = newSem(1);
 }
