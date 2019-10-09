@@ -134,10 +134,7 @@ void rcvProc(char c) {
         if (reqLen>0) semV(rcvSem);           //       ttyRead中はユーザーを起こす
       }
     } else if (0x20<=ord(c) && ord(c)<=0x7e) {//   通常の文字
-      if (!putBuf(rcvBuf, c)) {               //     バッファに書き込む。満杯なら
-        if (reqLen>0) semV(rcvSem);           //       ttyReadはユーザーを起こす
-        else return;                          //       そうでないときは入力を無視する
-      }
+      if (!putBuf(rcvBuf, c)) return;         //     バッファに書き込む。満杯なら入力を無視する
       if (echoBack) put(c);                   //     エコーバック
       if (rcvBuf.cnt==reqLen) semV(rcvSem);   //     要求された長さに達したらユーザーを起こす
     } else if (c=='\x08') {                   //   Backspace
