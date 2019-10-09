@@ -39,7 +39,7 @@ char[] buf = array(80);
 public int main(int argc, char[][] argv) {
   int len;
 
-  int mode = ttyCtl(ttyCtl_GETMODE, 0);       // 現在のモードを取得
+  int mode = ttyCtl(TTYCTL_GETMODE, 0);       // 現在のモードを取得
   printf("current mode = %d\n", mode);
 
   printf("input: ");
@@ -51,19 +51,19 @@ public int main(int argc, char[][] argv) {
 
   printf("noecho input: ");
   fflush(stdout);
-  int noechoMode = mode & ~ttyCtl_MODE_ECHO;
-  ttyCtl(ttyCtl_SETMODE, noechoMode);         // NOECHOモードに変更
+  int noechoMode = mode & ~TTYCTL_MODE_ECHO;
+  ttyCtl(TTYCTL_SETMODE, noechoMode);         // NOECHOモードに変更
   fgets(buf, BUF, stdin);
-  ttyCtl(ttyCtl_SETMODE, mode);               // 元のモードに戻す
+  ttyCtl(TTYCTL_SETMODE, mode);               // 元のモードに戻す
   printf("\n[%d] \"%s\"\n", strLen(buf), buf);
 
   printf("raw input (10): ");
   fflush(stdout);
-  int rawMode = mode & ~ttyCtl_MODE_COOKED;
-  ttyCtl(ttyCtl_SETMODE, rawMode);            // RAWモードに変更
+  int rawMode = mode & ~TTYCTL_MODE_COOKED;
+  ttyCtl(TTYCTL_SETMODE, rawMode);            // RAWモードに変更
   int count = ttyRead(buf, 10);
   buf[10] = '\0';                             // bufの終端を設定
-  ttyCtl(ttyCtl_SETMODE, mode);               // 元のモードに戻す
+  ttyCtl(TTYCTL_SETMODE, mode);               // 元のモードに戻す
   printf("\n[%d] \"%s\"\n", count, buf);
 
   return 0;
