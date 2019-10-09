@@ -46,7 +46,7 @@ public int main(int argc, char[][] argv) {
   fflush(stdout);
 
   fgets(buf, BUF, stdin);
-  printf("[%d] %s", strLen(buf), buf);
+  printf("[%d] \"%s\"\n", strLen(buf), buf);
 
 
   printf("noecho input: ");
@@ -55,7 +55,7 @@ public int main(int argc, char[][] argv) {
   ttyCtl(ttyCtl_SETMODE, noechoMode);         // NOECHOモードに変更
   fgets(buf, BUF, stdin);
   ttyCtl(ttyCtl_SETMODE, mode);               // 元のモードに戻す
-  printf("\n[%d] %s", strLen(buf), buf);
+  printf("\n[%d] \"%s\"\n", strLen(buf), buf);
 
   printf("raw input (10): ");
   fflush(stdout);
@@ -64,7 +64,7 @@ public int main(int argc, char[][] argv) {
   int count = ttyRead(buf, 10);
   buf[10] = '\0';                             // bufの終端を設定
   ttyCtl(ttyCtl_SETMODE, mode);               // 元のモードに戻す
-  printf("\n[%d] %s", count, buf);
+  printf("\n[%d] \"%s\"\n", count, buf);
 
   return 0;
 }
