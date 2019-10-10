@@ -92,10 +92,16 @@ void put(char c) {
 
 public int putSIO(char[] buf, int len) {
   int count;
+  boolean prevCharIsCR = false;
   for (count=0; count<len; count=count+1) {
     char c = buf[count];
     if (cooked) {
-      if (c=='\n') put('\r');                 // LF => CR+LF 変換
+      if (c=='\r') prevCharIsCR = true;
+      else if (c=='\n') {
+        if (!prevCharIsCR) put('\r');         // LF => CR+LF 変換
+      } else {
+        prevCharIsCR = false;
+      }
     }
     put(c);
   }
@@ -129,10 +135,9 @@ char[] errSig="ERR\r\nERR\r\n";
 void rcvProc(char c) {
   if (cooked) {                               // cookedモード
     if (c=='\n' || c=='\r') {                 //   改行
-      if (putBuf(rcvBuf, c)) {                //     バッファに書き込めたら
-        if (echoBack) putSIO("\n", 1);        //       エコーバック
-        if (reqLen>0) semV(rcvSem);           //       ttyRead中はユーザーを起こす
-      }
+      if (!putBuf(rcvBuf, c)) return;         //     バッファに書き込めなかったら入力を無視する
+      if (echoBack) putSIO("\n", 1);          //     エコーバック
+      if (reqLen>0) semV(rcvSem);             //     ttyRead中はユーザーを起こす
     } else if (0x20<=ord(c) && ord(c)<=0x7e) {//   通常の文字
       if (!putBuf(rcvBuf, c)) return;         //     バッファに書き込む。満杯なら入力を無視する
       if (echoBack) put(c);                   //     エコーバック
@@ -157,11 +162,12 @@ void rcvProc(char c) {
 interrupt rn4Rcv()  {
   char c = chr(in(RN4_Data));                 // 受信データを入力する
   if (mldpOn) {                               // 接続中なら
-    rcvProc(c);                               //   受信処理
     if (sigFsm(errSig, c)) {                  //   切断時によく出るメッセージ？
       mldpOn = false;                         //     切断中に変更
       out(0x2e, in(0x2e)&~1);                 //     RN4020-RAMに記録
+      return;
     }
+    rcvProc(c);                               //   受信処理
   } else {                                    // 切断中なら
     if (sigFsm(mldpSig, c)) {                 //   接続時メッセージ？
       mldpOn = true;                          //     接続中に変更
@@ -178,12 +184,9 @@ interrupt sioRcv()  {
 
 // 読み込み処理ルーチン
 public int getSIO(char[] buf, int len) {
-  if (cooked) len = len - 1;                  // '\0'のスペースを確保
   int count=0;
-  int r;
-
+  int r = setPri(DI|KERN);                    // 割り込み禁止、カーネル
   for (;;) {                                  // 読み込み処理
-    r = setPri(DI|KERN);                      //   割り込み禁止、カーネル
     while (count<len) {                       //   バッファに入っている文字を読み出す
       int i = getBuf(rcvBuf);
       if (i<0) break;
@@ -193,18 +196,15 @@ public int getSIO(char[] buf, int len) {
     if (count==len) break;                    //   要求文字数に達したら終了
     if (cooked) {                             //   cooked
       char c = buf[count-1];                  //     末尾の文字
-      if (c=='\r' || c=='\n') break;          //     改行なら終了
+      if (c=='\n') break;                     //     改行なら終了
     }
     reqLen = len - count;
-    setPri(r);                                //   割り込み状態を復元
     semP(rcvSem);                             //   次の入力を待つ
   }
 
-  r = setPri(DI|KERN);                        // 割り込み禁止、カーネル
   reqLen = 0;                                 // reqLenを戻す
   setPri(r);                                  // 割り込み状態を復元
 
-  if (cooked) buf[count] = '\0';              // '\0'を末尾に入れる
   return count;                               // 文字数を返す
 }
 
