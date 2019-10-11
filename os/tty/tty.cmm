@@ -56,10 +56,11 @@ int readSem, writeSem;
 
 //----------------------------------------------------------------------------
 // システムコールインターフェイス
-//   クライアントプロセスが以下のルーチンを呼出す
+//   クライアントプロセスが下位のルーチンを呼出す
 //----------------------------------------------------------------------------
 // ttyRead システムコール
 public int ttyRead(void[] buf, int len) {
+  if (len<0) return -1;                                 // len<0 ならエラー
   semP(readSem);
   int r = getStr(buf, len);
   semV(readSem);
@@ -68,9 +69,9 @@ public int ttyRead(void[] buf, int len) {
 
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
-  char[] str = buf;                                     // 型変換
+  if (len<0) return -1;                                 // len<0 ならエラー
   semP(writeSem);
-  int r = putStr(str, len);
+  int r = putStr(buf, len);
   semV(writeSem);
   return r;
 }

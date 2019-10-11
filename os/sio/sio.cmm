@@ -51,6 +51,7 @@ boolean mldpOn;
 boolean trsIdle=true;                         // トランスミッタがアイドル状態
 boolean trsWait=false;                        // 送信待ちプロセスがある
 int trsSem;                                   // 送信待ち用のセマフォ
+boolean trsPrevCR=false;                      // 直前に送信した文字がCR
 
 // 入出力の設定
 boolean cooked=true;                          // 前処理をする
@@ -92,15 +93,14 @@ void put(char c) {
 
 public int putSIO(char[] buf, int len) {
   int count;
-  boolean prevCharIsCR = false;
   for (count=0; count<len; count=count+1) {
     char c = buf[count];
     if (cooked) {
-      if (c=='\r') prevCharIsCR = true;
-      else if (c=='\n') {
-        if (!prevCharIsCR) put('\r');         // LF => CR+LF 変換
+      if (c=='\r') {
+        trsPrevCR = true;
       } else {
-        prevCharIsCR = false;
+        if (c=='\n' && !trsPrevCR) put('\r');// LF => CR+LF 変換
+        trsPrevCR = false;
       }
     }
     put(c);
@@ -111,6 +111,7 @@ public int putSIO(char[] buf, int len) {
 // 受信関係
 int rcvSem;                                   // 受信待ちセマフォ
 int reqLen=0;                                 // ttyReadで要求された長さ (0:ttyRead中ではない)
+boolean rcvPrevCR=false;                      // 直前に入力された文字がCR
 
 // メッセージの一致を調べる FSM
 int mldpCnt=0;
@@ -135,11 +136,16 @@ char[] errSig="ERR\r\nERR\r\n";
 void rcvProc(char c) {
   if (cooked) {                               // cookedモード
     if (c=='\n' || c=='\r') {                 //   改行
-      if (!putBuf(rcvBuf, c)) return;         //     バッファに書き込めなかったら入力を無視する
-      if (echoBack) putSIO("\n", 1);          //     エコーバック
-      if (reqLen>0) semV(rcvSem);             //     ttyRead中はユーザーを起こす
+      if (!rcvPrevCR) {                       //     CR(+LF) => LF 変換
+        if (!putBuf(rcvBuf, '\n')) return;    //       バッファに書き込めなかったら入力を無視
+        if (echoBack) putSIO("\n", 1);        //       エコーバック
+        if (reqLen>0) semV(rcvSem);           //       ttyRead中はユーザーを起こす
+      }
     } else if (0x20<=ord(c) && ord(c)<=0x7e) {//   通常の文字
-      if (!putBuf(rcvBuf, c)) return;         //     バッファに書き込む。満杯なら入力を無視する
+      if (!putBuf(rcvBuf, c)) {               //     バッファに書き込めなかったら
+        if (reqLen>0) semV(rcvSem);           //       ttyRead中はユーザーを起こす
+        else return;                          //       そうでなければ入力を無視
+      }
       if (echoBack) put(c);                   //     エコーバック
       if (rcvBuf.cnt==reqLen) semV(rcvSem);   //     要求された長さに達したらユーザーを起こす
     } else if (c=='\x08') {                   //   Backspace
@@ -147,6 +153,7 @@ void rcvProc(char c) {
         putSIO("\x08 \x08", 3);
       }
     }
+    rcvPrevCR = (c=='\r');                    //   CRが入力されたら覚えておく
   } else {                                    // rawモード
     if (putBuf(rcvBuf, c)) {                  //   バッファに書き込めたら
       if (echoBack) put(c);                   //     エコーバック
@@ -189,9 +196,11 @@ public int getSIO(char[] buf, int len) {
   for (;;) {                                  // 読み込み処理
     while (count<len) {                       //   バッファに入っている文字を読み出す
       int i = getBuf(rcvBuf);
-      if (i<0) break;
-      buf[count] = chr(i);
+      if (i<0) break;                         //     バッファが空になったらやめる
+      char c = chr(i);
+      buf[count] = c;
       count = count+1;
+      if (cooked && c=='\n') break;           //     cookedモードのときは改行が来たらやめる
     }
     if (count==len) break;                    //   要求文字数に達したら終了
     if (cooked) {                             //   cooked
