@@ -111,7 +111,7 @@ int nextIdx(RingBuf buf, int idx) {
 // 前の添字を求める
 int prevIdx(RingBuf buf, int idx) {
   int prev = idx - 1;                               // 一つ戻す
-  if (prev==-1) prev = buf.size-1;                  // バッファサイズをチェック
+  if (prev<0) prev = buf.size-1;                    // バッファサイズをチェック
   return prev;                                      // 前の添字を返す
 }
 
