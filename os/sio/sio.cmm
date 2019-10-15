@@ -139,11 +139,12 @@ void rcvProc(char c) {
       if (!rcvPrevCR) {                       //     CR+LF => LF 変換
         if (!putBuf(rcvBuf, '\n')) return;    //       バッファに書き込めなかったら入力を無視
         if (echoBack) putSIO("\n", 1);        //       エコーバック
+        if (reqLen>0) semV(rcvSem);           //       ttyRead中はユーザーを起こす
       }
-      if (reqLen>0) semV(rcvSem);             //       ttyRead中はユーザーを起こす
     } else if (c=='\r') {
       if (!putBuf(rcvBuf, '\n')) return;
       if (echoBack) putSIO("\n", 1);
+      if (reqLen>0) semV(rcvSem);             //       ttyRead中はユーザーを起こす
     } else if (0x20<=ord(c) && ord(c)<=0x7e) {//   通常の文字
       if (!putBuf(rcvBuf, c)) {               //     バッファに書き込めなかったら
         if (reqLen>0) semV(rcvSem);           //       ttyRead中はユーザーを起こす
