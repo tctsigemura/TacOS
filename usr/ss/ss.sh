@@ -1,8 +1,8 @@
-#
+#!/bin/bash
 # TacOS Source Code
-#    Tokuyama kousen Educational Computer 16 bit Version
+#    Tokuyama kousen Advanced educational Computer.
 #
-# Copyright (C) 2016 - 2018 by
+# Copyright (C) 2019 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -17,27 +17,15 @@
 # る損害に関しても，その責任を負わない．
 #
 #
-# GNUmakefile : ユーザプログラム用の Makefile
 #
-# 2018.11.24         : clean で *.dSYM を消すように変更
-# 2016.08.11         : 初期バージョン
+
+# ss/ss.sh : ファイル送信プログラム
+#
+# 2019.10.15 : 新規作成
 #
 # $Id$
 #
 
-#----------------------------------------------------------------------------
-NAME=sr
-SRCS=${NAME}.cmm
-#----------------------------------------------------------------------------
-
-all : clean ${NAME}.exe #${NAME}
-
-${NAME}.exe : ${SRCS}
-	cm2e -o ${NAME} ${SRCS}
-
-${NAME} : ${SRCS}
-	cm2c -o ${NAME} ${SRCS}
-
-clean :
-	rm -f ${NAME} *.o *.lst *.sym *.exe *.map *~
-	rm -rf ${NAME}.dSYM
+stty raw
+./ss $1
+stty -raw
