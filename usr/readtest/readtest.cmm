@@ -34,7 +34,7 @@
 #include <string.hmm>
 
 #define BUF 80
-char[] buf = array(80);
+char[] buf = array(BUF);
 
 public int main(int argc, char[][] argv) {
   int len;
