@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer
  *
- * Copyright (C) 2008-2018 by
+ * Copyright (C) 2008-2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * util/util.cmm : C-- が動くために必要な関数群
  *
+ * 2019.06.13 : VGA, PS2を削除
  * 2018.11.12 : 隅田の成果を取り込む（リングバッファ関連）
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.11 : panic() が #ifdef DEGUB 以外で printf() を使用しないように変更
@@ -54,10 +55,6 @@
 
 #include <kernel.hmm>
 #include "util.hmm"
-
-#ifdef VGA
-#include <vga.hmm>                                  // TaC7aでVGAを使用する場合
-#endif 
 
 // util の初期化ルーチン
 public void utilInit() {
@@ -131,21 +128,15 @@ public int getBuf(RingBuf buf) {
 
 // --------------------------- デバッグ用表示ルーチン -------------------------
 // 1文字出力（起動時のメッセージなどを表示するための簡易版）
-#ifndef VGA
 void dbgPutSIO(char c) {                            // SIO への出力
   while ((in(0x0a) & 0x80)==0)
     ;
   out(0x08, ord(c));
 }
-#endif
 
 void dbgPutCh(char c) {                             // デバッグ用の表示ルーチン
-#ifdef VGA
-  putVGA(c);
-#else
   if (c=='\n') dbgPutSIO('\r');
   dbgPutSIO(c);
-#endif
 }
 
 // 文字列出力
@@ -202,7 +193,7 @@ void __putnum_sub(int x, int n) {
 
 // グローバル変数を使用するため割り込み禁止(本来なら割り込み禁止する必要はない)
 void __uputnum(int x, int w, char p, int base) {
-  int r =setPri(DI|KERN);                            // 割り込み禁止 
+  int r =setPri(DI|KERN);                            // 割り込み禁止
   __putnum_b = base;
   __putnum_m = false;
   __putnum_w = w;
@@ -214,7 +205,7 @@ void __uputnum(int x, int w, char p, int base) {
 // グローバル変数を使用するため割り込み禁止(本来なら割り込み禁止する必要はない)
 void __sputnum(int x, int w, char p, int base) {
   int r =setPri(DI|KERN);                            // 割り込み禁止
-  
+
   __putnum_b = base;
   __putnum_m = false;
   if (x<0) {
@@ -229,7 +220,7 @@ void __sputnum(int x, int w, char p, int base) {
   setPri(r);                                         // 割り込み復元
 }
 
-public int printF(char[] fmt, ...) {  
+public int printF(char[] fmt, ...) {
   int[] args = _args();
   int n = 0;
   int arg = args[0];
@@ -266,7 +257,7 @@ public int printF(char[] fmt, ...) {
       } else {
         dbgPutCh(c);
       }
-    } else 
+    } else
       dbgPutCh(c);
   }
   return n;

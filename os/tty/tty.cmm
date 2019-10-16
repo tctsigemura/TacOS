@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011-2018 by
+ * Copyright (C) 2011-2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * tty/tty.cmm : 端末サーバの本体、キーボード入力の受付とディスプレイ表示をする
  *
+ * 2019.06.13 : VGA, PS2を削除
  * 2018.11.30 : ps2 を独立させた
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.03 : 中身を sysConRead() に移動し getBuf() を廃止(重村)
@@ -40,17 +41,10 @@
 #include <kernel.hmm>
 #include <syscall.hmm>
 
-// -------------------------- 
-#ifdef VGA
-#include <ps2.hmm>
-#include <vga.hmm>
-#define getCh() getPS2()
-#define putCh(c) putVGA(c)
-#else
+// --------------------------
 #include <sio.hmm>
 #define getCh() getSIO()
 #define putCh(c) putSIO(c)
-#endif
 
 #include "tty.hmm"
 
