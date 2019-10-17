@@ -104,14 +104,14 @@ public char[] strCpy(char[] dst, char[] src) {
 // 次の添字を求める
 int nextIdx(RingBuf buf, int idx) {
   int next = idx + 1;                               // 一つ進める
-  if (next>=buf.size) next = 0;                     // バッファサイズをチェック
+  if (next>=buf.size) next = 0;                     // 最後の次は先頭
   return next;                                      // 次の添字を返す
 }
 
 // 前の添字を求める
 int prevIdx(RingBuf buf, int idx) {
   int prev = idx - 1;                               // 一つ戻す
-  if (prev<0) prev = buf.size-1;                    // バッファサイズをチェック
+  if (prev<0) prev = buf.size - 1;                  // 先頭の前は最後
   return prev;                                      // 前の添字を返す
 }
 
@@ -125,20 +125,20 @@ public boolean putBuf(RingBuf buf, char c) {
 }
 
 // リングバッファから 1 文字取得
-public int getBuf(RingBuf buf) {
-  if (buf.cnt==0) return -1;                        // 空の場合は -1 を返す
+public char getBuf(RingBuf buf) {
+  if (buf.cnt==0) return '\0';                      // 空の場合は '\0' を返す
   char c = buf.buf[buf.tail];                       // バッファから１文字取って
   buf.tail = nextIdx(buf, buf.tail);                // tail を進める
   buf.cnt = buf.cnt - 1;                            // カウンタを減らす
-  return  ord(c);                                   // 文字コードを返す
+  return  c;                                        // 文字を返す
 }
 
 // リングバッファから 1 文字削除
 public boolean unputBuf(RingBuf buf) {
-  if (buf.cnt==0) return false;                     // バッファが空なら終了
-  buf.head = prevIdx(buf, buf.head);
-  buf.cnt = buf.cnt - 1;
-  return true;
+  if (buf.cnt==0) return false;                     // 削除できないならfalse
+  buf.head = prevIdx(buf, buf.head);                // head を戻す
+  buf.cnt = buf.cnt - 1;                            // カウンタを減らす
+  return true;                                      // 削除できたらtrue
 }
 
 // --------------------------- デバッグ用表示ルーチン -------------------------
