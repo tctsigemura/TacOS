@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2016 - 2019 by
+# Copyright (C) 2016 - 2018 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -17,28 +17,28 @@
 # る損害に関しても，その責任を負わない．
 #
 #
-# Makefile : usr ディレクトリ用の Makefile
+# GNUmakefile : ユーザプログラム用の Makefile
 #
-# 2019.03.13         : in out を追加
-# 2018.11.24         : ar cp fsize mv を追加
-# 2018.01.26         : lib ディレクトリを削除（C-- 標準ライブラリを用いる）
-# 2016.01.07         : 初期バージョン
+# 2018.11.24         : clean で *.dSYM を消すように変更
+# 2016.08.11         : 初期バージョン
 #
 # $Id$
 #
-MAKEFLAGS=--no-print-directory
 
-# サブディレクトリ
-SUBDIRS:=ar cat cp dump echo edit fsize hello in ls mkdir mv out rm rmdir \
-	shell touch ss sr spitest readtest
-# port
+#----------------------------------------------------------------------------
+NAME=readtest
+SRCS=${NAME}.cmm
+#----------------------------------------------------------------------------
 
-all :
-	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir); )
+all : clean ${NAME}.exe
+
+${NAME}.exe : ${SRCS}
+	cm2e -o ${NAME} ${SRCS}
+
+# TacOS専用
+#${NAME} : ${SRCS}
+#	cm2c -o ${NAME} ${SRCS}
 
 clean :
-	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir) clean; )
-	rm -f *~
-
-install :
-	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir) install; )
+	rm -f ${NAME} *.o *.lst *.sym *.exe *.map *~
+	rm -rf ${NAME}.dSYM
