@@ -133,20 +133,24 @@ char[] mldpSig="MLDP\r\nApp:on\r\n";
 char[] errSig="ERR\r\nERR\r\n";
 
 // 改行を入力
-void putLF() {
-  if (!putBuf(rcvBuf, '\n')) return;          // バッファに書き込めなかったら入力を無視
-  if (echoBack) putSIO("\n", 1);              // エコーバック
-  if (reqLen>0) semV(rcvSem);                 // ttyRead中はユーザーを起こす
+void putLF(boolean cr) {
+  if (cr || !rcvPrevCR) {                     // CR または直前が CR でない
+    if (!putBuf(rcvBuf, '\n')) return;        //   バッファに書き込めなかったら入力を無視
+    if (echoBack) putSIO("\n", 1);            //   エコーバック
+    if (reqLen>0) semV(rcvSem);               //   ttyRead中はユーザーを起こす
+  }
+  rcvPrevCR = cr;
 }
 
 // 受信した文字の処理
 void rcvProc(char c) {
   if (cooked) {                               // cookedモード
-    if (c=='\n') {                            //   改行
-      if (!rcvPrevCR) putLF();                //     CR+LF => LF 変換
-    } else if (c=='\r') {                     //   キャリッジリターン
-      putLF();                                //     CR => LF 変換
-    } else if (0x20<=ord(c) && ord(c)<=0x7e) {//   通常の文字
+    if (c=='\n' || c=='\r') {                 //   改行またはキャリッジリターン
+      putLF(c=='\r');                         //     CR (+ LF) => LF 変換
+      return;
+    }
+    rcvPrevCR = false;
+    if (0x20<=ord(c) && ord(c)<=0x7e) {       //   通常の文字
       if (!putBuf(rcvBuf, c)) return;         //     書き込めなかった
       if (echoBack) put(c);                   //     エコーバック
       if (rcvBuf.cnt==reqLen ||               //     要求された長さに達したか
@@ -156,7 +160,6 @@ void rcvProc(char c) {
         putSIO("\x08 \x08", 3);
       }
     }
-    rcvPrevCR = (c=='\r');                    //   CRが入力されたら覚えておく
   } else {                                    // rawモード
     if (!putBuf(rcvBuf, c)) return;           //   書き込めなかった
     if (echoBack) put(c);                     //   エコーバック
