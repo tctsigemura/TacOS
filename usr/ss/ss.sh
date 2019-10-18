@@ -27,5 +27,5 @@
 #
 
 stty raw
-./ss $1
+./ss $*
 stty -raw

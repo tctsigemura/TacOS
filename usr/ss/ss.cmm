@@ -36,15 +36,22 @@
 #define BUFFER_SIZE 128
 #define ACK '!'
 
+#define DEBUG(...) if (debugOut != null) fprintf(debugOut, __VA_ARGS__)
+
 int[] filesize = array(2);
 char[] buffer = array(BUFFER_SIZE);
+FILE debugOut = null;
 
 void waitForAck();
 
 public int main(int argc, char[][] argv){
-  if (argc!=2 && argc!=3) { /* ファイル名がない */
-    fprintf(stderr, "Usage: %s <filename> [<as filename>]\n", argv[0]);
+  if (argc < 2) { /* ファイル名がない */
+    fprintf(stderr, "Usage: %s <filename> [<as filename> [<debug output>]]\n", argv[0]);
     return 1;
+  }
+
+  if (argc >= 4) {
+    debugOut = fopen(argv[3], "w"); /* デバッグ出力をオープン */
   }
 
   /* ファイル長を取得 */
@@ -53,8 +60,10 @@ public int main(int argc, char[][] argv){
     return 1;
   }
 
+  DEBUG("open file %s\n", argv[1]);
   FILE fp = fopen(argv[1], "r");
   if (fp == null){ /* ファイルがない */
+    DEBUG("fopen error\n");
     perror(argv[1]);
     return 1;
   }
@@ -62,8 +71,11 @@ public int main(int argc, char[][] argv){
   char[] filename = argv[1];
   if (argc==3) filename = argv[2];
 
+  DEBUG("filename = %s\n", filename);
   printf("%s\n", filename); /* ファイル名を出力 */
+  DEBUG("filesize = %d\n", filesize[1]);
   printf("%d\n", filesize[1]); /* ファイル長の下位32bit */
+  DEBUG("blocksize = %d\n", BLOCK_SIZE);
   printf("%d\n", BLOCK_SIZE); /* ブロックサイズ */
   fflush(stdout);
 
@@ -80,8 +92,14 @@ public int main(int argc, char[][] argv){
       waitForAck();
       wholelen = wholelen + length;
       length = 0;
+      DEBUG("sent: %d / %d\n", wholelen, filesize[1]);
     }
   }
+
+  DEBUG("sent: %d / %d\n", wholelen + length, filesize[1]);
+
+  DEBUG("complete\n");
+
   return 0;
 }
 
