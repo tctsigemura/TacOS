@@ -22,12 +22,12 @@
  /*
   * ss/ss.cmm : ファイル送信プログラム
   *
+  * 2019.10.21 : 完成
   * 2019.01.28 : 新規作成
   *
   * $Id$
   *
   */
-
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
@@ -36,77 +36,61 @@
 #define BUFFER_SIZE 128
 #define ACK '!'
 
-#define DEBUG(...) if (debugOut != null) fprintf(debugOut, __VA_ARGS__)
-
 int[] filesize = array(2);
 char[] buffer = array(BUFFER_SIZE);
-FILE debugOut = null;
 
-void waitForAck();
-
-public int main(int argc, char[][] argv){
-  if (argc < 2) { /* ファイル名がない */
-    fprintf(stderr, "Usage: %s <filename> [<as filename> [<debug output>]]\n", argv[0]);
-    return 1;
-  }
-
-  if (argc >= 4) {
-    debugOut = fopen(argv[3], "w"); /* デバッグ出力をオープン */
-  }
-
-  /* ファイル長を取得 */
-  if (fsize(argv[1], filesize)){
-    perror(argv[1]);
-    return 1;
-  }
-
-  DEBUG("open file %s\n", argv[1]);
-  FILE fp = fopen(argv[1], "r");
-  if (fp == null){ /* ファイルがない */
-    DEBUG("fopen error\n");
-    perror(argv[1]);
-    return 1;
-  }
-
-  char[] filename = argv[1];
-  if (argc==3) filename = argv[2];
-
-  DEBUG("filename = %s\n", filename);
-  printf("%s\n", filename); /* ファイル名を出力 */
-  DEBUG("filesize = %d\n", filesize[1]);
-  printf("%d\n", filesize[1]); /* ファイル長の下位32bit */
-  DEBUG("blocksize = %d\n", BLOCK_SIZE);
-  printf("%d\n", BLOCK_SIZE); /* ブロックサイズ */
-  fflush(stdout);
-
-  waitForAck();                             // 相手が RAW モードになるのを待つ
-  // 以降 RAW モード
-  int wholelen = 0;
-  int length = 0;
-  while (!feof(fp)){
-    char c = fgetc(fp);
-    fputc(c, stdout);
-    length = length + 1;
-
-    if (length == BLOCK_SIZE){
-      waitForAck();
-      wholelen = wholelen + length;
-      length = 0;
-      DEBUG("sent: %d / %d\n", wholelen, filesize[1]);
-    }
-  }
-
-  DEBUG("sent: %d / %d\n", wholelen + length, filesize[1]);
-
-  DEBUG("complete\n");
-
-  return 0;
-}
-
+// Ackを待つ
 void waitForAck(){
-  /* Ackを待つ */
+  fprintf(stderr, ".");
+  fflush(stdout);
   for (;;) {
     char ack = fgetc(stdin);
     if (ack == ACK) break;
   }
+}
+
+public int main(int argc, char[][] argv){
+  if (argc < 2) {                                // ファイル名がない
+    fprintf(stderr,
+            "Usage: %s <filename> [<as filename>]\n",
+            argv[0]);
+    return 1;
+  }
+
+  if (fsize(argv[1], filesize)){                 // ファイル長を取得
+    perror(argv[1]);
+    return 1;
+  }
+  if (filesize[0]>0 || filesize[1]>0xFFFF) {     // 64KiBより大きなファイル
+    fprintf(stderr, "%s : Too large file\n", argv[1]);
+    return 1;
+  }
+
+  FILE fp = fopen(argv[1], "r");                 // 送信するファイル
+  if (fp == null){
+    perror(argv[1]);
+    return 1;
+  }
+
+  printf("sr\n");                                // TaC側のプログラム起動
+  char[] filename = argv[1];
+  if (argc>=3) filename = argv[2];
+  printf("%s\n", filename);                      // ファイル名を出力
+  printf("%d\n", filesize[1]);                   // ファイル長の下位32bit
+  printf("%d\n", BLOCK_SIZE);                    // ブロックサイズ
+  waitForAck();                                  // 相手の準備完了を待つ
+
+  int length = 0;
+  for (int i=filesize[1]; i>0; i=i-1){           // ファイルの長さ繰り返す
+    char c = fgetc(fp);
+    fputc(c, stdout);
+    length = length + 1;
+    if (length == BLOCK_SIZE){
+      waitForAck();
+      length = 0;
+    }
+  }
+  waitForAck();                                  // 相手が終了した
+  fprintf(stderr, "\n");
+  return 0;
 }

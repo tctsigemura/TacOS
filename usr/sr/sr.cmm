@@ -22,29 +22,22 @@
 /*
  * sr/sr.cmm : ファイルをシリアルから受信する
  *
+ * 2019.10.18 : raw モードで動作する
  * 2019.07.11 : 藤村くんのプログラムを取り込む
  *
  * $Id$
  *
  */
-
-//#define DEBUG
-
-#if defined(DEBUG)
-# define debug(...) fprintf(stderr, __VA_ARGS__)
-#else
-# define debug(...) /* __VA_ARGS__ */
-#endif
-
+#include <crt0.hmm>
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
-#include <ctype.hmm>
 #include <syslib.hmm>
 #define ACK '!'
 #define N 80
 char[] buf = array(N);
 
+// ack を送り返す
 void ack() {
   buf[0] = ACK;
   ttyWrite(buf, 1);
@@ -56,65 +49,56 @@ public int main(int argc, char[][] argv) {
     return 1;
   }
 
-  fgets(buf, N, stdin);
+  fgets(buf, N, stdin);                       // ファイル名を受信する
   int pos=strRchr(buf, '\n');
   if (pos==-1) {
     fprintf(stderr, "format error\n");
     exit(1);
   }
-
   buf[pos] = '\0';
+  remove(buf);                                // 念のためファイルを削除する
 
-  remove(buf);                              // 書き込む前にファイルを削除する
-
-  debug("fopen:%s\n",buf);
-  FILE fp = fopen(buf, "w");
+  FILE fp = fopen(buf, "w");                  // 受信内容を書き込むファイル
   if (fp==null) {
     perror(buf);
     exit(1);
   }
 
-  fgets(buf, N, stdin);
+  fgets(buf, N, stdin);                       // ファイル長を受信する
   int fsize = atoi(buf);
-  debug("filelength:%s:%d\n",buf,fsize);
 
-  fgets(buf, N, stdin);
+  fgets(buf, N, stdin);                       // ブロックサイズを受信する
   int bsize = atoi(buf);
-  debug("blocksize:%s:%d\n",buf,bsize);
   if (bsize > N) {
     fprintf(stderr, "Error: block size is up to %d\n", N);
     exit(1);
   }
 
+  // 回線のモードを切り換える
   int modeOrig = ttyCtl(TTYCTL_GETMODE, 0);
   int modeChanged = modeOrig & ~TTYCTL_MODE_COOKED & ~TTYCTL_MODE_ECHO;
-  ttyCtl(TTYCTL_SETMODE, modeChanged);
+  ttyCtl(TTYCTL_SETMODE, modeChanged);        // RAWモードに切り換える
+  ack();                                      // 準備完了を相手に伝える
 
-  ack();                                    // RAW　モードになったことを相手に教える
-
-  int cbsize = 0;
-  int cfsize = 0;
-  while (cfsize<fsize) {
-    int n = fsize - cfsize;
-    if (n > bsize) n = bsize;
-    int len = ttyRead(buf, n);
-
-    for (int k = 0; k < len; k = k + 1) {
-      char c = buf[k];
-      fputc(c, fp);
-      cbsize = cbsize + 1;
+  // ファイル転送
+  int cfsize = 0;                             // これまでに受信したバイト数
+  int cbsize = 0;                             // 現ブロックで受信したバイト数
+  while (_uCmp(fsize, cfsize) > 0) {          // ファイルサイズに達するまで
+    int n = fsize - cfsize;                   //   残りバイト数
+    if (_uCmp(n, bsize) > 0) n = bsize;       //   ブロックサイズを上限にする
+    int len = ttyRead(buf, n);                //   受信する
+    for (int k = 0; k < len; k = k + 1) {     //   受信したバイトについて
+      fputc(buf[k], fp);                      //     ファイルに書き込む
+      cbsize = cbsize + 1;                    //     受信バイト数更新
       cfsize = cfsize + 1;
-
-      // ブロックサイズに達したら ACK を返す
-      if (cbsize >= bsize) {
-        ack();
-        cbsize = 0;
+      if (cbsize >= bsize) {                  //     ブロックサイズに達したら
+        ack();                                //        ACK を返す
+        cbsize = 0;                           //        バイト数をクリア
       }
     }
   }
-  fclose(fp);
-
-  ttyCtl(TTYCTL_SETMODE, modeOrig);
-
+  fclose(fp);                                 // ファイルを閉じて
+  ack();                                      // 転送完了を相手に伝える
+  ttyCtl(TTYCTL_SETMODE, modeOrig);           // COOKEDモードに戻す
   return 0;
 }
