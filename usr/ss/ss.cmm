@@ -22,118 +22,75 @@
  /*
   * ss/ss.cmm : ファイル送信プログラム
   *
+  * 2019.10.21 : 完成
   * 2019.01.28 : 新規作成
   *
   * $Id$
   *
   */
-
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
 
-#define BLOCK_SIZE 24
+#define BLOCK_SIZE 60
 #define BUFFER_SIZE 128
-#define ACK "!Ack"
+#define ACK '!'
 
 int[] filesize = array(2);
 char[] buffer = array(BUFFER_SIZE);
 
-void output(int length, char[] buffer, boolean wait_for_ack);
+// Ackを待つ
+void waitForAck(){
+  fprintf(stderr, ".");
+  fflush(stdout);
+  for (;;) {
+    char ack = fgetc(stdin);
+    if (ack == ACK) break;
+  }
+}
 
 public int main(int argc, char[][] argv){
-  if (argc!=2 && argc!=3) { /* ファイル名がない */
-    fprintf(stderr, "Usage: %s <filename> [<as filename>]\n", argv[0]);
+  if (argc < 2) {                                // ファイル名がない
+    fprintf(stderr,
+            "Usage: %s <filename> [<as filename>]\n",
+            argv[0]);
     return 1;
   }
 
-  /* ファイル長を取得 */
-  if (fsize(argv[1], filesize)){
+  if (fsize(argv[1], filesize)){                 // ファイル長を取得
+    perror(argv[1]);
+    return 1;
+  }
+  if (filesize[0]>0 || filesize[1]>0xFFFF) {     // 64KiBより大きなファイル
+    fprintf(stderr, "%s : Too large file\n", argv[1]);
+    return 1;
+  }
+
+  FILE fp = fopen(argv[1], "r");                 // 送信するファイル
+  if (fp == null){
     perror(argv[1]);
     return 1;
   }
 
-  FILE fp = fopen(argv[1], "r");
-  if (fp == null){ /* ファイルがない */
-    perror(argv[1]);
-    return 1;
-  }
-
+  printf("sr\n");                                // TaC側のプログラム起動
   char[] filename = argv[1];
-  if (argc==3) filename = argv[2];
+  if (argc>=3) filename = argv[2];
+  printf("%s\n", filename);                      // ファイル名を出力
+  printf("%d\n", filesize[1]);                   // ファイル長の下位32bit
+  printf("%d\n", BLOCK_SIZE);                    // ブロックサイズ
+  waitForAck();                                  // 相手の準備完了を待つ
 
-  printf("%s\n", filename); /* ファイル名を出力 */
-  printf("%d\n", filesize[1]); /* ファイル長の下位32bit */
-  printf("%d\n", BLOCK_SIZE); /* ブロックサイズ */
-
-  int wholelen = 0;
   int length = 0;
-  while (!feof(fp)){
+  for (int i=filesize[1]; i>0; i=i-1){           // ファイルの長さ繰り返す
     char c = fgetc(fp);
-    buffer[length] = c;
+    fputc(c, stdout);
     length = length + 1;
-
     if (length == BLOCK_SIZE){
-      output(length, buffer, true);
-      wholelen = wholelen + length;
+      waitForAck();
       length = 0;
     }
   }
-  if (length > 0) {
-    output(length, buffer, false);
-    wholelen = wholelen + length;
-  }
+  waitForAck();                                  // 相手が終了した
+  fprintf(stderr, "\n");
   return 0;
-}
-
-int b64e(char[] buffer, int length, int offset);
-
-void output(int length, char[] buffer, boolean wait_for_ack){
-  for (int i = 0; i < length; i = i + 3){
-    b64e(buffer, length, i);
-  }
-  printf("\n");
-  fflush(stdout);
-
-  /* Ackを待つ */
-  while (wait_for_ack){
-    fgets(buffer, BUFFER_SIZE, stdin);
-    if (strNcmp(buffer, ACK, strLen(ACK)) == 0) {
-      break;
-    }
-  }
-}
-
-// Base64で出力するためのメソッド
-char[] b64tbl =
-        "=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-char b2a(int b) {
-  return b64tbl[b+1];
-}
-
-int b64e(char[] buffer, int length, int index) {
-  int w, x, y, z;
-  int offset = 0;
-  w = x = y = z = -1;
-  if (index + offset < length){
-    w = ord(buffer[index + offset]) >> 2 & 0x3f;
-    x = ord(buffer[index + offset]) << 4 & 0x3f;
-    offset = 1;
-    if (index + offset < length){
-      x = x | ord(buffer[index + offset]) >> 4 & 0x3f;
-      y = ord(buffer[index + offset]) << 2 & 0x3f;
-      offset = 2;
-      if (index + offset < length){
-        y = y | ord(buffer[index + offset]) >> 6 & 0x3f;
-        z = ord(buffer[index + offset]) & 0x3f;
-        offset = 3;
-      }
-    }
-  }
-  putchar(b2a(w));
-  putchar(b2a(x));
-  putchar(b2a(y));
-  putchar(b2a(z));
-  return offset;
 }

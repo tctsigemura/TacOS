@@ -30,7 +30,7 @@ MAKEFLAGS=--no-print-directory
 
 # サブディレクトリ
 SUBDIRS:=ar cat cp dump echo edit fsize hello in ls mkdir mv out rm rmdir \
-	shell touch ss sr spitest
+	shell touch ss sr spitest readtest
 # port
 
 all :

@@ -22,6 +22,7 @@
 /*
  * sio/sio.cmm : シリアルドライバ
  *
+ * 2019.09.25 : 複数文字の入力をするように変更、cookedモードを追加
  * 2019.03.01 : RN4020との接続情報をIPLから引き継ぐように変更(RN4020-RAM使用)
  * 2019.01.24 : RN4020とFT232両方に入出力するように変更
  * 2018.12.25 : 出力でLFをCR,LFに置き換える機能追加
@@ -40,8 +41,8 @@
 #define RN4_Data 0x28                         // RN4020 送受信データのI/Oポート
 #define RN4_Ctrl 0x2a                         // RN4020 制御用のI/Oポート
 
-RingBuf rcvBuf={"1234567890123456",16,0,0,0}; // 受信バッファ
-RingBuf trsBuf={"1234567890123456",16,0,0,0}; // 送信バッファ
+RingBuf rcvBuf={"12345678901234567890123456789012345678901234567890123456789012345678901234567890",80,0,0,0}; // 受信バッファ
+RingBuf trsBuf={"12345678901234567890123456789012345678901234567890123456789012345678901234567890",80,0,0,0}; // 送信バッファ
 
 // RN4020
 boolean mldpOn;
@@ -51,15 +52,19 @@ boolean trsIdle=true;                         // トランスミッタがアイ�
 boolean trsWait=false;                        // 送信待ちプロセスがある
 int trsSem;                                   // 送信待ち用のセマフォ
 
+// 入出力の設定
+boolean cooked=true;                          // 前処理をする
+boolean echoBack=true;                        // エコーバックをする
+
 // SIO 送信割込み処理ルーチン
 interrupt sioTrs() {
   if (ISEmpty(trsBuf)) {                      // 送信すべきデータがないなら
     out(SIO_Ctrl,0x0040);                     //   送信割込み禁止
     trsIdle = true;                           //     トランスミッタはアイドルに
   } else {                                    // 送信すべきデータがあれば
-    int c = getBuf(trsBuf);                   //   次の文字をバッファから取出し
-    out(SIO_Data,c);                          //     送信する
-    if (mldpOn) out(RN4_Data,c);              //     同じデータをRN4020にも送信
+    char c = getBuf(trsBuf);                  //   次の文字をバッファから取出し
+    out(SIO_Data,ord(c));                     //     送信する
+    if (mldpOn) out(RN4_Data,ord(c));         //     同じデータをRN4020にも送信
     if (trsWait) {                            //   待っているプロセスがあれば
       trsWait=false;                          //     フラグを下ろして
       semV(trsSem);                           //        起こす
@@ -85,14 +90,29 @@ void put(char c) {
   setPri(r);
 }
 
-public void putSIO(char c) {                  // LF => CR+LF 変換
-  if (c=='\n') put('\r');
-  put(c);
+// LF => CR+LF 変換をしながら文字列を送信
+boolean trsPrevCR=false;                      // 直前に送信した文字がCR
+public int putSIO(char[] buf, int len) {
+  int count;
+  for (count=0; count<len; count=count+1) {
+    char c = buf[count];
+    trsPrevCR = false;
+    if (cooked) {
+      if (c=='\r') {
+        trsPrevCR = true;
+      } else if (c=='\n' && !trsPrevCR) {     // LF => CR+LF 変換
+        put('\r');
+      }
+    }
+    put(c);
+  }
+  return count;
 }
 
 // 受信関係
 int rcvSem;                                   // 受信待ちセマフォ
-
+int reqLen=0;                                 // ttyReadで要求された長さ
+                                              // (0ならttyRead中ではない)
 // メッセージの一致を調べる FSM
 int mldpCnt=0;
 boolean sigFsm(char[] sig, char c) {
@@ -108,20 +128,61 @@ boolean sigFsm(char[] sig, char c) {
   return false;                               // まだマッチしない
 }
 
-// RN4020 受信割込み処理ルーチン
+// 受信処理
 char[] mldpSig="MLDP\r\nApp:on\r\n";
 char[] errSig="ERR\r\nERR\r\n";
+boolean rcvPrevCR=false;                      // 直前に入力された文字がCR
 
+// 改行を入力
+void putLF() {
+  if (!putBuf(rcvBuf, '\n')) return;          // 書き込めないなら無視
+  if (echoBack) putSIO("\n", 1);              // CR+LF をエコーバック
+  if (reqLen>0) {                             // ttyRead中なら
+    reqLen = 0;                               //   reqLenをリセットして
+    semV(rcvSem);                             //   プロセスを起こす
+  }
+}
+
+// rawモード または 印刷可能文字
+void putRaw(char c) {
+  if (!putBuf(rcvBuf, c)) return;             // 書き込めないなら無視
+  if (echoBack) put(c);                       // エコーバック
+  if (rcvBuf.cnt==reqLen || ISFull(rcvBuf)) { // 長さに達したかバッファが満杯
+    reqLen = 0;                               //   reqLenをリセットして
+    semV(rcvSem);                             //   プロセスを起こす
+  }
+}
+
+// 受信した文字の処理
+void rcvProc(char c) {
+  if (cooked) {                               // cookedモード
+    if (c=='\n') {                            //   LF なら
+      if (!rcvPrevCR) putLF();                //     CR (+ LF) => LF 変換
+    } else if (c=='\r') {                     //   CR なら
+      putLF();                                //     とりあえず LF を書き込む
+    } else if (0x20<=ord(c)&&ord(c)<=0x7e) {  //   表示可能な文字
+      putRaw(c);                              //     rawモードと同じ処理
+    } else if (c=='\x08') {                   //   Backspace
+      if (unputBuf(rcvBuf) && echoBack) {     //     入力バッファから１文字削除
+        putSIO("\x08 \x08", 3);               //       成功ならエコーバック
+      }
+    }
+    rcvPrevCR = (c=='\r');                    //   CR だったことを記録
+  } else {                                    // rawモード
+    putRaw(c);                                //   バッファに書き込む
+  }
+}
+
+// RN4020 受信割込み処理ルーチン
 interrupt rn4Rcv()  {
   char c = chr(in(RN4_Data));                 // 受信データを入力する
   if (mldpOn) {                               // 接続中なら
-    if (putBuf(rcvBuf, c)) {                  // バッファに書き込めたら
-      semV(rcvSem);                           //   プロセスを起こす
-    }
     if (sigFsm(errSig, c)) {                  //   切断時によく出るメッセージ？
       mldpOn = false;                         //     切断中に変更
       out(0x2e, in(0x2e)&~1);                 //     RN4020-RAMに記録
+      return;
     }
+    rcvProc(c);                               //   受信処理
   } else {                                    // 切断中なら
     if (sigFsm(mldpSig, c)) {                 //   接続時メッセージ？
       mldpOn = true;                          //     接続中に変更
@@ -133,15 +194,25 @@ interrupt rn4Rcv()  {
 // SIO 受信割込み処理ルーチン
 interrupt sioRcv()  {
   char c = chr(in(SIO_Data));                 // 受信データを入力する
-  if (putBuf(rcvBuf, c)) {                    // バッファに書き込めたら
-    semV(rcvSem);                             //   プロセスを起こす
-  }
+  rcvProc(c);                                 // 受信処理
 }
 
-// SIO から１文字入力
-public char getSIO() {
-  semP(rcvSem);                               // 受信を待って
-  return chr(getBuf(rcvBuf));                 // 一文字取り出す
+// 読み込み処理ルーチン
+public int getSIO(char[] buf, int len) {
+  int r = setPri(DI|KERN);                    // 割り込み禁止、カーネル
+  int count=0;                                // 入力した文字数
+  while (count<len) {                         // len は必ず 1 以上
+    if (ISEmpty(rcvBuf)) {                    //   バッファが空になったら
+      reqLen = len - count;                   //     残り文字数をセットし
+      semP(rcvSem);                           //     入力を待つ
+    }
+    char c = getBuf(rcvBuf);                  //   バッファから文字を読み出す
+    buf[count] = c;                           //   ユーザ領域にコピー
+    count = count+1;                          //   入力文字数をカウント
+    if (cooked && c=='\n') break;             //   cookedモードは改行でも終了
+  }
+  setPri(r);                                  // 割り込み状態を復元
+  return count;                               // 文字数を返す
 }
 
 // 初期化
@@ -157,4 +228,22 @@ public void sioInit() {
   trsSem = newSem(0);                         // 送信用セマフォ
   rcvSem = newSem(0);                         // 受信用セマフォ
   mldpOn = (in(0x2e) & 1)!=0;                 // RN4020-RAMから初期値を決める
+}
+
+// 入出力の設定を取得
+public int getSIOCtl() {
+  int r = setPri(DI|KERN);                  // 割り込み禁止、カーネル
+  int ctl = 0;
+  if (cooked) ctl = ctl | SIO_COOKED;
+  if (echoBack) ctl = ctl | SIO_ECHO;
+  setPri(r);                                // 割り込み状態を復元
+  return ctl;
+}
+
+// 入出力の設定を変更
+public void setSIOCtl(int ctl) {
+  int r = setPri(DI|KERN);                  // 割り込み禁止、カーネル
+  cooked = (ctl&SIO_COOKED)!=0;
+  echoBack = (ctl&SIO_ECHO)!=0;
+  setPri(r);                                // 割り込み状態を復元
 }
