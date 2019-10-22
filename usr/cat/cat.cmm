@@ -45,11 +45,11 @@ public int main(int argc, char[][] argv) {
       continue;
     }
 
-    while (!feof(fp))
+    while (!feof(fp)) {
       putchar(fgetc(fp));
+    }
 
     fclose(fp);
   }
   return err;
 }
-
