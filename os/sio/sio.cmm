@@ -155,17 +155,18 @@ void putRaw(char c) {
 
 // 受信した文字の処理
 void rcvProc(char c) {
+  if (!ISEmpty(trsBuf)) return;               // 出力中ならキー操作不可
   if (cooked) {                               // cookedモード
     if (c=='\n') {                            //   LF なら
       if (!rcvPrevCR) putLF();                //     CR (+ LF) => LF 変換
     } else if (c=='\r') {                     //   CR なら
-      putLF();                                //     とりあえず LF を書き込む
-    } else if (0x20<=ord(c)&&ord(c)<=0x7e) {  //   表示可能な文字
-      putRaw(c);                              //     rawモードと同じ処理
-    } else if (c=='\x08') {                   //   Backspace
+      putLF();                                //     とりあえず LF に変換
+    } else if (c=='\x08' || c=='\x7f') {      //   Backspace, Delete
       if (unputBuf(rcvBuf) && echoBack) {     //     入力バッファから１文字削除
         putSIO("\x08 \x08", 3);               //       成功ならエコーバック
       }
+    } else if (ord(c)>=0x20) {                //   UTF-8 の表示可能な文字
+      putRaw(c);                              //     rawモードと同じ処理
     }
     rcvPrevCR = (c=='\r');                    //   CR だったことを記録
   } else {                                    // rawモード

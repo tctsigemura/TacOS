@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2016 by
+ * Copyright (C) 2016 - 2019 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -16,40 +16,50 @@
  * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
  * る損害に関しても，その責任を負わない．
  *
- *
  */
 
 /*
- * cat/cat.cmm : cat プログラム
+ * head/head.cmm : head プログラム
  *
+ * 2019.10.22 : cat から分岐
  * 2016.03.07 : 新規作成
- *
- * $Id$
  *
  */
 
 #include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+
+void usageExit(char[] argv0) {
+    fprintf(stderr, "Usage: %s [-n count] <fileName>...\n", argv0);
+    exit(1);
+}
 
 public int main(int argc, char[][] argv) {
-  if (argc<2) {
-    fprintf(stderr, "Usage: %s <fileName>...\n", argv[0]);
+  char[] fname;
+  int count = 10;
+  if (argc==4) {
+    if (strCmp("-n", argv[1])!=0) usageExit(argv[0]);
+    count = atoi(argv[2]);
+    fname = argv[3];
+  } else if (argc==2) {
+    fname = argv[1];
+  } else {
+    usageExit(argv[0]);
+  }
+
+  FILE fp = fopen(fname, "r");
+  if (fp==null) {
+    perror(fname);
     return 1;
   }
 
-  int err = 0;
-  for (int i=1; i<argc; i=i+1) {
-    FILE fp = fopen(argv[i], "r");
-    if (fp==null) {
-      perror(argv[i]);
-      err = 1;
-      continue;
-    }
-
-    while (!feof(fp)) {
-      putchar(fgetc(fp));
-    }
-
-    fclose(fp);
+  while (!feof(fp) && count>0) {
+    char c = fgetc(fp);
+    putchar(c);
+    if (c=='\n') count = count - 1;
   }
-  return err;
+
+  fclose(fp);
+  return 0;
 }
