@@ -64,10 +64,10 @@ interrupt sioTrs() {
   } else {                                    // 送信すべきデータがあれば
     char c = getBuf(trsBuf);                  //   次の文字をバッファから取出し
     out(SIO_Data,ord(c));                     //     送信する
-    if (mldpOn) out(RN4_Data,ord(c));         //     同じデータをRN4020にも送信
-    if (trsWait) {                            //   待っているプロセスがあれば
-      trsWait=false;                          //     フラグを下ろして
-      semV(trsSem);                           //        起こす
+    if (mldpOn) out(RN4_Data,ord(c));         //   同じデータをRN4020にも送信
+    if (trsWait&&trsBuf.cnt<=trsBuf.size/2) { //   待ちプロセスがありバッファに
+      trsWait=false;                          //     十分な空きがあれば
+      semV(trsSem);                           //       フラグを下ろして起こす
     }
   }
 }
@@ -155,8 +155,8 @@ void putRaw(char c) {
 
 // 受信した文字の処理
 void rcvProc(char c) {
-  if (!ISEmpty(trsBuf)) return;               // 出力中ならキー操作不可
-                                              // (ボトムハーフはブロック不可)
+  if (echoBack && trsBuf.cnt>=trsBuf.size/2)  // エコーバックできないなら無視
+    return;                                   // (ボトムハーフはブロック不可)
   if (cooked) {                               // cookedモード
     if (c=='\n') {                            //   LF なら
       if (!rcvPrevCR) putLF();                //     CR (+ LF) => LF 変換
