@@ -156,6 +156,7 @@ void putRaw(char c) {
 // 受信した文字の処理
 void rcvProc(char c) {
   if (!ISEmpty(trsBuf)) return;               // 出力中ならキー操作不可
+                                              // (ボトムハーフはブロック不可)
   if (cooked) {                               // cookedモード
     if (c=='\n') {                            //   LF なら
       if (!rcvPrevCR) putLF();                //     CR (+ LF) => LF 変換
