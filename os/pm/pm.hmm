@@ -44,7 +44,7 @@ public void pmMain();
  *          : void [] argv  生成したプロセスに与えるコマンドライン引数
  *   解説   : microSD から EXE プログラムを探しプロセスを生成する。
  */
-public int exec(char[] path, char[][] argv);
+public int exec(char[] path, char[][] argv, char[][] envp);
 
 /*----------------------------------------------------------------------------
  *    名前   : exit

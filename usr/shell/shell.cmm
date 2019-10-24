@@ -113,13 +113,13 @@ public int main() {
       fprintf(stderr, "shell: Too long path name\n");
       continue;
     }
-     
+
     strCpy(cmd, BIN);                             // コマンドへのパスを作る
     strCat(cmd, argv[0]);
     strCat(cmd, EXE);
 
     sta[0] = 0;                                   // エラー番号をクリア
-    if (exec(cmd, argv)<0) perror(cmd);           // コマンドを実行
+    if (exec(cmd, argv, null)<0) perror(cmd);     // コマンドを実行
     else if (wait(sta)<0)  perror(cmd);           // コマンドの終了を待つ
 
     if (sta[0]<0) _perror(argv[0], sta[0]);       // 異常終了のエラー表示
