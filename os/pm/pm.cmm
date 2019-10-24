@@ -191,24 +191,31 @@ int relocate() {
   return 0;                                         // 正常終了
 }
 
-// スタックの底に argc, argv, argv[0], ... を格納する
+// スタックの底に argc, argv, envp, argv[0], ... を格納する
 void copyArgsEnvp(char[][] argv, char[][] envp) {
   // スタックの底に確保する領域のサイズを計算する
-  int st = 2 + 2 + 2;                               // argc + argv + null
+  int st = 2 + 2 + 2 + 2 + 2;                       // argc + argv + envp + null + null
   int argc = 0;                                     // コマンド行引数の個数
   while (argv!=null && argv[argc]!=null) {          // コマンド行引数について
     st = st + strLen(argv[argc]) + 1 + 2;           //  argv 配列と文字列の領域
     argc = argc + 1;                                //   サイズを合計していく
   }
+  int envs = 0;                                     // 環境変数の個数
+  while (envp!=null && envp[envs]!=null) {
+    st = st + strLen(envp[envs]) + 1 + 2;           //   文字列へのポインタと文字列の領域
+    envs = envs + 1;
+  }
   usp = usp - ((st+1) & ~1);                        // スタックの終了位置調整
 
-  // スタックの底に確保した領域に argc, argv, ... を書込む
+  // スタックの底に確保した領域に argc, argv, envp, ... を書込む
   int[] USP = _ItoA(usp);                           // スタックを表現する配列
   int argvAddr = usp + 2 + 2;
-  int strAddr  = argvAddr + 2*argc + 2;             // 文字列の格納位置
+  int envpAddr = argvAddr + 2*argc + 2;
+  int strAddr  = envpAddr + 2*envs + 2;             // 文字列の格納位置
 
   USP[0] = argc;                                    // argc 格納
   USP[1] = argvAddr;                                // argv 参照配列の位置
+  USP[2] = envpAddr;
 
   int index = 2;                                    // 配列のインデックス
 
@@ -217,6 +224,15 @@ void copyArgsEnvp(char[][] argv, char[][] envp) {
     USP[index] = strAddr;                           //   argv 参照配列位置格納
     strCpy(_ItoA(strAddr), argv[i]);                //   コマンド行引数をコピー
     strAddr = strAddr + strLen(argv[i]) + 1;        //   文字列格納位置を進める
+    index = index + 1;
+  }
+  USP[index] = 0x0000;                              // null 格納
+  index = index + 1;
+  // envp の格納
+  for (int i=0; i<envs; i=i+1) {
+    USP[index] = strAddr;
+    strCpy(_ItoA(strAddr), envp[i]);
+    strAddr = strAddr + strLen(envp[i]) + 1;
     index = index + 1;
   }
   USP[index] = 0x0000;                              // null 格納
