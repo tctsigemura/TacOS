@@ -207,18 +207,26 @@ void copyArgsEnvp(char[][] argv, char[][] envp) {
 
   // スタックの底に確保した領域に argc, argv, envp, ... を書込む
   int[] USP = _ItoA(usp);                           // スタックを表現する配列
-  int argvAddr = usp + 2 + 2;
+  int argvAddr = usp + 2 + 2 + 2;
   int envpAddr = argvAddr + 2*argc + 2;
   int strAddr  = envpAddr + 2*envs + 2;             // 文字列の格納位置
 
   USP[0] = argc;                                    // argc 格納
   USP[1] = argvAddr;                                // argv 参照配列の位置
   USP[2] = envpAddr;
+# if DEBUG
+  printF("USP[0] = argc = 0x%04x\n", argc);
+  printF("USP[1] = argv = 0x%04x\n", argvAddr);
+  printF("USP[2] = envp = 0x%04x\n", envpAddr);
+# endif
 
-  int index = 2;                                    // 配列のインデックス
+  int index = 3;                                    // 配列のインデックス
 
   // argv の格納
   for (int i=0; i<argc; i=i+1) {                    // コマンド行引数回
+#   if DEBUG
+      printF("USP[%d] = argv[%d] = 0x%04x\n", index, i, strAddr);
+#   endif
     USP[index] = strAddr;                           //   argv 参照配列位置格納
     strCpy(_ItoA(strAddr), argv[i]);                //   コマンド行引数をコピー
     strAddr = strAddr + strLen(argv[i]) + 1;        //   文字列格納位置を進める
@@ -228,6 +236,10 @@ void copyArgsEnvp(char[][] argv, char[][] envp) {
   index = index + 1;
   // envp の格納
   for (int i=0; i<envs; i=i+1) {
+#   if DEBUG
+      printF("USP[%d] = envp[%d] = 0x%04x\n", index, i, strAddr);
+      printF("\n");
+#   endif
     USP[index] = strAddr;
     strCpy(_ItoA(strAddr), envp[i]);
     strAddr = strAddr + strLen(envp[i]) + 1;
