@@ -1,0 +1,46 @@
+// Tasm7.cmmの元のソース
+
+#include <stdio.hmm>	
+#include "Editor.hmm"
+
+public int main(int argc, char[][] argv){
+	// 機械語プログラムファイルの初期化
+	char ch;
+	ch = 'K';
+
+    //ファイルの出力
+    printOutFile();
+
+    ファイルへの書き込み
+	writeInFile(ch);
+	return 0;	
+}
+
+//Editor.cmmの元のソース
+
+#include<stdio.hmm>
+#include<errno.hmm>
+#include "Editor.hmm"
+
+public void printOutFile(){
+	char[] fname = "AssCode.txt";
+	FILE Pfp = fopen(fname, "r");
+  	if (Pfp==null) {
+		perror(fname); // エラー表示を自分で行う
+	 }
+  	while (!feof(Pfp)){
+    	putchar(fgetc(Pfp));
+	}
+	fclose(Pfp);	
+}
+	
+public void writeInFile(char ch){
+	char[] fname = "MCode.txt";
+	FILE Wfp = fopen(fname,"w"); //ファイルがあるときも新規作成する
+	fputc(ch,Wfp);
+	fclose(Wfp);
+}
+
+public void printOutFile();
+public void writeInFile(char ch);
+

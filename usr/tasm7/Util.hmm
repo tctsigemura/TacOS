@@ -1,0 +1,8 @@
+#ifndef UTIL_H
+public int address1Analyzer();
+public int address2Analyzer();
+public int valueAnalyzer();
+public int eqAnalyzer();
+public char[] toHex(int digit);
+public void ch();
+#endif /* UTIL_H */

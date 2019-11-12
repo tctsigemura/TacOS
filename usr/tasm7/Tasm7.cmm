@@ -1,0 +1,75 @@
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+#include <errno.hmm>
+#ifndef C
+#include <syslib.hmm>                  // TaC版は一部のシステムコールを使用する
+#endif
+
+#include "Assemble.hmm"
+#include "Pass1.hmm"
+#include "Pass2.hmm"
+
+// 大域変数
+FILE sFp;                              // ソースファイル
+FILE lFp;                              // リストファイル
+FILE bFp;                              // バイナリファイル
+
+// 使い方表示関数
+void usage(char[] name) {
+  fprintf(stderr, "Usage: %s [-h] <name>.t7\n",name);
+  fprintf(stderr, "  -h : show this message\n");
+  exit(1);
+}
+
+// 拡張子を変更してオープンする
+FILE xOpen(char[] fname, char[] ext, char[] mod) {
+  int extPos = strRchr(fname, '.');                   // 拡張子の位置
+  //strCpy(subStr(fname, extPos), ext);                 // 拡張子を変更
+
+  #ifndef C
+  remove(fname);                                      // TaC版では一旦消す
+  #endif
+
+  FILE fp = fopen(fname, mod);                        // ファイルオープン
+  if (lFp == null) {
+    perror(fname);
+    exit(1);
+  }
+  return fp;
+}
+
+// main 関数
+public int main(int argc, char[][] argv){
+  int flength = strLen(argv[1]);
+  if (argc<2 ||                                       // ファイル名が無い
+      strCmp(argv[1],"-h")==0 ||                      // ヘルプ
+      argc>2 ||                                       // 余分な引数
+      flength < 4 /*||                                  // ファイル名が短過ぎる
+      strCmp(subStr(argv[1], flength-3), ".t7")!=0*/) { // 拡張子が正しくない
+    usage(argv[0]);
+  }
+
+  char[] fname = malloc(flength + 2);                 // 長めに
+  strCpy(fname, argv[1]);
+  
+  lFp = xOpen(fname, ".lst", "w");                    // リストファイル
+  bFp = xOpen(fname, ".bin", "w");                    // バイナリファイル
+    
+    
+  //Pass1の実行
+  sFp = xOpen(fname, ".t7",  "r");                    // ソースファイルオープン
+  initPass1();                                        // 初期化
+  pass1(sFp);                                         // パス１
+  fclose(sFp);                                        // ソースファイルクローズ
+
+  // Pass2の実行
+  sFp = xOpen(fname, ".t7",  "r");                    // ソースファイル
+  initPass2();                                        // 初期化
+  pass2(sFp,lFp,bFp);                                 // パス２
+  fclose(sFp);                                        // ソースファイルクローズ
+    
+  fclose(lFp);                                        // リストファイルク
+  fclose(bFp);                                        // バイナリファイル
+  return 0 ;                                          // 正常終了
+}

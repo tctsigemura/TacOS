@@ -1,0 +1,22 @@
+#ifndef EDITOR_H
+
+public void initBuffers();
+
+public void setPca(int lxpca);
+public void setFirstByte(int machine_code);
+public void setSecondByte(int machine_code);
+public void setThirdByte(int machine_code);
+public void setForthByte(int machine_code);
+public void setLabel(char[] str);
+public void setRsvWord(char[] str);
+public void setOpr(char[] str);
+public void setComment(char[] str);
+public void setMachineCode(int code);
+
+public void printBuffer();
+public void printHex();
+
+public void setLstFp(FILE lstfp);
+public void setHexFp(FILE hfp);
+
+#endif  /* EDITOR_H */

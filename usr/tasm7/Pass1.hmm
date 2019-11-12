@@ -1,0 +1,7 @@
+#ifndef PASS1_H
+
+public void initPass1();
+public void pass1(FILE sourcefp);
+public boolean pass1flag;
+
+#endif      /* PASS1 */
