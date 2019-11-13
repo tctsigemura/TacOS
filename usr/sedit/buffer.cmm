@@ -1,0 +1,144 @@
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+#include "buffer.hmm"
+
+public int top;     // 一番上に表示されている行
+public int current; // 現在の行
+public int lines;   // 書き込まれた行数
+public cursor c;
+public char[][] textBuffer = array(LINES, 1); // 書き込まれた文字保存用
+
+char[] d = array(BUFLEN + 2); // 行内容の更新用
+
+// 初期化
+public void b_init(){
+  top = 0;
+  current = 0;
+  lines = 0;
+  c.x = 0;
+  c.y = 0;
+}
+
+// カーソルを右へ
+public void move_right(){
+  c.x = c.x + 1;
+  if(c.x >= ROWS){  // 最大数を超えない
+    c.x = ROWS - 1;
+  }
+}
+
+//　カーソルを左へ
+public void move_left(){
+  c.x = c.x - 1;
+  if(c.x > 0){  // 0より小さくならない
+    c.x = 0;
+  }
+}
+
+// カーソルを下へ
+public void move_down(){
+  if(current == lines){
+    return;
+  }
+  c.x = 0;  // xを左端に移動
+  c.y = c.y + 1;
+  current = current + 1;
+
+  if(c.y >= COLUMNS){
+    c.y = COLUMNS - 1;
+    // 下に表示可能な部分があれば一番上の行を更新
+    if(top + (COLUMNS-1) < lines){
+      top = top + 1;
+    }
+  }
+}
+
+// カーソルを上へ
+public void move_up(){
+  if(current == 0){
+    return;
+  }
+  c.x = 0;
+  current = current - 1;
+  c.y = c.y - 1;
+
+  if(c.y < 0){
+    c.y = 0;
+    // 上に表示可能な部分があれば一番上の行を更新
+    if(top > 0){
+      top = top - 1;
+    }
+  }
+}
+
+// 新しい行追加
+public void add_newline(){
+  int i;
+  lines = lines + 1;
+  move_down();
+
+  // 行の挿入の場合は現在行から後ろをずらす
+  if (current != lines){
+    for(i = lines; i > current; i = i - 1){
+      strCpy(textBuffer[i], textBuffer[i-1]);
+    }
+  }
+  c.x = 0;
+}
+
+// 文字挿入
+public void insert_char(char ch){
+  int i;
+  int length = strLen(textBuffer[current]) + 1; // 挿入後の文字数
+
+  if (length == ROWS){
+    add_newline();
+    int length = 1; // 挿入後の文字数
+  }
+
+  for(i = 0; i < BUFLEN + 2; i = i + 1){
+    d[i] = '\0';
+  }
+
+  // 更新する情報を作成
+  for(i = 0; i < length; i = i + 1){
+    // 挿入部分まではそのまま
+    if(i < c.x){
+      d[i] = textBuffer[current][i];
+    } else {
+      // 挿入部分後は１つずらす
+      if(i > c.x){
+        d[i] = textBuffer[current][i-1];
+      } else if(i == c.x){
+      // 挿入部分に代入
+        d[i] = ch;
+      }
+    }
+  }
+
+  //printf("current: %d\n", current);
+  //printf("lines: %d\n", lines);
+
+  move_right();
+  // 内容更新
+  strNcpy(textBuffer[current], d, length+1);
+}
+
+// 文字削除
+public void remove_char(){
+  // その行の内容が０なら後ろの行から詰める
+  if(strLen(textBuffer[current]) == 0){
+    for (int i = current ; i < lines; i = i + 1){
+      strCpy(textBuffer[i-1], textBuffer[i]);
+    }
+    lines = lines - 1;
+  } else {
+    // 後ろの文字を詰める
+    for(int i = c.x; i < strLen(textBuffer[current]); i = i + 1){
+      textBuffer[current][i] = textBuffer[current][i+1];
+    }
+    // 最後の文字はnullにする
+    textBuffer[current][strLen(textBuffer[current])] = '\0';
+  }
+}

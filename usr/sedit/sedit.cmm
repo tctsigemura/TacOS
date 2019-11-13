@@ -1,0 +1,158 @@
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+#include "buffer.hmm"
+
+#include <ctype.hmm>
+#ifndef C
+#include <syslib.hmm>                    // TaC版は一部のシステムコールを使う
+#include <crt0.hmm>                      // TaC版は _addrAdd を使用する
+#else
+void[] _addrAdd(void[] p, int i);        // C版ではマニュアルに無いが使用できる
+#endif
+
+char[] kbdBuf=array(BUFLEN + 1); // キー入力用
+
+int mode;     // 普通のモード
+int rawMode;  // １文字入力
+
+// 初期化
+void init(){
+  mode = ttyCtl(TTYCTL_GETMODE, 0);
+  rawMode = mode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;
+  b_init();
+}
+
+// 画面表示
+void display(){
+  // 画面クリア
+  printf("\x1b[2J\x1b[H");
+  int end = lines + 1;
+  if(end >  COLUMNS){
+    end = COLUMNS;
+  }
+  // 表示
+  for(int i = top; i < top + end; i = i + 1){
+    printf("%s", textBuffer[i]);
+  }
+  // カーソル移動
+  printf("\x1b[%d;%dH", (c.y+1), (c.x+1));
+}
+
+// ファイルから１行読み出す
+boolean getLine(char[] buf, int buflen, FILE fp) {
+  if (fgets(buf, buflen, fp) == null) {
+    return false;
+  }
+  if (strLen(buf) >= buflen) {
+    return false;
+  }
+  return true;
+}
+
+// 入力文字の処理
+void keyboard(char key){
+    // todo エスケープシーケンスで動くようにする
+    if (key == 'u'){  // up
+      move_up();
+      printf("\x1b[1A");
+      display();
+      return;
+    }else if (key == 'd'){  // down
+      move_down();
+      display();
+      return;
+    } else if (key == 'r'){ // right
+      move_right();
+      printf("\x1b[1C");
+      return;
+    } else if (key == 'l'){  // left
+      move_left();
+      printf("\x1b[1D");
+      return;
+    } else if (key == chr(9)){    // tab
+      for(int i = 0; i < 8; i = i + 1){
+        insert_char(' ');
+      }
+      return;
+    } else if (key == '\x7f'){    // del
+      remove_char();
+      display();
+      return;
+    } else if (key == '\r'){
+      insert_char('\n');
+      add_newline();
+      display();
+      return;
+    }
+    insert_char(key);
+    printf("%c", key);
+    return;
+}
+
+// ファイルの内容を処理
+void loadfile(char[] filename) {
+  FILE fp;
+  char ch;
+  fp = fopen(filename, "r"); // ファイルを開く
+  if (fp == null) {
+    perror(filename);
+  } else {
+    while(!feof(fp)) {
+      ch = fgetc(fp);
+      keyboard(ch);
+    }
+    fclose(fp);
+  }
+  display();
+}
+
+// ファイルに書き込む
+void savefile(char[] filename) {
+  #ifndef C
+    remove(filename);
+  #endif
+
+  FILE fp;
+  fp = fopen(filename, "w");
+  if (fp == null) {
+    perror(filename);
+    return;
+  }
+  for(int i = 0; i < lines; i = i + 1){
+    fprintf(fp, "%s", textBuffer[i]);
+  }
+  fclose(fp);
+}
+
+public int main(int argc, char[][] argv){
+  if(argc!=2){
+    fprintf(stderr, "Usage, %s <filename>\n", argv[0]);
+    return 1;
+  }
+  init();
+  char[] filename = argv[1];
+  loadfile(filename);
+  stdout.buf = null;  // printf \n なしで使えるようにする
+  printf("\x1b[2J\x1b[H");
+  char ch;
+
+  ttyCtl(TTYCTL_SETMODE, rawMode);
+  while(true){
+    // 文字入力
+    ttyRead(kbdBuf, 1);
+
+    // qを押したら終わり
+    // todo 終わり方をかんがえる
+    ch = kbdBuf[0];
+    if(ch == 'q'){
+      break;
+    }
+    keyboard(ch);
+  }
+  ttyCtl(TTYCTL_SETMODE, mode);
+
+  // save
+  savefile(filename);
+  return 0;
+}
