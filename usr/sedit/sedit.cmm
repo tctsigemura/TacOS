@@ -189,17 +189,6 @@ void display(){
   moveCursor();
 }
 
-// ファイルから１行読み出す
-boolean getLine(char[] buf, int buflen, FILE fp) {
-  if (fgets(buf, buflen, fp) == null) {
-    return false;
-  }
-  if (strLen(buf) >= buflen) {
-    return false;
-  }
-  return true;
-}
-
 // 入力文字の処理
 void keyboard(char key){
     // todo エスケープシーケンスで動くようにする
