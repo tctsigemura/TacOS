@@ -20,31 +20,25 @@ struct cursor{
   int y;
 };
 
-int top;    // 一番上にある行
+int top;    // 表示領域の一番上にある行
 int current;// 今の行
 int lines;  // 合計行数
 
-cursor c;
+cursor c = {0, 0};
 char[][] textBuffer = array(LINES, BUFLEN); // 入力文字格納用
 char[] kbdBuf=array(BUFLEN + 1);            // 入力用
 
 char[] d = array(BUFLEN + 2); // 行内容の更新用
-int mode;     // 普通のモード
-int rawMode;  // １文字入力
 
 // 初期化
 void init(){
   top = 0;
-  c.x = 0;
-  c.y = 0;
   current = 0;
   lines = 0;
-  mode = ttyCtl(TTYCTL_GETMODE, 0);
-  rawMode = mode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;
 }
 
 // カーソルを右へ
-void move_right(){
+void moveRight(){
   c.x = c.x + 1;
   // 最大数を超えない
   if(c.x >= ROWS){
@@ -53,8 +47,8 @@ void move_right(){
 }
 
 //　カーソルを左へ
-void move_left(){
-  c.x = c.x - 1
+void moveLeft(){
+  c.x = c.x - 1;
   // 0より小さくならない
   if(c.x > 0){
     c.x = 0;
@@ -62,7 +56,7 @@ void move_left(){
 }
 
 // カーソルを下へ
-void move_down(){
+void moveDown(){
   if(current == lines){
     return;
   }
@@ -80,7 +74,7 @@ void move_down(){
 }
 
 // カーソルを上へ
-void move_up(){
+void moveUp(){
   if(current == 0){
     return;
   }
@@ -98,10 +92,10 @@ void move_up(){
 }
 
 // 新しい行追加
-void add_newline(){
+void addNewLine(){
   int i;
   lines = lines + 1;
-  move_down();
+  moveDown();
 
   // 行の挿入の場合は現在行から後ろをずらす
   if (current != lines){
@@ -113,12 +107,12 @@ void add_newline(){
 }
 
 // 文字挿入
-void insert_char(char ch){
+void insertChar(char ch){
   int i;
   int length = strLen(textBuffer[current]) + 1; // 挿入後の文字数
 
   if (length == ROWS){
-    add_newline();
+    addNewLine();
     length = 1; // 挿入後の文字数
   }
 
@@ -142,13 +136,13 @@ void insert_char(char ch){
     }
   }
 
-  move_right();
+  moveRight();
   // 内容更新
   strNcpy(textBuffer[current], d, length);
 }
 
 // 文字削除
-void remove_char(){
+void removeChar(){
   // その行の内容が０なら後ろの行から詰める
   if(strLen(textBuffer[current]) == 0){
     if(current == 0){
@@ -158,7 +152,7 @@ void remove_char(){
       strCpy(textBuffer[i-1], textBuffer[i]);
     }
     lines = lines - 1;
-    move_up();
+    moveUp();
     c.x = strLen(textBuffer[current]) - 1;
   } else {
     // 後ろの文字を詰める
@@ -205,51 +199,51 @@ boolean getLine(char[] buf, int buflen, FILE fp) {
 void keyboard(char key){
     // todo エスケープシーケンスで動くようにする
     if (key == 'u'){  // up
-      move_up();
+      moveUp();
       printf("\x1b[1A");
       display();
       return;
     }else if (key == 'd'){  // down
-      move_down();
+      moveDown();
       display();
       return;
     } else if (key == 'r'){ // right
-      move_right();
+      moveRight();
       printf("\x1b[1C");
       return;
     } else if (key == 'l'){  // left
-      move_left();
+      moveLeft();
       printf("\x1b[1D");
       return;
     } else if (key == chr(9)){    // tab
       for(int i = 0; i < 8; i = i + 1){
-        insert_char(' ');
+        insertChar(' ');
       }
       return;
     } else if (key == '\x08'){    // del
-      remove_char();
-      move_left();
+      removeChar();
+      moveLeft();
       display();
       return;
     } else if (key == '\r' || key == '\n'){
       printf("\r");
-      insert_char('\n');
-      add_newline();
+      insertChar('\n');
+      addNewLine();
       display();
       return;
     }
-    insert_char(key);
+    insertChar(key);
     printf("%c", key);
     return;
 }
 
 // ファイルの内容を処理
-void loadfile(char[] filename) {
+void loadFile(char[] fileName) {
   FILE fp;
   char ch;
-  fp = fopen(filename, "r"); // ファイルを開く
+  fp = fopen(fileName, "r"); // ファイルを開く
   if (fp == null) {
-    perror(filename);
+    perror(fileName);
     printf("\x1b[2J\x1b[H");
   } else {
     while(!feof(fp)) {
@@ -261,18 +255,18 @@ void loadfile(char[] filename) {
 }
 
 // ファイルに書き込む
-void savefile(char[] filename) {
+void saveFile(char[] fileName) {
   #ifndef C
-    remove(filename);
+    remove(fileName);
   #endif
 
   FILE fp;
-  fp = fopen(filename, "w");
+  fp = fopen(fileName, "w");
   if (fp == null) {
-    perror(filename);
+    perror(fileName);
     return;
   }
-  for(int i = 0; i < lines; i = i + 1){
+  for(int i = 0; i <= lines; i = i + 1){
     fprintf(fp, "%s", textBuffer[i]);
   }
   fclose(fp);
@@ -284,15 +278,18 @@ public int main(int argc, char[][] argv){
     return 1;
   }
   init();
-  char[] filename = argv[1];
+  char[] fileName = argv[1];
+
+  int orgMode = ttyCtl(TTYCTL_GETMODE, 0);     // 普通のモード
+  int rawMode = mode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;  // １文字入力
+
   stdout.buf = null;  // printf \n なしで使えるようにする
   printf("\x1b[2J\x1b[H");
 
   char ch;
-  loadfile(filename);
+  loadFile(fileName);
 
   ttyCtl(TTYCTL_SETMODE, rawMode);
-
   while(true){
     // 文字入力
     ttyRead(kbdBuf, 1);
@@ -305,9 +302,10 @@ public int main(int argc, char[][] argv){
     }
     keyboard(ch);
   }
+  ttyCtl(TTYCTL_SETMODE, orgMode);
+
   // save
-  ttyCtl(TTYCTL_SETMODE, mode);
-  savefile(filename);
+  saveFile(fileName);
 
   printf("\r\n");
   return 0;
