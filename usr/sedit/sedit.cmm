@@ -156,12 +156,18 @@ void removeChar(){
     c.x = strLen(textBuffer[current]) - 1;
   } else {
     // 後ろの文字を詰める
+    // fixme \rをけすと\nがのこるためカーソルが一段さがる
     for(int i = c.x; i < strLen(textBuffer[current]); i = i + 1){
       textBuffer[current][i] = textBuffer[current][i+1];
     }
     // 最後の文字はnullにする
     textBuffer[current][strLen(textBuffer[current])] = '\0';
   }
+}
+
+void moveCursor(){
+  // カーソル移動
+  printf("\x1b[%d;%dH", (c.y+1), (c.x+1));
 }
 
 // 画面表示
@@ -180,8 +186,7 @@ void display(){
       printf("\n");
     }
   }
-  // カーソル移動
-  printf("\x1b[%d;%dH", (c.y+1), (c.x+1));
+  moveCursor();
 }
 
 // ファイルから１行読み出す
