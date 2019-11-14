@@ -196,7 +196,10 @@ void display(){
 // 入力文字の処理
 void keyboard(char key){
     // todo エスケープシーケンスで動くようにする
-    if (key == 'u'){  // up
+    if(key == '\x1b'){
+      isEsc = true;
+      return;
+    } else if (key == 'u'){  // up
       moveUp();
       printf("\x1b[1A");
       display();
@@ -296,7 +299,7 @@ public int main(int argc, char[][] argv){
     // qを押したら終わり
     // todo 終わり方をかんがえる
     ch = kbdBuf[0];
-    if(ch == 'q'){
+    if(isEsc && ch == 'q'){
       break;
     }
     keyboard(ch);
