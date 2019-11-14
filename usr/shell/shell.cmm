@@ -40,6 +40,7 @@
 #include <ctype.hmm>
 #include <syslib.hmm>
 #include <crt0.hmm>
+#include <environ.hmm>
 
 #define LMAX 80                                   // 1行最大 80 文字
 #define ARGMAX 30                                 // コマンド業引数は最大30個
@@ -87,9 +88,10 @@ boolean parse(char[] line) {
   argv[i] = null;                                 // argv配列を完成する
   return false;                                   // 正常に解析できた
 }
-char[][] envp = array(4);
+
 public int main() {
   fprintf(stderr, "TacOS Shell\n");
+  putEnv("PWD=/");
 
   char[] buf = malloc(LMAX+1);                    // キー入力文字列格納用
   for (;;) {
@@ -118,12 +120,8 @@ public int main() {
     strCat(cmd, argv[0]);
     strCat(cmd, EXE);
 
-
-    envp[0] = "PWD=/";
-    envp[1] = null;
-
     sta[0] = 0;                                   // エラー番号をクリア
-    if (exec(cmd, argv, envp)<0) perror(cmd);     // コマンドを実行
+    if (exec(cmd, argv, environ)<0) perror(cmd);  // コマンドを実行
     else if (wait(sta)<0)  perror(cmd);           // コマンドの終了を待つ
 
     if (sta[0]<0) _perror(argv[0], sta[0]);       // 異常終了のエラー表示
