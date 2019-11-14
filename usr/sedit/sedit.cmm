@@ -286,7 +286,7 @@ public int main(int argc, char[][] argv){
   char[] fileName = argv[1];
 
   int orgMode = ttyCtl(TTYCTL_GETMODE, 0);     // 普通のモード
-  int rawMode = mode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;  // １文字入力
+  int rawMode = orgMode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;  // １文字入力
 
   stdout.buf = null;  // printf \n なしで使えるようにする
   printf("\x1b[2J\x1b[H");
