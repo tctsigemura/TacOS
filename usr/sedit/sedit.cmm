@@ -199,22 +199,25 @@ void keyboard(char key){
     if(key == '\x1b'){
       isEsc = true;
       return;
-    } else if (key == 'u'){  // up
-      moveUp();
-      printf("\x1b[1A");
-      display();
-      return;
-    }else if (key == 'd'){  // down
-      moveDown();
-      display();
-      return;
-    } else if (key == 'r'){ // right
-      moveRight();
-      printf("\x1b[1C");
-      return;
-    } else if (key == 'l'){  // left
-      moveLeft();
-      printf("\x1b[1D");
+    } else if(isEsc){
+      if (key == 'A'){  // up
+        moveUp();
+        printf("\x1b[1A");
+        display();
+        isEsc = false;
+      }else if (key == 'B'){  // down
+        moveDown();
+        display();
+        isEsc = false;
+      } else if (key == 'C'){ // right
+        moveRight();
+        printf("\x1b[1C");
+        isEsc = false;
+      } else if (key == 'D'){  // left
+        moveLeft();
+        printf("\x1b[1D");
+        isEsc = false;
+      }
       return;
     } else if (key == chr(9)){    // tab
       for(int i = 0; i < 8; i = i + 1){
@@ -309,7 +312,6 @@ public int main(int argc, char[][] argv){
   // save
   saveFile(fileName);
 
-  clear();
   printf("\r\n");
   return 0;
 }
