@@ -59,6 +59,7 @@
  * 2015.02.11 : 村田開発開始
  */
 
+#include <errno.hmm>
 #include <util.hmm>
 #include <kernel.hmm>
 #include <syscall.hmm>

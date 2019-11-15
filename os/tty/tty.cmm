@@ -40,6 +40,7 @@
  *
  */
 
+#include <syslib.hmm>
 #include <util.hmm>
 #include <kernel.hmm>
 #include <syscall.hmm>
