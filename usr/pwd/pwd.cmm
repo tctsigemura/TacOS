@@ -1,0 +1,10 @@
+//
+// pwd.cmm : カレントディレクトリを表示する
+//
+#include <stdio.hmm>
+#include <stdlib.hmm>
+
+public int main() {
+  printf("%s\n", getEnv("PWD"));
+  return 0;
+}
