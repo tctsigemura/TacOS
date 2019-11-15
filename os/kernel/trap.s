@@ -57,13 +57,14 @@
 ;10     read
 ;11     write
 ;12     seek
-;13     ttyRead
-;14     ttyWrite
-;15     ttyCtl
-;16     malloc
-;17     free
+;13     stat
+;14     ttyRead
+;15     ttyWrite
+;16     ttyCtl
+;17     malloc
+;18     free
 
-.nSys   equ     16          ; システムコール数を定義
+.nSys   equ     17          ; システムコール数を定義
 
 ; .sysTbl ラベルは dw と同じ行に書くこと(同じセグメントのラベルにするため)
 .sysTbl dw      _exec       ; 0  exec
@@ -79,10 +80,11 @@
         dw      _read       ; 10 read
         dw      _write      ; 11 write
         dw      _seek       ; 12 seek
-        dw      _ttyRead    ; 13 ttyRead
-        dw      _ttyWrite   ; 14 ttyWrite
-        dw      _ttyCtl     ; 15 ttyCtl
-; MM の malloc(#16)と free(#17)は OS 内部専用システムコールなので SVC で扱わない
+        dw      _stat       ; 13 stat
+        dw      _ttyRead    ; 14 ttyRead
+        dw      _ttyWrite   ; 15 ttyWrite
+        dw      _ttyCtl     ; 16 ttyCtl
+; MM の malloc(#17)と free(#18)は OS 内部専用システムコールなので SVC で扱わない
 
 ; ---------------------------- SVC ハンドラ(トラップ) -------------------------
 ; システムコール番号でインデックスされたシステムコールテーブル(sysTbl)から、

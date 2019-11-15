@@ -133,3 +133,12 @@ public int write(int fd, void[] buf, int len);
  *   解説   : ファイルの参照位置を変更する
  */
 public int seek(int fd, int ptrh, int ptrl);
+
+/*----------------------------------------------------------------------------
+ *   名前   : stat
+ *　 戻り値 : int (正常なら0、失敗なら<0)
+ *　 引数   : int path　ファイルへのパス
+ *            void[] stat  ファイルの情報を格納する構造体 Stat
+ *   解説   : ファイルの情報を取得する
+ */
+public int stat(char[] path, void[] stat);

@@ -22,6 +22,7 @@
 /*
  * fs/fatSys.cmm : FAT16 ファイルシステムのシステムコール処理部分
  *
+ * 2019.11.15 : stat システムコールを実装
  * 2018.12.03 : ディレクトリエントリの削除に関するバグを修正
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.06 : コードレビューを反映
@@ -108,7 +109,7 @@ boolean validName(char[] s) {
 // lastIdx : 文字列 s 中において、文字 c が最後に出現する位置を返す
 // 返り値  : 文字 c が最後に出現した位置(<0:出現しなかった)
 // 引数 s  : 探索対象文字列
-//      c  : 探索する文字 
+//      c  : 探索する文字
 int lastIdx(char[] s, char c){
   int r = -1;                                   // 最後に出現する c の位置
   for (int i=0; s[i]!='\0'; i=i+1)              // s の最初から最後まで
@@ -129,7 +130,7 @@ int getFStr(char[] path, int p, int q, char[] str, int ofs, int n) {
   while (p<q && (c=path[p])!='.' && c!='/') {   // 区切り文字以外の間
     if (i<n) {                                  // 制限字数未満ならば
       str[ofs+i] = toUpper(c);                  //   文字を取り出す
-      i = i + 1;  
+      i = i + 1;
     }                                           // 制限文字数を超えたら
     p = p + 1;                                  //   読み捨てる
   }
@@ -227,7 +228,7 @@ boolean isOpened(int dirClst, int dirEnt) {
     if (f!=null && f.dirClst==dirClst &&        //   同じ DIR エントリがないか
         f.dirEnt==dirEnt)                       //     調べる
       return true;
-  } 
+  }
   return false;                                 // オープンされていない
 }
 
@@ -287,7 +288,7 @@ public int sysClose(int idx, PCB pcb) {
   File f = chkIdx(pcb, idx);                    // IDX と FD が正しい値か確認
   if (f==null) return EBADF;                    // エラー
 
-  if (f.mode!=READ_MODE) {                      // WRITE_MODE か APPEND_MODE 
+  if (f.mode!=READ_MODE) {                      // WRITE_MODE か APPEND_MODE
     flushBuf(f);                                //   バッファをフラッシュする
     flushDirEnt();                              //   念のため dirCache も
     flushFat();                                 //   念のため fatCache も
@@ -402,7 +403,7 @@ public int sysMkDir(char[] path) {
   if ((r=mkDirEnt(path))<0) return r;           // 新しいエントリをつくる
   curEnt.attr = 0x10;                           // ディレクトリを表す属性
   if ((curEnt.clst=initDirEnt(UNASSIGN))==UNASSIGN)// クラスタを割り当てて初期化
-    return ENOSPC;                              //   領域不足 
+    return ENOSPC;                              //   領域不足
   writeDirEnt(curEnt);                          // DIR エントリを書き込む
 
   // baseName のデータ領域の先頭に '.' エントリを書き込む
@@ -436,7 +437,7 @@ void delFile() {
   delClstChain(curEnt.clst);                    // クラスタチェーンを解放する
   curEnt.name[0] = '\x05';                      // エントリを「削除」に変更
                                                 // (dirAccessが0xe5に変換する）
-  writeDirEnt(curEnt);                          // DIR エントリを書き込む 
+  writeDirEnt(curEnt);                          // DIR エントリを書き込む
   flushDirEnt();                                // 念のためにフラッシュ
   flushFat();                                   // 念のためにフラッシュ
 }
@@ -497,5 +498,15 @@ public int sysSeek(PCB pcb, int idx, int posH, int posL) {
   } else {
     return EINVAL;                              // READ ではファイルは伸びない
   }
+  return 0;
+}
+
+// stat システムコール
+public int sysStat(char[] path, Stat stat) {
+  if (!srchPath(path, strLen(path))) return ENOENT;// ファイルが見つからない
+  stat.attr = curEnt.attr;
+  stat.clst = curEnt.clst;
+  stat.lenH = curEnt.lenH;
+  stat.lenL = curEnt.lenL;
   return 0;
 }
