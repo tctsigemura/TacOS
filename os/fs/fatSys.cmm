@@ -48,6 +48,7 @@
  *
  */
 
+#include <errno.hmm>
 #include <util.hmm>
 #include <mm.hmm>
 #include <syscall.hmm>

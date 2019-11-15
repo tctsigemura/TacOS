@@ -70,7 +70,3 @@ public int ttyCtl(int request, int mode);
  *   解説   : ttyを初期化する
  */
 public void ttyInit();
-
-// ttyCtl() に渡す request 番号
-#define TTYCTL_GETMODE        0
-#define TTYCTL_SETMODE        1

@@ -94,6 +94,7 @@
 // クリティカルセクションは setPri() で囲む
 // プロセス間通信(IPC)をリンクで実現
 
+#include <errno.hmm>
 #include <sio.hmm>
 #include <util.hmm>
 #include <mm.hmm>
