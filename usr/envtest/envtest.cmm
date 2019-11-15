@@ -29,7 +29,7 @@
  */
 
 #include <stdio.hmm>
-#include <environ.hmm>
+#include <stdlib.hmm>
 #ifndef C
 #include <crt0.hmm>
 #endif
