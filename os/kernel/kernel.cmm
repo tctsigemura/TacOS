@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2019.11.18 : errno.hmm をインクルードするように変更
  * 2019.10.09 : ttyの非サーバ化に伴い、TTYのプロセス作成部分を削除
  * 2019.08.30 : main() で sioInit() と semInit() の順番を訂正（バグ）
  * 2019.06.13 : VGA, PS2を削除
@@ -100,6 +101,7 @@
 #include <pm.hmm>
 #include <fs.hmm>
 #include <tty.hmm>
+#include <errno.hmm>
 #include "dispatcher.hmm"
 #include "init.hmm"
 #include "trap.hmm"

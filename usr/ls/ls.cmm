@@ -37,7 +37,7 @@ int[] fLen = array(2);
 
 // ディレクトリの一覧を表示する
 int printDir(char[] fname) {
-  int fd = open(fname, READ);                   // ディレクトリを開く
+  int fd = open(fname, O_RDONLY);               // ディレクトリを開く
   if (fd<0) {
     perror(fname);
     return 1;
