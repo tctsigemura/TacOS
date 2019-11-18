@@ -80,6 +80,8 @@ int fatFsSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
     rs = sysWrite(pcb,prm1, _ItoA(prm2), prm3);       // write(pcb,idx,buf,len)
   } else if (op==SEEK) {
     rs = sysSeek(pcb, prm1, prm2, prm3);              // seek(pcb,idx,posH,posL)
+  } else if (op==STAT) {
+    rs = sysStat(_ItoA(prm1), _ItoA(prm2));           // stat(path,stat)
   } else  rs = -1;                                    // どれでもなければエラー
   return rs;
 }
@@ -155,3 +157,8 @@ public int seek(int fd, int ptrh, int ptrl) {
  return r;
 }
 
+// stat システムコール
+public int stat(char[] path, void[] stat) {
+ int r = sndrec(fsLink, STAT, _AtoI(path), _AtoI(stat), 0);
+ return r;
+}
