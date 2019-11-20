@@ -1,0 +1,125 @@
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+#include "buffer.hmm"
+#include "display.hmm"
+
+public cursor c = {0, 0};
+public char[][] textBuffer = array(LINES, BUFLEN); // 書き込まれた文字保存用
+
+char[] updatedArray = array(BUFLEN + 2); // 行内容の更新用
+
+// 初期化
+public void init(){
+  top = 0;
+  current = 0;
+  lines = 0;
+}
+
+// カーソルを右へ
+public void moveRight(){
+  c.x = c.x + 1;
+  // 最大数を超えない
+  if(c.x >= ROWS){
+    c.x = ROWS - 1;
+  }
+}
+
+//　カーソルを左へ
+public void moveLeft(){
+  c.x = c.x - 1;
+  // 0より小さくならない
+  if(c.x < 0){
+    c.x = 0;
+  }
+}
+
+// カーソルを下へ
+public void moveDown(){
+  if(current+1 > lines){
+    return;
+  }
+  c.x = 0;  // xを左端に移動
+  c.y = c.y + 1;
+  current = current + 1;
+
+  if(c.y == COLUMNS){
+    c.y = COLUMNS - 1;
+    // 下に表示可能な部分があれば一番上の行を更新
+    if(top + (COLUMNS-1) < lines){
+      top = top + 1;
+    }
+  }
+}
+
+// カーソルを上へ
+public void moveUp(){
+  if(current == 0){
+    return;
+  }
+  c.x = 0;
+  current = current - 1;
+  c.y = c.y - 1;
+
+  if(c.y < 0){
+    c.y = 0;
+    // 上に表示可能な部分があれば一番上の行を更新
+    if(top > 0){
+      top = top - 1;
+    }
+  }
+}
+
+// 新しい行追加
+public void addNewLine(){
+  lines = lines + 1;
+  moveDown();
+
+  // 行の挿入の場合は現在行から後ろをずらす
+  if (current != lines){
+    for(int i = lines; current < i; i = i - 1){
+      strCpy(textBuffer[i], textBuffer[i-1]);
+    }
+  }
+  c.x = 0;
+}
+
+// 文字挿入
+public void insertChar(char ch){
+  int length = strLen(textBuffer[current]) + 1; // 挿入後の文字数
+  printBufferInfo();
+  // 入力する場所が右端
+  if (length == ROWS){
+    addNewLine();
+    length = 1; // 挿入後の文字数
+  }
+
+  for(int i = length-1; i > c.x; i = i - 1){
+    textBuffer[current][i] = textBuffer[current][i-1];
+  }
+  textBuffer[current][c.x] = ch;
+}
+
+// 文字削除
+public void removeChar(){
+  // その行の内容が０なら後ろの行から詰める
+  if(strLen(textBuffer[current]) == 0){
+    if(current == 0){
+      return;
+    }
+    for (int i = current ; i < lines; i = i + 1){
+      strCpy(textBuffer[i-1], textBuffer[i]);
+    }
+    lines = lines - 1;
+    moveUp();
+    c.x = strLen(textBuffer[current]) - 1;
+  } else {
+    // 後ろの文字を詰める
+    // fixme \rをけすと\nがのこるためカーソルが一段さがる
+    for(int i = c.x; i <= strLen(textBuffer[current]); i = i + 1){
+      textBuffer[current][i] = textBuffer[current][i+1];
+    }
+    // 最後の文字はnullにする
+    textBuffer[current][strLen(textBuffer[current])] = '\0';
+  }
+}

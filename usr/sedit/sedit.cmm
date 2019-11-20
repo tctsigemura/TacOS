@@ -1,213 +1,28 @@
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
-
-#include <ctype.hmm>
-#ifndef C
 #include <syslib.hmm>                    // TaC版は一部のシステムコールを使う
-#include <crt0.hmm>                      // TaC版は _addrAdd を使用する
-#else
-void[] _addrAdd(void[] p, int i);        // C版ではマニュアルに無いが使用できる
-#endif
+#include "buffer.hmm"
+#include "display.hmm"
 
-#define ROWS 80
-#define COLUMNS 24
-#define LINES 150
-#define BUFLEN 80
-
-struct cursor{
-  int x;
-  int y;
-};
-
-int top;    // 表示領域の一番上にある行
-int current;// 今の行
-int lines;  // 合計行数
-
-cursor c = {0, 0};
-char[][] textBuffer = array(LINES, BUFLEN); // 入力文字格納用
-char[] kbdBuf=array(BUFLEN + 1);            // 入力用
-
-char[] d = array(BUFLEN + 2); // 行内容の更新用
-
-// 初期化
-void init(){
-  top = 0;
-  current = 0;
-  lines = 0;
-}
-
-// カーソルを右へ
-void moveRight(){
-  c.x = c.x + 1;
-  // 最大数を超えない
-  if(c.x >= ROWS){
-    c.x = ROWS - 1;
-  }
-}
-
-//　カーソルを左へ
-void moveLeft(){
-  c.x = c.x - 1;
-  // 0より小さくならない
-  if(c.x > 0){
-    c.x = 0;
-  }
-}
-
-// カーソルを下へ
-void moveDown(){
-  if(current == lines){
-    return;
-  }
-  c.x = 0;  // xを左端に移動
-  c.y = c.y + 1;
-  current = current + 1;
-
-  if(c.y >= COLUMNS){
-    c.y = COLUMNS - 1;
-    // 下に表示可能な部分があれば一番上の行を更新
-    if(top + (COLUMNS-1) < lines){
-      top = top + 1;
-    }
-  }
-}
-
-// カーソルを上へ
-void moveUp(){
-  if(current == 0){
-    return;
-  }
-  c.x = 0;
-  current = current - 1;
-  c.y = c.y - 1;
-
-  if(c.y < 0){
-    c.y = 0;
-    // 上に表示可能な部分があれば一番上の行を更新
-    if(top > 0){
-      top = top - 1;
-    }
-  }
-}
-
-// 新しい行追加
-void addNewLine(){
-  int i;
-  lines = lines + 1;
-  moveDown();
-
-  // 行の挿入の場合は現在行から後ろをずらす
-  if (current != lines){
-    for(i = lines; i > current; i = i - 1){
-      strCpy(textBuffer[i], textBuffer[i-1]);
-    }
-  }
-  c.x = 0;
-}
-
-// 文字挿入
-void insertChar(char ch){
-  int i;
-  int length = strLen(textBuffer[current]) + 1; // 挿入後の文字数
-
-  if (length == ROWS){
-    addNewLine();
-    length = 1; // 挿入後の文字数
-  }
-
-  for(i = 0; i < BUFLEN + 2; i = i + 1){
-    d[i] = '\0';
-  }
-
-  // 更新する情報を作成
-  for(i = 0; i < length; i = i + 1){
-    // 挿入部分まではそのまま
-    if(i < c.x){
-      d[i] = textBuffer[current][i];
-    } else {
-      // 挿入部分後は１つずらす
-      if(i > c.x){
-        d[i] = textBuffer[current][i-1];
-      } else if(i == c.x){
-      // 挿入部分に代入
-        d[i] = ch;
-      }
-    }
-  }
-
-  moveRight();
-  // 内容更新
-  strNcpy(textBuffer[current], d, length);
-}
-
-// 文字削除
-void removeChar(){
-  // その行の内容が０なら後ろの行から詰める
-  if(strLen(textBuffer[current]) == 0){
-    if(current == 0){
-      return;
-    }
-    for (int i = current ; i < lines; i = i + 1){
-      strCpy(textBuffer[i-1], textBuffer[i]);
-    }
-    lines = lines - 1;
-    moveUp();
-    c.x = strLen(textBuffer[current]) - 1;
-  } else {
-    // 後ろの文字を詰める
-    // fixme \rをけすと\nがのこるためカーソルが一段さがる
-    for(int i = c.x; i < strLen(textBuffer[current]); i = i + 1){
-      textBuffer[current][i] = textBuffer[current][i+1];
-    }
-    // 最後の文字はnullにする
-    textBuffer[current][strLen(textBuffer[current])] = '\0';
-  }
-}
-
-void clear(){
-  printf("\x1b[2J\x1b[H");
-}
-
-void moveCursor(){
-  // カーソル移動
-  printf("\x1b[%d;%dH", (c.y+1), (c.x+1));
-}
-
-// 画面表示
-void display(){
-  // 画面クリア
-  printf("\x1b[2J\x1b[H");
-  int end = lines + 1;
-  if(end >  COLUMNS){
-    end = COLUMNS;
-  }
-  // 表示
-  for(int i = top; i < top + end; i = i + 1){
-    printf("\r");
-    printf("%s", textBuffer[i]);
-    if (strRchr(textBuffer[i], '\n') == -1) {
-      printf("\n");
-    }
-  }
-  moveCursor();
-}
+char[] kbdBuf = array(BUFLEN + 1);            // 入力用
+boolean isEsc= false;
 
 // 入力文字の処理
 void keyboard(char key){
-    // todo エスケープシーケンスで動くようにする
     if(key == '\x1b'){
       isEsc = true;
       return;
     } else if(isEsc){
       if (key == 'A'){  // up
         moveUp();
+        displayAll();
         printf("\x1b[1A");
-        display();
         isEsc = false;
       }else if (key == 'B'){  // down
         moveDown();
-        display();
+        displayAll();
+        printf("\x1b[1B");
         isEsc = false;
       } else if (key == 'C'){ // right
         moveRight();
@@ -219,24 +34,24 @@ void keyboard(char key){
         isEsc = false;
       }
       return;
-    } else if (key == chr(9)){    // tab
-      for(int i = 0; i < 8; i = i + 1){
-        insertChar(' ');
-      }
-      return;
-    } else if (key == '\x08'){    // del
+    } else if (key == '\x7f'){    // del
       removeChar();
       moveLeft();
-      display();
+      displayAll();
+      moveCursor();
       return;
     } else if (key == '\r' || key == '\n'){
       printf("\r");
       insertChar('\n');
       addNewLine();
-      display();
+      if (lines >= COLUMNS){
+        displayAll();
+      }
+      moveCursor();
       return;
     }
     insertChar(key);
+    moveRight();
     printf("%c", key);
     return;
 }
@@ -260,9 +75,7 @@ void loadFile(char[] fileName) {
 
 // ファイルに書き込む
 void saveFile(char[] fileName) {
-  #ifndef C
-    remove(fileName);
-  #endif
+  remove(fileName);
 
   FILE fp;
   fp = fopen(fileName, "w");
@@ -300,7 +113,6 @@ public int main(int argc, char[][] argv){
     ttyRead(kbdBuf, 1);
 
     // qを押したら終わり
-    // todo 終わり方をかんがえる
     ch = kbdBuf[0];
     if(isEsc && ch == 'q'){
       break;
@@ -311,6 +123,10 @@ public int main(int argc, char[][] argv){
 
   // save
   saveFile(fileName);
+
+  for(int i = 0; i <= lines; i = i + 1){
+    printf("%d: %s", i, textBuffer[i]);
+  }
 
   printf("\r\n");
   return 0;
