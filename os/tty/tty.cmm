@@ -60,7 +60,7 @@ int readSem, writeSem;
 //   クライアントプロセスが下位のルーチンを呼出す
 //----------------------------------------------------------------------------
 // ttyRead システムコール
-public int ttyRead(char[] buf, int len) {
+public int ttyRead(void[] buf, int len) {
   if (len<0) return -1;                                 // len<0 ならエラー
   semP(readSem);
   int r = getStr(buf, len);
@@ -69,7 +69,7 @@ public int ttyRead(char[] buf, int len) {
 }
 
 // ttyWrite システムコール
-public int ttyWrite(char[] buf, int len) {
+public int ttyWrite(void[] buf, int len) {
   if (len<0) return -1;                                 // len<0 ならエラー
   semP(writeSem);
   int r = putStr(buf, len);

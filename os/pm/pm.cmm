@@ -192,19 +192,30 @@ int relocate() {
   return 0;                                         // 正常終了
 }
 
+// スタックに文字列の配列をコピーする (返り値: strAddr)
+int copyCA(int[] USP, int index, int strAddr, char[][] ary, int size) {
+  for (int i=0; i<size; i=i+1) {                    // すべての要素について
+    USP[index + i] = strAddr;                       //   参照配列位置格納
+    strCpy(_ItoA(strAddr), ary[i]);                 //   文字列をコピー
+    strAddr = strAddr + strLen(ary[i]) + 1;         //   文字列格納位置を進める
+  }
+  USP[index + size] = 0x0000;                       // null を格納
+  return strAddr;
+}
+
 // スタックの底に argc, argv, envp, argv[0], ... を格納する
 void copyArgsEnvp(char[][] argv, char[][] envp) {
   // スタックの底に確保する領域のサイズを計算する
-  int st = 2 + 2 + 2 + 2 + 2;                       // argc + argv + envp + null + null
+  int st = 2 + 2 + 2 + 2 + 2;                       // 文字列以外
   int argc = 0;                                     // コマンド行引数の個数
   while (argv!=null && argv[argc]!=null) {          // コマンド行引数について
     st = st + strLen(argv[argc]) + 1 + 2;           //  argv 配列と文字列の領域
     argc = argc + 1;                                //   サイズを合計していく
   }
   int envs = 0;                                     // 環境変数の個数
-  while (envp!=null && envp[envs]!=null) {
-    st = st + strLen(envp[envs]) + 1 + 2;           //   文字列へのポインタと文字列の領域
-    envs = envs + 1;
+  while (envp!=null && envp[envs]!=null) {          // 環境変数について
+    st = st + strLen(envp[envs]) + 1 + 2;           //  envp 配列と文字列の領域
+    envs = envs + 1;                                //   サイズを合計していく
   }
   usp = usp - ((st+1) & ~1);                        // スタックの終了位置調整
 
@@ -216,39 +227,15 @@ void copyArgsEnvp(char[][] argv, char[][] envp) {
 
   USP[0] = argc;                                    // argc 格納
   USP[1] = argvAddr;                                // argv 参照配列の位置
-  USP[2] = envpAddr;
-# if DEBUG
-  printF("USP[0] = argc = 0x%04x\n", argc);
-  printF("USP[1] = argv = 0x%04x\n", argvAddr);
-  printF("USP[2] = envp = 0x%04x\n", envpAddr);
-# endif
+  USP[2] = envpAddr;                                // envp 参照配列の位置
 
   int index = 3;                                    // 配列のインデックス
 
   // argv の格納
-  for (int i=0; i<argc; i=i+1) {                    // コマンド行引数回
-#   if DEBUG
-      printF("USP[%d] = argv[%d] = 0x%04x\n", index, i, strAddr);
-#   endif
-    USP[index] = strAddr;                           //   argv 参照配列位置格納
-    strCpy(_ItoA(strAddr), argv[i]);                //   コマンド行引数をコピー
-    strAddr = strAddr + strLen(argv[i]) + 1;        //   文字列格納位置を進める
-    index = index + 1;
-  }
-  USP[index] = 0x0000;                              // null 格納
-  index = index + 1;
+  strAddr = copyCA(USP, index, strAddr, argv, argc);
+  index = index + argc + 1;
   // envp の格納
-  for (int i=0; i<envs; i=i+1) {
-#   if DEBUG
-      printF("USP[%d] = envp[%d] = 0x%04x\n", index, i, strAddr);
-      printF("\n");
-#   endif
-    USP[index] = strAddr;
-    strCpy(_ItoA(strAddr), envp[i]);
-    strAddr = strAddr + strLen(envp[i]) + 1;
-    index = index + 1;
-  }
-  USP[index] = 0x0000;                              // null 格納
+  strAddr = copyCA(USP, index, strAddr, envp, envs);
 }
 
 // exec システムコールの処理をする
@@ -316,8 +303,8 @@ halt();
 
 int pmSysCall(int op, int prm1, int prm2, int prm3, PCB client) {
   int r = -1;
-  if (op==EXEC) {
-    r = sysExec(_ItoA(prm1), _ItoA(prm2), _ItoA(prm3), client);// exec(path,argv,parent)
+  if (op==EXEC) { // exec(path,argv,parent)
+    r = sysExec(_ItoA(prm1), _ItoA(prm2), _ItoA(prm3), client);
   } else
     r = -1;                                         // どれでもなければエラー
   return r;
