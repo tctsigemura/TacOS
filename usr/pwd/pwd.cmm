@@ -5,6 +5,8 @@
 #include <stdlib.hmm>
 
 public int main() {
-  printf("%s\n", getEnv("PWD"));
+  char[] pwd = getEnv("PWD");
+  if (pwd == null) pwd = "(null)";
+  printf("%s\n", pwd);
   return 0;
 }

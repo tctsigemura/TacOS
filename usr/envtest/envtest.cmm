@@ -34,12 +34,7 @@
 #include <crt0.hmm>
 #endif
 
-void showEnvs(char[][] envp) {
-  printf("envp:\n");
-  for (int i = 0; envp[i]!=null; i=i+1) {
-    printf("  envp[%d]: %s\n", i, envp[i]);
-  }
-
+void showEnvs() {
   printf("environ:\n");
   for (int i = 0; environ[i]!=null; i=i+1) {
     printf("  environ[%d]: %s\n", i, environ[i]);
@@ -49,7 +44,7 @@ void showEnvs(char[][] envp) {
 void testGetEnv(char[] name) {
   char[] value = getEnv(name);
   if (value == null) value = "(null)";
-    printf("getEnv(%s): %s\n", name, value);
+  printf("getEnv(%s): %s\n", name, value);
 }
 
 void testPutEnv(char[] string) {
@@ -83,7 +78,7 @@ public int main(int argc, char[][] argv, char[][] envp) {
     printf("  argv[%d] = \"%s\"\n", i, argv[i]);
   }
 
-  showEnvs(envp);
+  showEnvs();
 
   testSetEnv("TEST", "Hello!", true);
   testGetEnv("TEST");
@@ -93,7 +88,7 @@ public int main(int argc, char[][] argv, char[][] envp) {
 
   testGetEnv("NOTHING");
 
-  showEnvs(envp);
+  showEnvs();
 
   testPutEnv("TEST=Guten Tag!");
   testGetEnv("TEST");
@@ -101,7 +96,7 @@ public int main(int argc, char[][] argv, char[][] envp) {
   testUnsetEnv("FOO");
   testGetEnv("FOO");
 
-  showEnvs(envp);
+  showEnvs();
 
   return 0;
 }
