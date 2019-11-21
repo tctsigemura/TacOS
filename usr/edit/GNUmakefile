@@ -41,4 +41,3 @@ ${NAME} : ${SRCS}
 clean :
 	rm -f ${NAME} *.o *.lst *.sym *.exe *.map *~
 	rm -rf ${NAME}.dSYM
-

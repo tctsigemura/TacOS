@@ -40,6 +40,7 @@
 #include <ctype.hmm>
 #include <syslib.hmm>
 #include <crt0.hmm>
+#include <sys/fs.hmm>
 
 #define LMAX 80                                   // 1行最大 80 文字
 #define ARGMAX 30                                 // コマンド業引数は最大30個
@@ -106,6 +107,23 @@ void builtinUnset(char[][] argv) {                // 引数の環境変数を削
   }
 }
 
+void builtinCd(char[][] argv) {                   // 引数のディレクトリに移動する
+  char[] path = argv[1];
+  if (path == null) path = "/";                   //   引数がなければ / で代用
+  char[] dir = malloc(PATHMAX+1);
+  absPath(path, dir, PATHMAX+1);                  //   絶対パスに変換
+  Stat sta;
+  if (stat(dir, sta) < 0) {                       //   stat がエラー
+    perror("cd");
+    return;                                       //   終了
+  }
+  if ((sta.attr & 0x10) == 0) {
+    fprintf(stderr, "cd: %s: Not a directory\n", dir);// ディレクトリではない
+    return;
+  }
+  setEnv("PWD", dir, true);                       //   PWD 環境変数を設定する
+}
+
 public int main() {
   fprintf(stderr, "TacOS Shell\n");
   putEnv("PWD=/");
@@ -138,6 +156,8 @@ public int main() {
       builtinSet(argv);
     } else if (strCmp(argv[0], "unset") == 0) {   // unset name ...
       builtinUnset(argv);
+    } else if (strCmp(argv[0], "cd") == 0) {      // cd dir
+      builtinCd(argv);
     } else {                                      // ビルトインではない
       strCpy(cmd, BIN);                           //   コマンドへのパスを作る
       strCat(cmd, argv[0]);

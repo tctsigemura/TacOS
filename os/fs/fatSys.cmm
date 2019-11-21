@@ -128,7 +128,14 @@ int lastIdx(char[] s, char c){
 int getFStr(char[] path, int p, int q, char[] str, int ofs, int n) {
   int i = 0;
   char c;
-  while (p<q && (c=path[p])!='.' && c!='/') {   // 区切り文字以外の間
+  boolean startDots = true;
+  while (p<q && (c=path[p])!='/') {             // 区切り文字以外の間
+    if (c=='.') {                               //   '.'
+      if (!startDots) break;                    //     先頭以外
+    } else {
+      startDots = false;                        //   先頭
+    }
+
     if (i<n) {                                  // 制限字数未満ならば
       str[ofs+i] = toUpper(c);                  //   文字を取り出す
       i = i + 1;
