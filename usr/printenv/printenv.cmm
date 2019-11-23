@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2018 by
+ * Copyright (C) 2016 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -20,19 +20,29 @@
  */
 
 /*
- * sio/sio.hmm : sio.cmm の外部インタフェース
+ * printenv/printenv.cmm : 環境変数の一覧もしくは指定した環境変数の値
  *
- * 2019.11.15 : モード定数をC--へ移動
- * 2019.10.02 : putSIO() を1文字出力から可変長出力に変更
- * 2019.09.25 : getSIO() を1文字入力から可変長入力に変更
- * 2018.11.01 : 新規作成
+ * 2019.11.14 : 新規作成
  *
  * $Id$
  *
  */
 
-public int putSIO(char[] buf, int len);  // 出力
-public int getSIO(char[] buf, int len);   // 入力
-public void sioInit();                    // 初期化
-public void setSIOCtl(int ctl);           // 入出力の設定を変更
-public int getSIOCtl();                   // 入出力の設定を取得
+#include <stdio.hmm>
+#include <stdlib.hmm>
+
+public int main(int argc, char[][] argv) {
+  char[] name = argv[1];
+
+  if (name == null) {                               // 引数がなければ
+    for (int i = 0; environ[i] != null; i = i+1)    //   すべての環境変数を
+      printf("%s\n", environ[i]);                   //     出力して
+    return 0;                                       //   終了
+  }
+
+  char[] value = getEnv(name);                      // 環境変数の値を取得
+  if (value == null) return 1;                      // null なら終了
+  printf("%s\n", value);                            // 表示
+
+  return 0;
+}

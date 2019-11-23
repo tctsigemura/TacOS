@@ -88,8 +88,27 @@ boolean parse(char[] line) {
   return false;                                   // 正常に解析できた
 }
 
+boolean isEnvStr(char[] string) {                 // 環境変数の形か調べる
+  int nameLen = strChr(string, '=');              //   '=' の位置を調べる
+  return nameLen > 0;                             //   '=' が 2 文字目以降にあれば環境変数
+}
+
+void builtinSet(char[][] argv) {                  // 引数を環境変数に追加する
+  for (int i = 1; argv[i] != null; i = i+1) {     //   すべての引数について
+    if (!isEnvStr(argv[i])) continue;             //     環境変数の形になっていなければ飛ばす
+    putEnv(argv[i]);                              //     putEnv
+  }
+}
+
+void builtinUnset(char[][] argv) {                // 引数の環境変数を削除する
+  for (int i = 1; argv[i] != null; i = i+1) {     //   すべての引数について
+    unsetEnv(argv[i]);                            //     引数の環境変数を削除する
+  }
+}
+
 public int main() {
   fprintf(stderr, "TacOS Shell\n");
+  putEnv("PWD=/");
 
   char[] buf = malloc(LMAX+1);                    // キー入力文字列格納用
   for (;;) {
@@ -113,16 +132,22 @@ public int main() {
       fprintf(stderr, "shell: Too long path name\n");
       continue;
     }
-     
-    strCpy(cmd, BIN);                             // コマンドへのパスを作る
-    strCat(cmd, argv[0]);
-    strCat(cmd, EXE);
 
-    sta[0] = 0;                                   // エラー番号をクリア
-    if (exec(cmd, argv)<0) perror(cmd);           // コマンドを実行
-    else if (wait(sta)<0)  perror(cmd);           // コマンドの終了を待つ
 
-    if (sta[0]<0) _perror(argv[0], sta[0]);       // 異常終了のエラー表示
+    if (strCmp(argv[0], "set") == 0) {            // set name=value ...
+      builtinSet(argv);
+    } else if (strCmp(argv[0], "unset") == 0) {   // unset name ...
+      builtinUnset(argv);
+    } else {                                      // ビルトインではない
+      strCpy(cmd, BIN);                           //   コマンドへのパスを作る
+      strCat(cmd, argv[0]);
+      strCat(cmd, EXE);
+      sta[0] = 0;                                 //   エラー番号をクリア
+      if (exec(cmd, argv, environ)<0) perror(cmd);//   コマンドを実行
+      else if (wait(sta)<0)  perror(cmd);         //   コマンドの終了を待つ
+
+      if (sta[0]<0) _perror(argv[0], sta[0]);     //   異常終了のエラー表示
+    }
   }
 
   return 0;
