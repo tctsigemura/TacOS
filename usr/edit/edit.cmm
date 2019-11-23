@@ -153,7 +153,7 @@ void change() {
  */
 void insert() {
   int i;
-  for (i=lines; i>current; i=i+1)
+  for (i=lines; i>current; i=i-1)
     strCpy(textBuf[i], textBuf[i-1]);
   fprintf(stderr, "new line ");
   getLine(textBuf[current],CHARS+1,stdin);            // 新しい行を入力
