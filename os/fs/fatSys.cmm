@@ -148,10 +148,12 @@ int getFStr(char[] path, int p, int q, char[] str, int ofs, int n) {
 //      fname : ファイル名
 int getFname(char[] path, int p, int q, char[] fname) {
   int n = q - p;
+  // . は特別扱い
   if (n>=1 && path[p]=='.' && (n==1 || path[p+1]=='/')) {
     strCpy(fname, ".          ");
     return p + 1;
   }
+  // .. は特別扱い
   if (n>=2 && path[p]=='.' && path[p+1]=='.' && (n==2 || path[p+2]=='/')) {
     strCpy(fname, "..         ");
     return p + 2;
