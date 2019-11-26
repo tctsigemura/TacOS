@@ -57,7 +57,7 @@ int printDir(char[] fname) {
 public int main(int argc, char[][] argv) {
   int err = 0;
   if  (argc==1) {                               // 特に指定がなければ
-    err = printDir("/");
+    err = printDir(".");                        //   カレントディレクトリ
   } else {
     for (int i=1; i<argc; i=i+1) {
       if (argc>2) printf("%s:\n", argv[i]);     // 複数ファイルの場合は名前表示

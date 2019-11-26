@@ -22,6 +22,7 @@
 /*
  * fs/fatSys.cmm : FAT16 ファイルシステムのシステムコール処理部分
  *
+ * 2019.11.25 : ファイル名 ".", ".." を正しく扱えるように getFname() を修正
  * 2019.11.15 : stat システムコールを実装
  * 2018.12.03 : ディレクトリエントリの削除に関するバグを修正
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
@@ -146,6 +147,17 @@ int getFStr(char[] path, int p, int q, char[] str, int ofs, int n) {
 //      p..q  : path の着目位置
 //      fname : ファイル名
 int getFname(char[] path, int p, int q, char[] fname) {
+  int n = q - p;
+  // . は特別扱い
+  if (n>=1 && path[p]=='.' && (n==1 || path[p+1]=='/')) {
+    strCpy(fname, ".          ");
+    return p + 1;
+  }
+  // .. は特別扱い
+  if (n>=2 && path[p]=='.' && path[p+1]=='.' && (n==2 || path[p+2]=='/')) {
+    strCpy(fname, "..         ");
+    return p + 2;
+  }
   p = getFStr(path, p, q, fname, 0, 8);         // ファイル名を取り出す
   if (p<q && path[p]=='.') p = p + 1;           // '.'を読み飛ばす
   p = getFStr(path, p, q, fname, 8, 3);         // 拡張子を取り出す

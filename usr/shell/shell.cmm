@@ -40,6 +40,7 @@
 #include <ctype.hmm>
 #include <syslib.hmm>
 #include <crt0.hmm>
+#include <sys/fs.hmm>
 
 #define LMAX 80                                   // 1行最大 80 文字
 #define ARGMAX 30                                 // コマンド業引数は最大30個
@@ -106,6 +107,25 @@ void builtinUnset(char[][] argv) {                // 引数の環境変数を削
   }
 }
 
+void builtinCd(char[][] argv) {                   // 引数のディレクトリに移動する
+  char[] path = argv[1];
+  if (path == null) path = "/";                   //   引数がなければ / で代用
+  char[] dir = malloc(PATHMAX+1);
+  if (dir==null) {                                //   malloc が失敗なら
+    perror("cd");
+    return;                                       //     終了
+  }
+  absPath(path, dir, PATHMAX+1);                  //   絶対パスに変換
+  Stat sta;
+  if (stat(dir, sta) < 0)                         //   stat がエラー
+    perror("cd");
+  else if ((sta.attr & 0x10) == 0)
+    fprintf(stderr, "cd: %s: Not a directory\n", dir);//   ディレクトリではない
+  else
+    setEnv("PWD", dir, true);                     //   PWD 環境変数を設定する
+  free(dir);                                      //   メモリを解放
+}
+
 public int main() {
   fprintf(stderr, "TacOS Shell\n");
   putEnv("PWD=/");
@@ -127,18 +147,18 @@ public int main() {
 
     if (argv[0]==null) continue;                  // Enter だけなら
 
-    // コマンド名の長さをチェックする
-    if (PATHMAX<strLen(BIN)+strLen(argv[0])+strLen(EXE)) {
-      fprintf(stderr, "shell: Too long path name\n");
-      continue;
-    }
-
-
     if (strCmp(argv[0], "set") == 0) {            // set name=value ...
       builtinSet(argv);
     } else if (strCmp(argv[0], "unset") == 0) {   // unset name ...
       builtinUnset(argv);
+    } else if (strCmp(argv[0], "cd") == 0) {      // cd dir
+      builtinCd(argv);
     } else {                                      // ビルトインではない
+      // コマンド名の長さをチェックする
+      if (PATHMAX<strLen(BIN)+strLen(argv[0])+strLen(EXE)) {
+        fprintf(stderr, "shell: Too long path name\n");
+        continue;
+      }
       strCpy(cmd, BIN);                           //   コマンドへのパスを作る
       strCat(cmd, argv[0]);
       strCat(cmd, EXE);
