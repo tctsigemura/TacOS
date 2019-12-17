@@ -15,6 +15,7 @@ public void b_init(){
 public void insertLine(int line, int column){
   lines = lines + 1;
   int y = column;
+
   // 行の挿入の場合は現在行から後ろをずらす
   if (column+1 != lines){
     for(int i = lines; i > y+1; i = i - 1){
@@ -26,6 +27,7 @@ public void insertLine(int line, int column){
     y = y + 1;
   }
 
+  // 行の途中で挿入されたとき
   if(line != strLen(textBuffer[y])){
     int length = strLen(textBuffer[y]);
     for(int i = 0; line + i < length; i = i + 1){
@@ -44,6 +46,7 @@ public void insertChar(char ch, int line, int column){
     length = 1; // 挿入後の文字数
   }
 
+   // 挿入部分からずらす
   for(int i = length; i > line; i = i - 1){
     textBuffer[column][i] = textBuffer[column][i-1];
   }
@@ -52,7 +55,7 @@ public void insertChar(char ch, int line, int column){
 
 // 文字削除
 public void removeChar(int line, int column){
-  // その行の内容が０なら後ろの行から詰める
+  // その行の長さが０もしくはカーソル位置が右端なら後ろの行から詰める
   if(strLen(textBuffer[column]) == 0 || line == 0){
     if(column == 0){
       return;
@@ -60,6 +63,7 @@ public void removeChar(int line, int column){
     // 後ろに文字がある
     if(line == 0 && strLen(textBuffer[column])!= 0){
       int x = 0;
+      // 文字を後ろからずらす
       for(int i = strLen(textBuffer[column-1])-1; i < BUFLEN; i = i + 1){
         textBuffer[column-1][i] = textBuffer[column][x];
         x = x + 1;
@@ -67,10 +71,12 @@ public void removeChar(int line, int column){
           break;
         }
       }
+      // 行の内容をクリア
       for(int i = 0; i < BUFLEN; i = i + 1){
         textBuffer[column][i] = '\0';
       }
     }
+    // 行をずらす
     for (int i = column; i < lines-1; i = i + 1){
       strCpy(textBuffer[i], textBuffer[i+1]);
     }
