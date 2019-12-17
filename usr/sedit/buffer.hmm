@@ -1,24 +1,12 @@
-struct cursor{
-  int x;
-  int y;
-};
-
-#define ROWS 80
-#define COLUMNS 24
 #define LINES 150
 #define BUFLEN 80
 
-public int top;
 public int lines;   //合計
-public int current;
-public cursor c;
 public char[][] textBuffer;
 
-public void init();
-public void moveLeft();
-public void moveRight();
-public void moveDown();
-public void moveUp();
-public void addNewLine();
-public void insertChar(char c);
-public void removeChar();
+public void b_init();
+public void insertLine(int column);
+public void insertChar(char c, int line, int column);
+public void removeChar(int line, int column);
+public void cutLine(int line, int column);
+public void pasteLine(int line, int column);

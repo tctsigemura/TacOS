@@ -1,0 +1,24 @@
+#define ROWS 80
+#define COLUMNS 24
+
+struct cursor{
+  int x;
+  int y;
+};
+
+public int current;
+public cursor c;
+public int top;
+
+public void s_init();
+
+public void clear();
+public void printBufferInfo();
+public void moveCursor();
+public void displayAll();
+public void displayLine();
+
+public void moveLeft();
+public void moveRight();
+public void moveDown();
+public void moveUp();

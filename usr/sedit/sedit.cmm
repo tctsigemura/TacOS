@@ -3,57 +3,70 @@
 #include <string.hmm>
 #include <syslib.hmm>                    // TaC版は一部のシステムコールを使う
 #include "buffer.hmm"
-#include "display.hmm"
+#include "screen.hmm"
 
-char[] kbdBuf = array(BUFLEN + 1);            // 入力用
+char[] kbdBuf = array(BUFLEN);            // 入力用
 boolean isEsc= false;
 
 // 入力文字の処理
 void keyboard(char key){
-    if(key == '\x1b'){
-      isEsc = true;
-      return;
-    } else if(isEsc){
-      if (key == 'A'){  // up
-        moveUp();
-        displayAll();
-        printf("\x1b[1A");
-        isEsc = false;
-      }else if (key == 'B'){  // down
-        moveDown();
-        displayAll();
-        printf("\x1b[1B");
-        isEsc = false;
-      } else if (key == 'C'){ // right
-        moveRight();
-        printf("\x1b[1C");
-        isEsc = false;
-      } else if (key == 'D'){  // left
-        moveLeft();
-        printf("\x1b[1D");
-        isEsc = false;
-      }
-      return;
-    } else if (key == '\x7f'){    // del
-      removeChar();
-      moveLeft();
-      displayAll();
-      moveCursor();
-      return;
-    } else if (key == '\r' || key == '\n'){
-      printf("\r");
-      insertChar('\n');
-      addNewLine();
-      if (lines >= COLUMNS){
-        displayAll();
-      }
-      moveCursor();
-      return;
-    }
-    insertChar(key);
-    moveRight();
-    printf("%c", key);
+  if(key == '\x1b'){
+    isEsc = true;
     return;
+  } else if(isEsc){
+    if (key == 'A'){  // up
+      moveUp();
+      displayAll();
+      isEsc = false;
+    }else if (key == 'B'){  // down
+      moveDown();
+      displayAll();
+      isEsc = false;
+    } else if (key == 'C'){ // right
+      moveRight();
+      isEsc = false;
+    } else if (key == 'D'){  // left
+      moveLeft();
+      isEsc = false;
+    }
+    moveCursor();
+    return;
+  } else if (key == '\x7f'){    // del
+    removeChar(c.x, current);
+    if(c.x == 0 || strLen(textBuffer[current]) == 0){
+      if(current > 0){
+        moveUp();
+        c.x = strLen(textBuffer[current]);
+      }
+      displayAll();
+    } else {
+      displayLine();
+      moveLeft();
+    }
+    moveCursor();
+    return;
+  } else if (key == '\r' || key == '\n'){
+    printf("\r");
+    insertLine(c.x, current);
+    insertChar('\n', c.x, current);
+    moveDown();
+
+    //if (lines >= COLUMNS){
+      displayAll();
+    //}
+    moveCursor();
+    return;
+  }
+  insertChar(key, c.x, current);
+  if(c.x+1 == strLen(textBuffer[current])){
+    printf("%c", key);
+  } else {
+    displayLine();
+  }
+  moveRight();
+  moveCursor();
+
+  return;
 }
 
 // ファイルの内容を処理
@@ -94,7 +107,9 @@ public int main(int argc, char[][] argv){
     fprintf(stderr, "Usage, %s <filename>\n", argv[0]);
     return 1;
   }
-  init();
+  b_init();
+  s_init();
+
   char[] fileName = argv[1];
 
   char ch;
@@ -124,10 +139,10 @@ public int main(int argc, char[][] argv){
   // save
   saveFile(fileName);
 
+  printf("\r\n");
   for(int i = 0; i <= lines; i = i + 1){
     printf("%d: %s", i, textBuffer[i]);
   }
-
   printf("\r\n");
   return 0;
 }

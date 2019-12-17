@@ -2,124 +2,103 @@
 #include <stdlib.hmm>
 #include <string.hmm>
 #include "buffer.hmm"
-#include "display.hmm"
 
-public cursor c = {0, 0};
 public char[][] textBuffer = array(LINES, BUFLEN); // 書き込まれた文字保存用
-
-char[] updatedArray = array(BUFLEN + 2); // 行内容の更新用
+char[] clipboard = array(BUFLEN);
 
 // 初期化
-public void init(){
-  top = 0;
-  current = 0;
+public void b_init(){
   lines = 0;
 }
 
-// カーソルを右へ
-public void moveRight(){
-  c.x = c.x + 1;
-  // 最大数を超えない
-  if(c.x >= ROWS){
-    c.x = ROWS - 1;
-  }
-}
-
-//　カーソルを左へ
-public void moveLeft(){
-  c.x = c.x - 1;
-  // 0より小さくならない
-  if(c.x < 0){
-    c.x = 0;
-  }
-}
-
-// カーソルを下へ
-public void moveDown(){
-  if(current+1 > lines){
-    return;
-  }
-  c.x = 0;  // xを左端に移動
-  c.y = c.y + 1;
-  current = current + 1;
-
-  if(c.y == COLUMNS){
-    c.y = COLUMNS - 1;
-    // 下に表示可能な部分があれば一番上の行を更新
-    if(top + (COLUMNS-1) < lines){
-      top = top + 1;
-    }
-  }
-}
-
-// カーソルを上へ
-public void moveUp(){
-  if(current == 0){
-    return;
-  }
-  c.x = 0;
-  current = current - 1;
-  c.y = c.y - 1;
-
-  if(c.y < 0){
-    c.y = 0;
-    // 上に表示可能な部分があれば一番上の行を更新
-    if(top > 0){
-      top = top - 1;
-    }
-  }
-}
-
 // 新しい行追加
-public void addNewLine(){
+public void insertLine(int line, int column){
   lines = lines + 1;
-  moveDown();
-
+  int y = column;
   // 行の挿入の場合は現在行から後ろをずらす
-  if (current != lines){
-    for(int i = lines; current < i; i = i - 1){
+  if (column+1 != lines){
+    for(int i = lines; i > y+1; i = i - 1){
       strCpy(textBuffer[i], textBuffer[i-1]);
     }
+    for (int i = 0; i < BUFLEN; i = i + 1){
+      textBuffer[y][i] = '\0';
+    }
+    y = y + 1;
   }
-  c.x = 0;
+
+  if(line != strLen(textBuffer[y])){
+    int length = strLen(textBuffer[y]);
+    for(int i = 0; line + i < length; i = i + 1){
+      insertChar(textBuffer[y][line+i], i, y+1);
+      textBuffer[y][line+i] = '\0';
+    }
+  }
 }
 
 // 文字挿入
-public void insertChar(char ch){
-  int length = strLen(textBuffer[current]) + 1; // 挿入後の文字数
-  printBufferInfo();
+public void insertChar(char ch, int line, int column){
+  int length = strLen(textBuffer[column]); // 挿入後の文字数
   // 入力する場所が右端
-  if (length == ROWS){
-    addNewLine();
+  if (length == BUFLEN){
+    insertLine(line, column);
     length = 1; // 挿入後の文字数
   }
 
-  for(int i = length-1; i > c.x; i = i - 1){
-    textBuffer[current][i] = textBuffer[current][i-1];
+  for(int i = length; i > line; i = i - 1){
+    textBuffer[column][i] = textBuffer[column][i-1];
   }
-  textBuffer[current][c.x] = ch;
+  textBuffer[column][line] = ch;
 }
 
 // 文字削除
-public void removeChar(){
+public void removeChar(int line, int column){
   // その行の内容が０なら後ろの行から詰める
-  if(strLen(textBuffer[current]) == 0){
-    if(current == 0){
+  if(strLen(textBuffer[column]) == 0 || line == 0){
+    if(column == 0){
       return;
     }
-    for (int i = current ; i < lines; i = i + 1){
-      strCpy(textBuffer[i-1], textBuffer[i]);
+    // 後ろに文字がある
+    if(line == 0 && strLen(textBuffer[column])!= 0){
+      int x = 0;
+      for(int i = strLen(textBuffer[column-1])-1; i < BUFLEN; i = i + 1){
+        textBuffer[column-1][i] = textBuffer[column][x];
+        x = x + 1;
+        if(textBuffer[column][x] == '\0') {
+          break;
+        }
+      }
+      for(int i = 0; i < BUFLEN; i = i + 1){
+        textBuffer[column][i] = '\0';
+      }
+    }
+    for (int i = column; i < lines-1; i = i + 1){
+      strCpy(textBuffer[i], textBuffer[i+1]);
     }
     lines = lines - 1;
-    moveUp();
-    c.x = strLen(textBuffer[current]) - 1;
   } else {
     // 後ろの文字を詰める
-    // fixme \rをけすと\nがのこるためカーソルが一段さがる
-    for(int i = c.x; i <= strLen(textBuffer[current]); i = i + 1){
-      textBuffer[current][i] = textBuffer[current][i+1];
+    for(int i = line; i < strLen(textBuffer[column]); i = i + 1){
+      textBuffer[column][i-1] = textBuffer[column][i];
     }
     // 最後の文字はnullにする
-    textBuffer[current][strLen(textBuffer[current])] = '\0';
+    textBuffer[column][strLen(textBuffer[column])-1] = '\0';
+  }
+}
+
+public void cutLine(int line, int column){
+  for(int i = 0; i < BUFLEN; i=i+1){
+    clipboard[i] = '\0';
+  }
+  for(int i = 0; i < strLen(textBuffer[column])-line; i=i+1){
+    clipboard[i] = textBuffer[column][line + i];
+  }
+}
+
+public void pasteLine(int line, int column){
+  for(int i = 0; i < strLen(clipboard); i=i+1){
+    if(clipboard[i] == '\0' || line+i == BUFLEN){
+      break;
+    }
+    insertChar(clipboard[i], line+i, column);
   }
 }
