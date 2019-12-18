@@ -58,6 +58,7 @@ void keyboard(char key){
     insertLine(c.x, current);
     insertChar('\n', c.x, current);
     moveDown();
+    c.x = 0;
     //if (lines >= COLUMNS){
       displayAll();
     //}
@@ -65,6 +66,7 @@ void keyboard(char key){
     return;
   }
   insertChar(key, c.x, current);
+  if(c.x+1 == strLen(textBuffer[current]) || textBuffer[current][c.x+1] == '\n'){
     printf("%c", key);
   } else {
     displayLine();

@@ -63,8 +63,11 @@ public void moveRight(){
   // 最大数を超えない
   if(c.x >= ROWS){
     c.x = ROWS - 1;
-  } else if(c.x >= strLen(textBuffer[current])){
-    c.x = strLen(textBuffer[current]);
+  } else if(c.x >= strLen(textBuffer[current]) - 1){
+    c.x = strLen(textBuffer[current]) - 1;
+    if(strRchr(textBuffer[current], '\n') == -1){
+      c.x = c.x + 1;
+    }
   }
 }
 
@@ -83,10 +86,14 @@ public void moveDown(){
     return;
   }
 
-  c.x = 0;  // xを左端に移動
   c.y = c.y + 1;
   current = current + 1;
-
+  if(c.x >= strLen(textBuffer[current])){
+    c.x = strLen(textBuffer[current]) - 1;
+    if(strRchr(textBuffer[current], '\n') == -1){
+      c.x = c.x + 1;
+    }
+  }
   if(c.y == COLUMNS){
     c.y = COLUMNS - 1;
     // 下に表示可能な部分があれば一番上の行を更新
@@ -101,10 +108,14 @@ public void moveUp(){
   if(current == 0){
     return;
   }
-  c.x = 0;
-  current = current - 1;
   c.y = c.y - 1;
-
+  current = current - 1;
+  if(c.x >= strLen(textBuffer[current])){
+    c.x = strLen(textBuffer[current]) - 1;
+    if(strRchr(textBuffer[current], '\n') == -1){
+      c.x = c.x + 1;
+    }
+  }
   if(c.y < 0){
     c.y = 0;
     // 上に表示可能な部分があれば一番上の行を更新
