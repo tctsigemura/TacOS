@@ -5,8 +5,9 @@ public int lines;   //合計
 public char[][] textBuffer;
 
 public void b_init();
-public void insertLine(int column);
-public void insertChar(char c, int line, int column);
-public void removeChar(int line, int column);
-public void cutLine(int line, int column);
-public void pasteLine(int line, int column);
+public void insertLine(int row, int column);
+public void insertChar(char c, int row, int column);
+public void removeChar(int row, int column);
+public void removeLine(int row, int column);
+public void cutLine(int row, int column);
+public void pasteLine(int row, int column);
