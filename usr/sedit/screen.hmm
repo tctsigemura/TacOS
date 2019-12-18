@@ -15,6 +15,7 @@ public void s_init();
 public void clear();
 public void printBufferInfo();
 public void moveCursor();
+public void moveToEndOfRow();
 public void displayAll();
 public void displayLine();
 

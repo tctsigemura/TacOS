@@ -22,6 +22,14 @@ public void moveCursor(){
   printf("\x1b[%d;%dH", (c.y+1), (c.x+1));
 }
 
+// 行末に移動
+public void moveToEndOfRow(){
+  c.x = strLen(textBuffer[current]) - 1;
+  if(strRchr(textBuffer[current], '\n') == -1){
+    c.x = c.x + 1;
+  }
+}
+
 // デバッグ用
 public void printBufferInfo(){
   printf("\x1b[%d;%dH", COLUMNS, 1);
@@ -89,10 +97,7 @@ public void moveDown(){
   c.y = c.y + 1;
   current = current + 1;
   if(c.x >= strLen(textBuffer[current])){
-    c.x = strLen(textBuffer[current]) - 1;
-    if(strRchr(textBuffer[current], '\n') == -1){
-      c.x = c.x + 1;
-    }
+    moveToEndOfRow();
   }
   if(c.y == COLUMNS){
     c.y = COLUMNS - 1;
@@ -111,10 +116,7 @@ public void moveUp(){
   c.y = c.y - 1;
   current = current - 1;
   if(c.x >= strLen(textBuffer[current])){
-    c.x = strLen(textBuffer[current]) - 1;
-    if(strRchr(textBuffer[current], '\n') == -1){
-      c.x = c.x + 1;
-    }
+    moveToEndOfRow();
   }
   if(c.y < 0){
     c.y = 0;

@@ -36,18 +36,16 @@ void keyboard(char key){
     moveCursor();
     return;
   } else if (key == '\x7f'){    // del
-    if(strLen(textBuffer[c.y]) == 0 || c.x == 0){
+    // 行の長さが０または右端
+    if(strLen(textBuffer[current]) == 0 || c.x == 0){
       removeLine(c.x, current);
-    } else {
-      removeChar(c.x, current);
-    }
-    if(c.x == 0 || strLen(textBuffer[current]) == 0){
       if(current > 0){
         moveUp();
-        c.x = strLen(textBuffer[current]);
+        moveToEndOfRow();
       }
       displayAll();
     } else {
+      removeChar(c.x, current);
       displayLine();
       moveLeft();
     }
@@ -58,10 +56,11 @@ void keyboard(char key){
     insertLine(c.x, current);
     insertChar('\n', c.x, current);
     moveDown();
-    c.x = 0;
-    //if (lines >= COLUMNS){
+    if (lines >= COLUMNS || c.y+1 != lines || c.x != strLen(textBuffer[c.y])){
       displayAll();
-    //}
+    }
+    c.x = 0;
+
     moveCursor();
     return;
   }
