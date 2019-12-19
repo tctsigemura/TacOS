@@ -42,18 +42,25 @@ public void printBufferInfo(){
 public void displayAll(){
   // 画面クリア
   printf("\x1b[2J\x1b[H");
-  int end = lines + 1;
-  if(end >  COLUMNS){
-    end = COLUMNS;
+  int end = lines;
+  if(end >= COLUMNS){
+    end = COLUMNS-1;
   }
   // 表示
   for(int i = top; i < top + end; i = i + 1){
     printf("\r");
+    // 最後の行では改行を出力させない
+    if(i == top + end){
+      for(int j = 0; j < strLen(textBuffer[i]); j = j + 1){
+        if(textBuffer[i][j] != '\n'){
+          printf("%c", textBuffer[i][j]);
+        }
+      }
+      break;
+    }
     printf("%s", textBuffer[i]);
     if (strRchr(textBuffer[i], '\n') == -1) {
-      if(i != top + end - 1){
-        printf("\n");
-      }
+      printf("\n");
     }
   }
 }

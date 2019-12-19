@@ -52,15 +52,16 @@ void keyboard(char key){
     moveCursor();
     return;
   } else if (key == '\r' || key == '\n'){
-    printf("\r");
     insertLine(c.x, current);
     insertChar('\n', c.x, current);
     moveDown();
-    if (lines >= COLUMNS || c.y+1 != lines || c.x != strLen(textBuffer[c.y])){
-      displayAll();
-    }
     c.x = 0;
-
+    if (lines >= COLUMNS || current != lines || c.x != strLen(textBuffer[current])){
+      displayAll();
+      if(c.x != strLen(textBuffer[current])){
+        displayLine();
+      }
+    }
     moveCursor();
     return;
   }
