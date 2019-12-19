@@ -93,8 +93,12 @@ public void cutLine(int row, int column){
   for(int i = 0; i < BUFLEN; i = i + 1){
     clipboard[i] = '\0';
   }
-  for(int i = 0; i < strLen(textBuffer[column]) - row; i = i + 1){
-    clipboard[i] = textBuffer[column][row + i];
+  int length = strLen(textBuffer[column]);
+  for(int i = 0; i < length - row; i = i + 1){
+    if(textBuffer[column][row+i] != '\n'){
+      clipboard[i] = textBuffer[column][row + i];
+      textBuffer[column][row + i] = '\0';
+    }
   }
 }
 

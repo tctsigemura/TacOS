@@ -58,10 +58,25 @@ void keyboard(char key){
     c.x = 0;
     if (lines >= COLUMNS || current != lines || c.x != strLen(textBuffer[current])){
       displayAll();
-      if(c.x != strLen(textBuffer[current])){
-        displayLine();
-      }
     }
+    moveCursor();
+    return;
+  } else if(key == '\x19'){
+    pasteLine(c.x, current);
+    displayLine();
+    moveCursor();
+    return;
+  } else if(key == '\x0b'){
+    cutLine(c.x, current);
+    displayLine();
+    moveCursor();
+    return;
+  } else if(key == '\x01'){
+    c.x = 0;
+    moveCursor();
+    return;
+  } else if(key == '\x05'){
+    moveToEndOfRow();
     moveCursor();
     return;
   }
