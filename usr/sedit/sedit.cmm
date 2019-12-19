@@ -8,6 +8,10 @@
 char[] kbdBuf = array(BUFLEN);            // 入力用
 boolean isEsc= false;
 
+char mask1f(char a){
+  return chr(0x1f & ord(a));
+}
+
 // 入力文字の処理
 void keyboard(char key){
   if(key == '\x1b'){
@@ -51,7 +55,7 @@ void keyboard(char key){
     }
     moveCursor();
     return;
-  } else if (key == '\r' || key == '\n'){
+  } else if (key == '\r' || key == '\n'){ // 改行
     insertLine(c.x, current);
     insertChar('\n', c.x, current);
     moveDown();
@@ -61,22 +65,18 @@ void keyboard(char key){
     }
     moveCursor();
     return;
-  } else if(key == '\x19'){
-    pasteLine(c.x, current);
-    displayLine();
-    moveCursor();
-    return;
-  } else if(key == '\x0b'){
-    cutLine(c.x, current);
-    displayLine();
-    moveCursor();
-    return;
-  } else if(key == '\x01'){
-    c.x = 0;
-    moveCursor();
-    return;
-  } else if(key == '\x05'){
-    moveToEndOfRow();
+  } else if(ord(key) <= 0x1f){
+    if(key == mask1f('Y')){ // Ctrl Y
+      pasteLine(c.x, current);
+      displayLine();
+    } else if(key == mask1f('K')){ // Ctrl K
+      cutLine(c.x, current);
+      displayLine();
+    } else if(key == mask1f('A')){ // Ctrl A
+      c.x = 0;
+    } else if(key == mask1f('E')){ // Ctrl E
+      moveToEndOfRow();
+    }
     moveCursor();
     return;
   }
