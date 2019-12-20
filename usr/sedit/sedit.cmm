@@ -57,7 +57,6 @@ void keyboard(char key){
     return;
   } else if (key == '\r' || key == '\n'){ // 改行
     insertLine(c.x, current);
-    insertChar('\n', c.x, current);
     moveDown();
     c.x = 0;
     if (lines >= COLUMNS || current != lines || c.x != strLen(textBuffer[current])){
@@ -81,12 +80,12 @@ void keyboard(char key){
     return;
   }
   insertChar(key, c.x, current);
-  if(c.x+1 == strLen(textBuffer[current]) || textBuffer[current][c.x+1] == '\n'){
+  moveRight();
+  if(c.x == strLen(textBuffer[current])){
     printf("%c", key);
   } else {
     displayLine();
   }
-  moveRight();
   moveCursor();
 
   return;
@@ -120,7 +119,7 @@ void saveFile(char[] fileName) {
     return;
   }
   for(int i = 0; i <= lines; i = i + 1){
-    fprintf(fp, "%s", textBuffer[i]);
+    fprintf(fp, "%s\n", textBuffer[i]);
   }
   fclose(fp);
 }
