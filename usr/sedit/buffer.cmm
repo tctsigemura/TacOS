@@ -7,7 +7,7 @@ public char[][] textBuffer = array(LINES, BUFLEN); // 書き込まれた文字�
 char[] clipboard = array(BUFLEN);
 
 // 初期化
-public void b_init(){
+public void bufferInit(){
   lines = 0;
 }
 

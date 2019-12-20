@@ -7,7 +7,7 @@
 public cursor c = {0, 0};
 
 // 初期化
-public void s_init(){
+public void screenInit(){
   top = 0;
   current = 0;
 }

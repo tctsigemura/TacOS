@@ -10,7 +10,7 @@ public int current;
 public cursor c;
 public int top;
 
-public void s_init();
+public void screenInit();
 
 public void clear();
 public void printBufferInfo();
