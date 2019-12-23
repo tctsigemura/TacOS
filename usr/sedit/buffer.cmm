@@ -13,7 +13,7 @@ public void bufferInit(){
 
 // 新しい行追加
 public void insertLine(int row, int column){
-  if (lines>=LINES){
+  if (lines >= LINES){
     return;
   }
 
@@ -22,9 +22,7 @@ public void insertLine(int row, int column){
     for(int i = lines; i > column; i = i - 1){
       strCpy(textBuffer[i+1], textBuffer[i]);
     }
-    for (int i = 0; i < BUFLEN; i = i + 1){
-      textBuffer[column+1][i] = '\0';
-    }
+    textBuffer[column+1][0] = '\0';
   }
 
   // 行の途中で挿入されたとき
@@ -32,7 +30,7 @@ public void insertLine(int row, int column){
     int length = strLen(textBuffer[column]);
     for(int i = 0; row + i < length; i = i + 1){
       insertChar(textBuffer[column][row+i], i, column + 1);
-      textBuffer[column][row+i] = '\0';
+      textBuffer[column][row] = '\0';
     }
   }
   lines = lines + 1;
@@ -42,7 +40,7 @@ public void insertLine(int row, int column){
 public void insertChar(char ch, int row, int column){
   int length = strLen(textBuffer[column]); // 挿入前の文字列の長さ
   // 画面サイズを超える
-  if (length == BUFLEN){
+  if (length >= BUFLEN){
     return;
   }
 
@@ -82,9 +80,7 @@ public void removeLine(int row, int column){
       }
     }
     // 行の内容をクリア
-    for(int i = 0; i < BUFLEN; i = i + 1){
-      textBuffer[column][i] = '\0';
-    }
+    textBuffer[column][0] = '\0';
   }
   // 行をずらす
   for (int i = column; i < lines; i = i + 1){
@@ -100,8 +96,8 @@ public void cutLine(int row, int column){
   int length = strLen(textBuffer[column]);
   for(int i = 0; i < length - row; i = i + 1){
     clipboard[i] = textBuffer[column][row + i];
-    textBuffer[column][row + i] = '\0';
   }
+  textBuffer[column][row] = '\0';
 }
 
 public void pasteLine(int row, int column){
