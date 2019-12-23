@@ -3,7 +3,7 @@
 #include <string.hmm>
 #include "buffer.hmm"
 
-public char[][] textBuffer = array(LINES, BUFLEN); // 書き込まれた文字保存用
+public char[][] textBuffer = array(LINES, BUFLEN+1); // 書き込まれた文字保存用
 char[] clipboard = array(BUFLEN);
 
 // 初期化

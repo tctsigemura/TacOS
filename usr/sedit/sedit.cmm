@@ -55,6 +55,18 @@ void keyboard(char key){
     }
     moveCursor();
     return;
+  } else if(key == '\x09'){ // tab
+    int move = c.x % 4;
+    if(move == 0){
+      move = 4;
+    }
+    for(int i = 0; i < move; i=i+1){
+      insertChar(' ', c.x, current);
+      moveRight();
+    }
+    displayLine();
+    moveCursor();
+    return;
   } else if (key == '\r' || key == '\n'){ // 改行
     insertLine(c.x, current);
     moveDown();
@@ -160,11 +172,7 @@ public int main(int argc, char[][] argv){
 
   // save
   saveFile(fileName);
+  printf("\r\n");
 
-  printf("\r\n");
-  for(int i = 0; i <= lines; i = i + 1){
-    printf("%d: %s", i, textBuffer[i]);
-  }
-  printf("\r\n");
   return 0;
 }
