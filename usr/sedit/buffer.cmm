@@ -13,11 +13,13 @@ public void bufferInit(){
 
 // 新しい行追加
 public void insertLine(int row, int column){
-  lines = lines + 1;
+  if (lines>=LINES){
+    return;
+  }
 
-  // 最後の行から現在行までずらす
-  if (column + 1 != lines){
-    for(int i = lines - 1; i > column; i = i - 1){
+  // 最後の行から現在の行の次までずらす
+  if (column != lines){
+    for(int i = lines; i > column; i = i - 1){
       strCpy(textBuffer[i+1], textBuffer[i]);
     }
     for (int i = 0; i < BUFLEN; i = i + 1){
@@ -33,12 +35,13 @@ public void insertLine(int row, int column){
       textBuffer[column][row+i] = '\0';
     }
   }
+  lines = lines + 1;
 }
 
 // 文字挿入
 public void insertChar(char ch, int row, int column){
-  int length = strLen(textBuffer[column]); // 挿入後の文字数
-  // 入力する場所が右端
+  int length = strLen(textBuffer[column]); // 挿入前の文字列の長さ
+  // 画面サイズを超える
   if (length == BUFLEN){
     return;
   }
@@ -52,12 +55,13 @@ public void insertChar(char ch, int row, int column){
 
 // 文字削除
 public void removeChar(int row, int column){
+  int length = strLen(textBuffer[column]);
   // 後ろの文字を詰める
-  for(int i = row; i < strLen(textBuffer[column]); i = i + 1){
+  for(int i = row; i < length; i = i + 1){
     textBuffer[column][i-1] = textBuffer[column][i];
   }
   // 最後の文字はnullにする
-  textBuffer[column][strLen(textBuffer[column])-1] = '\0';
+  textBuffer[column][length-1] = '\0';
 }
 
 // 行削除
