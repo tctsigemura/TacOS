@@ -74,7 +74,7 @@ public void moveRight(){
   // 最大数を超えない
   if(c.x >= ROWS){
     c.x = ROWS - 1;
-  } else if(c.x > strLen(textBuffer[current]) - 1){
+  } else if(c.x > strLen(textBuffer[current])){
     c.x = strLen(textBuffer[current]);
   }
 }
@@ -96,7 +96,7 @@ public void moveDown(){
 
   c.y = c.y + 1;
   current = current + 1;
-  if(c.x >= strLen(textBuffer[current])){
+  if(c.x > strLen(textBuffer[current])){
     moveToEndOfRow();
   }
   if(c.y == COLUMNS){
@@ -115,7 +115,7 @@ public void moveUp(){
   }
   c.y = c.y - 1;
   current = current - 1;
-  if(c.x >= strLen(textBuffer[current])){
+  if(c.x > strLen(textBuffer[current])){
     moveToEndOfRow();
   }
   if(c.y < 0){
