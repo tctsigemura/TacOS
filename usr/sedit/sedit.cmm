@@ -23,12 +23,12 @@ void keyboard(char key){
     }
     if (key == 'A'){  // up
       moveUp();
-      if (lines >= COLUMNS){
+      if (lines >= COLUMNS && c.y == 0){
         displayAll();
       }
     }else if (key == 'B'){  // down
       moveDown();
-      if (lines >= COLUMNS){
+      if (lines >= COLUMNS && c.y == COLUMNS-1){
         displayAll();
       }
     } else if (key == 'C'){ // right
