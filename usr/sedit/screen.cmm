@@ -59,6 +59,14 @@ public void displayLine(){
   printf("%s", textBuffer[current]);
 }
 
+// カーソルから行表示
+public void displayLineFromCursor(){
+  printf("\x1b[K");
+  for(int i = c.x; i < strLen(textBuffer[current]); i = i + 1){
+    printf("%c", textBuffer[current][i]);
+  }
+}
+
 // カーソルを右へ
 public void moveRight(){
   c.x = c.x + 1;

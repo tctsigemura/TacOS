@@ -50,8 +50,8 @@ void keyboard(char key){
       displayAll();
     } else {
       removeChar(c.x, current);
-      displayLine();
       moveLeft();
+      displayLineFromCursor();
     }
     moveCursor();
     return;
@@ -79,10 +79,10 @@ void keyboard(char key){
   } else if(ord(key) <= 0x1f){
     if(key == mask1f('Y')){ // Ctrl Y
       pasteLine(c.x, current);
-      displayLine();
+      displayLineFromCursor();
     } else if(key == mask1f('K')){ // Ctrl K
       cutLine(c.x, current);
-      displayLine();
+      displayLineFromCursor();
     } else if(key == mask1f('A')){ // Ctrl A
       c.x = 0;
     } else if(key == mask1f('E')){ // Ctrl E
@@ -92,12 +92,9 @@ void keyboard(char key){
     return;
   }
   insertChar(key, c.x, current);
+  displayLineFromCursor();
+
   moveRight();
-  if(c.x == strLen(textBuffer[current])){
-    printf("%c", key);
-  } else {
-    displayLine();
-  }
   moveCursor();
 
   return;
