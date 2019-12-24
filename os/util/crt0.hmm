@@ -47,6 +47,7 @@ public int setPri(int l);                           // フラグ値の変更
 public int in(int p);                               // ポートから入力
 public void out(int p, int v);                      // ポートへ出力
 public void halt();                                 // CPU を停止
+public void _halt();                                // HALT 命令
 public int _fp();                                   // FP を返す
 
 // C-- をサポートする関数

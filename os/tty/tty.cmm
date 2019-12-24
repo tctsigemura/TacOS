@@ -49,6 +49,7 @@
 #include <sio.hmm>
 #define getStr(buf, len) getSIO(buf, len)
 #define putStr(buf, len) putSIO(buf, len)
+#define _uAddr(offset) (_addrAdd(curProc.memBase, _AtoI((offset))))
 
 #include "tty.hmm"
 
@@ -61,31 +62,46 @@ int readSem, writeSem;
 //----------------------------------------------------------------------------
 // ttyRead システムコール
 public int ttyRead(void[] buf, int len) {
+  int p = setPri(DI|KERN);                              // カーネルモードになる
+  buf = _uAddr(buf);                                    // 物理アドレスに変換
   if (len<0) return -1;                                 // len<0 ならエラー
   semP(readSem);
   int r = getStr(buf, len);
   semV(readSem);
+  setPri(p);                                            // ユーザーモードに戻る
   return r;
 }
 
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
-  if (len<0) return -1;                                 // len<0 ならエラー
-  semP(writeSem);
-  int r = putStr(buf, len);
-  semV(writeSem);
+  int p = setPri(DI|KERN);                              // カーネルモードになる
+  int r;
+  buf = _uAddr(buf);                                    // 物理アドレスに変換
+  if (len<0) {
+    r = -1;                                             // len<0 ならエラー
+  } else {
+    semP(writeSem);
+    r = putStr(buf, len);
+    semV(writeSem);
+  }
+  setPri(p);                                            // ユーザーモードに戻る
   return r;
 }
 
 // ttyCtl システムコール
 public int ttyCtl(int request, int mode) {
+  int p = setPri(DI|KERN);                              // カーネルモードになる
+  int r;
   if (request==TTYCTL_SETMODE) {
     setSIOCtl(mode);                                    // sio.hmm参照
-    return 0;
+    r = 0;
   } else if (request==TTYCTL_GETMODE) {
-    return getSIOCtl();
+    r = getSIOCtl();
+  } else {                                              // 未定義の操作
+    r = -1;
   }
-  return -1;                                            // 未定義の操作
+  setPri(p);                                            // ユーザーモードに戻る
+  return r;
 }
 
 public void ttyInit() {
