@@ -89,7 +89,7 @@ public void removeLine(int row, int column){
   for (int i = column; i < lines; i = i + 1){
     strCpy(textBuffer[i], textBuffer[i+1]);
   }
-  textBuffer[column+1][0] = '\0';
+  textBuffer[lines][0] = '\0';
   lines = lines - 1;
 }
 
