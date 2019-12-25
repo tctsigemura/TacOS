@@ -76,10 +76,10 @@ void keyboard(char key){
     moveDown();
     c.x = 0;
     // 最終行ではない，もしくは行の途中で入力があったときカーソル以降を更新
-    if (c.y != COLUMNS-1 && (current != lines || oldX != length)){
-      displayAllFromCursor();
-    } else {
+    if (c.y == COLUMNS-1){
       displayAll();
+    } else {
+      displayAllFromCursor();
     }
     moveCursor();
     return;
