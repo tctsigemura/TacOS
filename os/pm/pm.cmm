@@ -69,11 +69,6 @@
 #include "pm.hmm"
 #include "exeFile.hmm"
 
-// プロセスの仮想アドレスをポインタに変換する
-void[] _VtoA(int vaddr, PCB pcb) {
-  return _addrAdd(pcb.memBase, vaddr);
-}
-
 // PM は単一プロセスで実行されるので、ほとんどのグローバル変数アクセスで
 // 排他を気にしなくて良い
 
@@ -155,7 +150,7 @@ int readHeader() {
   return 0;                                         // 正常終了
 }
 
-// プロセスのメモリ空間に関するデータ
+// プロセスのメモリ空間の物理アドレス
 int pText;                                          // TEXTセグメントのアドレス
 int pData;                                          // DATAセグメントのアドレス
 int pBss;                                           // BSS セグメントのアドレス
@@ -176,27 +171,22 @@ int allocMem() {
 
 // TEXT セグメントと DATA セグメントをメモリに読み込む
 int readTextData() {
-  for (int p=pText; _uCmp(p,pBss)<0; p=p+1) {       // TEXTとDATA について
-    MEM[p] = getByte();                             //  ファイルから読んで格納
+  for (int pAddr=pText; _uCmp(pAddr,pBss)<0; pAddr=pAddr+1) {// TEXTとDATA について
+    MEM[pAddr] = getByte();                         //  ファイルから読んで格納
     if (eof) return ENOEXEC;                        //  ファイルが短い
   }
   return 0;                                         // 正常終了
 }
 
-// 再配置を行う
-int relocate() {
-  return 0;                                         // 正常終了
-}
-
-// スタックに文字列の配列をコピーする (返り値: lStr)
-int copyCA(int[] USP, int index, int lStr, char[][] ary, int size) {
+// スタックに文字列の配列をコピーする (返り値: strAddr)
+int copyCA(int[] USP, int index, int strAddr, char[][] ary, int size) {
   for (int i=0; i<size; i=i+1) {                    // すべての要素について
-    USP[index + i] = lStr;                          //   参照配列位置格納
-    strCpy(_ItoA(pText+lStr), ary[i]);              //   文字列をコピー
-    lStr = lStr + strLen(ary[i]) + 1;               //   文字列格納位置を進める
+    USP[index + i] = strAddr;                       //   参照配列位置格納
+    strCpy(_ItoA(pText+strAddr), ary[i]);           //   文字列をコピー
+    strAddr = strAddr + strLen(ary[i]) + 1;         //   文字列格納位置を進める
   }
   USP[index + size] = 0x0000;                       // null を格納
-  return lStr;
+  return strAddr;
 }
 
 // スタックの底に argc, argv, envp, argv[0], ... を格納する
@@ -217,21 +207,21 @@ void copyArgsEnvp(char[][] argv, char[][] envp) {
 
   // スタックの底に確保した領域に argc, argv, envp, ... を書込む
   int[] USP = _ItoA(pUsp);                          // スタックを表現する配列
-  int lArgv = pUsp - pText + 2 + 2 + 2;             // argv 参照配列の論理アドレス
-  int lEnvp = lArgv + 2*argc + 2;                   // envp 参照配列の論理アドレス
-  int lStr  = lEnvp + 2*envs + 2;                   // 文字列の論理アドレス
+  int argvAddr = pUsp - pText + 2 + 2 + 2;          // argv 参照配列の論理アドレス
+  int envpAddr = argvAddr + 2*argc + 2;             // envp 参照配列の論理アドレス
+  int strAddr  = envpAddr + 2*envs + 2;             // 文字列の論理アドレス
 
   USP[0] = argc;                                    // argc 格納
-  USP[1] = lArgv;                                   // argv 参照配列の位置
-  USP[2] = lEnvp;                                   // envp 参照配列の位置
+  USP[1] = argvAddr;                                // argv 参照配列の位置
+  USP[2] = envpAddr;                                // envp 参照配列の位置
 
   int index = 3;                                    // 配列のインデックス
 
   // argv の格納
-  lStr = copyCA(USP, index, lStr, argv, argc);
+  strAddr = copyCA(USP, index, strAddr, argv, argc);
   index = index + argc + 1;
   // envp の格納
-  lStr = copyCA(USP, index, lStr, envp, envs);
+  strAddr = copyCA(USP, index, strAddr, envp, envs);
 }
 
 // exec システムコールの処理をする
@@ -254,11 +244,10 @@ printF("    bssBase =%04x  bssSiz =%d\n",pBss,bssSiz);
 printF("    stkBase =%04x  stkSiz =%d\n",pBss+bssSiz,stkSiz);
 printF("                   relSiz =%d\n",relSiz);
 printF("********************************\n");
-_halt();
+pause();
 #endif
 
-  if ((r=readTextData())==0)                       // テキストとデータを読み
-    r=relocate();                                  //   再配置する
+  r = readTextData();                              // テキストとデータを読む
   closeByte();                                     // ファイルをクローズ
 
   if (r!=0) {                                      // エラーが発生していれば
@@ -299,8 +288,8 @@ _halt();
 
 int pmSysCall(int op, int prm1, int prm2, int prm3, PCB client) {
   int r = -1;
-  if (op==EXEC) { // exec(path,argv,parent)
-    r = sysExec(_VtoA(prm1, client), _VtoA(prm2, client), _VtoA(prm3, client), client);
+  if (op==EXEC) { // exec(path,argv,envp,parent)
+    r = sysExec(_ItoA(prm1), _ItoA(prm2), _ItoA(prm3), client);
   } else
     r = -1;                                         // どれでもなければエラー
   return r;
@@ -323,7 +312,7 @@ public void pmMain() {
 //-----------------------------------------------------------------------------
 
 public int exec(char[] path, char[][] argv, char[][] envp) {
-  int r=sndrec(pmLink,EXEC,_AtoI(path),_AtoI(argv),_AtoI(envp));
+  int r=sndrec(pmLink,EXEC,_AtoP(path),_AtoP(argv),_AtoP(envp));
   return r;                                         // 新しい子の PID を返す
 }
 
@@ -338,7 +327,7 @@ public void exit(int status) {
 }
 
 public int wait(int[] sta) {
-  sta = _addrAdd(curProc.memBase, _AtoI(sta));      // 物理アドレスに変換
+  sta = _ItoA(_AtoP(sta));                          // 物理アドレスに変換
   int r = ECHILD;                                   // 一旦、エラー番号を設定
   PCB child = waitChild();                          // 子プロセスの終了を待つ
   if (child!=null) {                                // 子プロセスが終了した

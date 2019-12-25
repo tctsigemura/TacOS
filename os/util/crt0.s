@@ -84,9 +84,10 @@ _halt
         jmp     _halt
 ;       halt
 
-;; HALT 命令
-__halt
+;; 一時停止
+_pause
         halt
+        ret
 
 ;; FP の値を取得する
 __fp

@@ -49,7 +49,6 @@
 #include <sio.hmm>
 #define getStr(buf, len) getSIO(buf, len)
 #define putStr(buf, len) putSIO(buf, len)
-#define _uAddr(offset) (_addrAdd(curProc.memBase, _AtoI((offset))))
 
 #include "tty.hmm"
 
@@ -62,8 +61,8 @@ int readSem, writeSem;
 //----------------------------------------------------------------------------
 // ttyRead システムコール
 public int ttyRead(void[] buf, int len) {
-  int p = setPri(DI|KERN);                              // カーネルモードになる
-  buf = _uAddr(buf);                                    // 物理アドレスに変換
+  int p = setPri(KERN);                                 // カーネルモードになる
+  buf = _ItoA(_AtoP(buf));                              // 物理アドレスに変換
   if (len<0) return -1;                                 // len<0 ならエラー
   semP(readSem);
   int r = getStr(buf, len);
@@ -74,9 +73,9 @@ public int ttyRead(void[] buf, int len) {
 
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
-  int p = setPri(DI|KERN);                              // カーネルモードになる
+  int p = setPri(KERN);                                 // カーネルモードになる
   int r;
-  buf = _uAddr(buf);                                    // 物理アドレスに変換
+  buf = _ItoA(_AtoP(buf));                              // 物理アドレスに変換
   if (len<0) {
     r = -1;                                             // len<0 ならエラー
   } else {
@@ -90,7 +89,7 @@ public int ttyWrite(void[] buf, int len) {
 
 // ttyCtl システムコール
 public int ttyCtl(int request, int mode) {
-  int p = setPri(DI|KERN);                              // カーネルモードになる
+  int p = setPri(KERN);                                 // カーネルモードになる
   int r;
   if (request==TTYCTL_SETMODE) {
     setSIOCtl(mode);                                    // sio.hmm参照
