@@ -23,12 +23,12 @@ void keyboard(char key){
     }
     if (key == 'A'){  // up
       moveUp();
-      if (lines >= COLUMNS && c.y == 0){
+      if (c.y == 0){
         displayAll();
       }
     }else if (key == 'B'){  // down
       moveDown();
-      if (lines >= COLUMNS && c.y == COLUMNS-1){
+      if (c.y == COLUMNS-1){
         displayAll();
       }
     } else if (key == 'C'){ // right
@@ -43,14 +43,13 @@ void keyboard(char key){
     // 行の長さが０または右端
     if(strLen(textBuffer[current]) == 0 || c.x == 0){
       removeLine(c.x, current);
-      if(current > 0){
-        moveUp();
-        moveToEndOfRow();
-      }
-      displayAll();
+      moveUp();
+      displayAllFromCursor();
+      moveToEndOfRow();
     } else {
       removeChar(c.x, current);
       moveLeft();
+      moveCursor();
       displayLineFromCursor();
     }
     moveCursor();
@@ -62,16 +61,24 @@ void keyboard(char key){
     }
     for(int i = 0; i < move; i=i+1){
       insertChar(' ', c.x, current);
+    }
+    displayLineFromCursor();
+    for(int i = 0; i < move; i=i+1){
       moveRight();
     }
-    displayLine();
     moveCursor();
     return;
   } else if (key == '\r' || key == '\n'){ // 改行
+    // 判定用に記憶
+    int length = strLen(textBuffer[current]);
+    int oldX = c.x;
     insertLine(c.x, current);
     moveDown();
     c.x = 0;
-    if (lines >= COLUMNS || current != lines || c.x != strLen(textBuffer[current])){
+    // 最終行ではない，もしくは行の途中で入力があったときカーソル以降を更新
+    if (c.y != COLUMNS-1 && (current != lines || oldX != length)){
+      displayAllFromCursor();
+    } else {
       displayAll();
     }
     moveCursor();
@@ -128,7 +135,11 @@ void saveFile(char[] fileName) {
     return;
   }
   for(int i = 0; i <= lines; i = i + 1){
-    fprintf(fp, "%s\n", textBuffer[i]);
+    fprintf(fp, "%s", textBuffer[i]);
+    // 最終行は改行を入れない
+    if(i != lines){
+      fprintf(fp, "%s", "\n");
+    }
   }
   fclose(fp);
 }

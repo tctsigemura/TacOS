@@ -58,7 +58,7 @@ public void insertChar(char ch, int row, int column){
 public void removeChar(int row, int column){
   int length = strLen(textBuffer[column]);
   // 後ろの文字を詰める
-  for(int i = row; i < length; i = i + 1){
+  for(int i = row; i <= length; i = i + 1){
     textBuffer[column][i-1] = textBuffer[column][i];
   }
   // 最後の文字はnullにする
@@ -75,7 +75,7 @@ public void removeLine(int row, int column){
   if(row == 0 && strLen(textBuffer[column]) != 0){
     int x = 0;
     // 文字を後ろからずらす
-    for(int i = strLen(textBuffer[column-1])-1; i + x < BUFLEN; i = i + 1){
+    for(int i = strLen(textBuffer[column-1]); i + x < BUFLEN; i = i + 1){
       textBuffer[column-1][i] = textBuffer[column][x];
       x = x + 1;
       if(textBuffer[column][x] == '\0'){
@@ -89,6 +89,7 @@ public void removeLine(int row, int column){
   for (int i = column; i < lines; i = i + 1){
     strCpy(textBuffer[i], textBuffer[i+1]);
   }
+  textBuffer[column+1][0] = '\0';
   lines = lines - 1;
 }
 

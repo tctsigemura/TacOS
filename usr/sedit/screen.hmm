@@ -19,6 +19,7 @@ public void moveToEndOfRow();
 public void displayAll();
 public void displayLine();
 public void displayLineFromCursor();
+public void displayAllFromCursor();
 
 public void moveLeft();
 public void moveRight();

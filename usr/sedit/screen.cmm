@@ -31,7 +31,7 @@ public void moveToEndOfRow(){
 public void printBufferInfo(){
   printf("\x1b[%d;%dH", COLUMNS, 1);
   printf("\r\x1b[2K");
-  printf("(%d, %d), current:%d , top:%d, lines:%d, length:%d", c.x, c.y, current, top, lines, strLen(textBuffer[current]));
+  printf("(%d, %d), current:%d, top:%d, lines:%d, length:%d", c.x, c.y, current, top, lines, strLen(textBuffer[current]));
   moveCursor();
 }
 
@@ -39,15 +39,43 @@ public void printBufferInfo(){
 public void displayAll(){
   // 画面クリア
   printf("\x1b[2J\x1b[H");
-  int end = lines;
-  if(end >= COLUMNS){
-    end = COLUMNS-1;
+  int end = COLUMNS - 1;
+  if(lines - top < end){
+    end = lines - top;
   }
+
   // 表示
   for(int i = top; i <= top + end; i = i + 1){
-    printf("\r");
-    printf("%s", textBuffer[i]);
+    printf("\r%s", textBuffer[i]);
     if (i != top + end) {
+      printf("\n");
+    }
+  }
+}
+
+// カーソルから全画面表示
+public void displayAllFromCursor(){
+  // カーソル以降を消去
+  printf("\x1b[J");
+
+  moveCursor();
+  // 現在行
+  displayLineFromCursor();
+  if (current == lines) {
+    return;
+  }
+  printf("\n");
+
+  // 次の行から表示
+  int start = current + 1;
+  int end = COLUMNS - c.y - 2;
+  if(lines - start < end){
+    end = lines - start;
+  }
+  // 表示
+  for(int i = start; i <= start + end; i = i + 1){
+    printf("\r%s", textBuffer[i]);
+    if (i != start + end) {
       printf("\n");
     }
   }
@@ -55,8 +83,7 @@ public void displayAll(){
 
 // 現在の行を更新
 public void displayLine(){
-  printf("\r\x1b[2K");
-  printf("%s", textBuffer[current]);
+  printf("\r\x1b[2K%s", textBuffer[current]);
 }
 
 // カーソルから行表示
