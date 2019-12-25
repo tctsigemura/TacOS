@@ -75,7 +75,7 @@ void keyboard(char key){
     insertLine(c.x, current);
     moveDown();
     c.x = 0;
-    // 最終行ではない，もしくは行の途中で入力があったときカーソル以降を更新
+    // カーソルが画面の一番下なら全画面更新
     if (c.y == COLUMNS-1){
       displayAll();
     } else {
@@ -180,7 +180,7 @@ public int main(int argc, char[][] argv){
 
   // save
   saveFile(fileName);
-  printf("\r\n");
-
+  printf("\x1b[J\r\n");
+  
   return 0;
 }
