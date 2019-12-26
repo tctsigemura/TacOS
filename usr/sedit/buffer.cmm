@@ -8,17 +8,17 @@ char[] clipboard = array(BUFLEN+1);
 
 // 初期化
 public void bufferInit(){
-  lines = 0;
+  lines = 1;
 }
 
 // 新しい行追加
 public void insertLine(int row, int column){
-  if (lines >= LINES){
+  if (lines-1 >= LINES){
     return;
   }
 
   // 最後の行から現在の行の次までずらす
-  for(int i = lines; i > column; i = i - 1){
+  for(int i = lines-1; i > column; i = i - 1){
     strCpy(textBuffer[i+1], textBuffer[i]);
   }
 
@@ -69,19 +69,19 @@ public void removeLine(int row, int column){
     // 文字を後ろからずらす
     for(int i = strLen(textBuffer[column-1]); i + x < BUFLEN; i = i + 1){
       textBuffer[column-1][i] = textBuffer[column][x];
-      x = x + 1;
       if(textBuffer[column][x] == '\0'){
         break;
       }
+      x = x + 1;
     }
     // 行の内容をクリア
     textBuffer[column][0] = '\0';
   }
   // 行をずらす
-  for (int i = column; i < lines; i = i + 1){
+  for (int i = column; i < lines-1; i = i + 1){
     strCpy(textBuffer[i], textBuffer[i+1]);
   }
-  textBuffer[lines][0] = '\0';
+  textBuffer[lines-1][0] = '\0';
   lines = lines - 1;
 }
 

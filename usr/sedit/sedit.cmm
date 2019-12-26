@@ -134,10 +134,10 @@ void saveFile(char[] fileName) {
     perror(fileName);
     return;
   }
-  for(int i = 0; i <= lines; i = i + 1){
+  for(int i = 0; i < lines; i = i + 1){
     fprintf(fp, "%s", textBuffer[i]);
     // 最終行は改行を入れない
-    if(i != lines){
+    if(i != lines-1){
       fprintf(fp, "%s", "\n");
     }
   }
@@ -181,6 +181,6 @@ public int main(int argc, char[][] argv){
   // save
   saveFile(fileName);
   printf("\x1b[J\r\n");
-  
+
   return 0;
 }
