@@ -4,7 +4,7 @@
 #include "buffer.hmm"
 
 public char[][] textBuffer = array(LINES, BUFLEN+1); // 書き込まれた文字保存用
-char[] clipboard = array(BUFLEN);
+char[] clipboard = array(BUFLEN+1);
 
 // 初期化
 public void bufferInit(){
@@ -18,23 +18,17 @@ public void insertLine(int row, int column){
   }
 
   // 最後の行から現在の行の次までずらす
-  if (column != lines){
-    for(int i = lines; i > column; i = i - 1){
-      strCpy(textBuffer[i+1], textBuffer[i]);
-    }
-    textBuffer[column+1][0] = '\0';
+  for(int i = lines; i > column; i = i - 1){
+    strCpy(textBuffer[i+1], textBuffer[i]);
   }
 
   // 行の途中で挿入されたとき
-  if(row != strLen(textBuffer[column])){
-    if(row+1 != BUFLEN){
-      int length = strLen(textBuffer[column]);
-      for(int i = 0; row + i < length; i = i + 1){
-        insertChar(textBuffer[column][row+i], i, column + 1);
-      }
-      textBuffer[column][row] = '\0';
-    }
+  int i=0, j=row;
+  while ((textBuffer[column+1][i]=textBuffer[column][j])!='\0') {
+    i = i + 1;
+    j = j + 1;
   }
+  textBuffer[column][row]='\0';
   lines = lines + 1;
 }
 
@@ -61,8 +55,6 @@ public void removeChar(int row, int column){
   for(int i = row; i <= length; i = i + 1){
     textBuffer[column][i-1] = textBuffer[column][i];
   }
-  // 最後の文字はnullにする
-  textBuffer[column][length-1] = '\0';
 }
 
 // 行削除

@@ -40,7 +40,7 @@ void keyboard(char key){
     moveCursor();
     return;
   } else if (key == '\x7f'){    // del
-    // 行の長さが０または右端
+    // 行の長さが０または左端
     if(strLen(textBuffer[current]) == 0 || c.x == 0){
       removeLine(c.x, current);
       moveUp();
