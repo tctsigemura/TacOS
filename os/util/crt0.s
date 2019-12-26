@@ -81,8 +81,8 @@ _out                        ; void out(int p,int v);
 
 ;; CPU を停止
 _halt
+        halt
         jmp     _halt
-;       halt
 
 ;; 一時停止
 _pause

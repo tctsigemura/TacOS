@@ -53,13 +53,14 @@
  *
  */
 
+#include <process.hmm>
 #include "crt0.hmm"
 
 public char[] MEM;       // 主記憶を意味する配列 utilInit() で 0x0000 に初期化
 
 public void utilInit();
 public int _uCmp32(int[] a, int[] b);
-public int _AtoP(void[] a, void[] pcb);
+public int _AtoP(void[] a, PCB pcb);
 public char toUpper(char c);
 public int strLen(char[] s);
 public char[] strCpy(char[] dst, char[] src);

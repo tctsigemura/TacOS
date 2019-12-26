@@ -182,8 +182,9 @@ int readTextData() {
 int copyCA(int[] USP, int index, int strAddr, char[][] ary, int size, PCB p) {
   for (int i=0; i<size; i=i+1) {                    // すべての要素について
     USP[index + i] = strAddr;                       //   参照配列位置格納
-    strCpy(_ItoA(pText+strAddr), _ItoA(_AtoP(ary[i], p)));//   文字列をコピー
-    strAddr = strAddr + strLen(ary[i]) + 1;         //   文字列格納位置を進める
+    char[] str = _ItoA(_AtoP(ary[i], p));           //   文字列の実体を取得
+    strCpy(_ItoA(pText+strAddr), str);              //   文字列をコピー
+    strAddr = strAddr + strLen(str) + 1;            //   文字列格納位置を進める
   }
   USP[index + size] = 0x0000;                       // null を格納
   return strAddr;

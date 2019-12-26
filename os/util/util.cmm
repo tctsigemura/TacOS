@@ -71,7 +71,7 @@ public int _uCmp32(int[] a, int[] b) {
 }
 
 // プロセスの仮想アドレスを物理アドレスに変換する
-public int _AtoP(void[] a, void[] pcb) {
+public int _AtoP(void[] a, PCB pcb) {
   PCB p = pcb;
   if (a==null) return 0;                            // 0 は null
   return _AtoI(p.memBase)+_AtoI(a);
