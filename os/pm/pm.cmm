@@ -179,10 +179,10 @@ int readTextData() {
 }
 
 // スタックに文字列の配列をコピーする (返り値: strAddr)
-int copyCA(int[] USP, int index, int strAddr, char[][] ary, int size) {
+int copyCA(int[] USP, int index, int strAddr, char[][] ary, int size, PCB p) {
   for (int i=0; i<size; i=i+1) {                    // すべての要素について
     USP[index + i] = strAddr;                       //   参照配列位置格納
-    strCpy(_ItoA(pText+strAddr), ary[i]);           //   文字列をコピー
+    strCpy(_ItoA(pText+strAddr), _ItoA(_AtoP(ary[i], p)));//   文字列をコピー
     strAddr = strAddr + strLen(ary[i]) + 1;         //   文字列格納位置を進める
   }
   USP[index + size] = 0x0000;                       // null を格納
@@ -190,7 +190,7 @@ int copyCA(int[] USP, int index, int strAddr, char[][] ary, int size) {
 }
 
 // スタックの底に argc, argv, envp, argv[0], ... を格納する
-void copyArgsEnvp(char[][] argv, char[][] envp) {
+void copyArgsEnvp(char[][] argv, char[][] envp, PCB p) {
   // スタックの底に確保する領域のサイズを計算する
   int st = 2 + 2 + 2 + 2 + 2;                       // 文字列以外
   int argc = 0;                                     // コマンド行引数の個数
@@ -218,10 +218,10 @@ void copyArgsEnvp(char[][] argv, char[][] envp) {
   int index = 3;                                    // 配列のインデックス
 
   // argv の格納
-  strAddr = copyCA(USP, index, strAddr, argv, argc);
+  strAddr = copyCA(USP, index, strAddr, argv, argc, p);
   index = index + argc + 1;
   // envp の格納
-  strAddr = copyCA(USP, index, strAddr, envp, envs);
+  strAddr = copyCA(USP, index, strAddr, envp, envs, p);
 }
 
 // exec システムコールの処理をする
@@ -260,7 +260,7 @@ pause();
     MEM[pBss+i] = chr(0);                          //   0を格納する
 
   // コマンド行引数を親プロセスから子プロセスのユーザスタックにコピーする
-  copyArgsEnvp(argv, envp);
+  copyArgsEnvp(argv, envp, p);
 
   // PCB を確保・初期化し新しいプロセスを実行可能にする
   int pcbSize = sizeof(PCB)+P_KERN_STKSIZ          // PCB とカーネルスタック
@@ -312,7 +312,8 @@ public void pmMain() {
 //-----------------------------------------------------------------------------
 
 public int exec(char[] path, char[][] argv, char[][] envp) {
-  int r=sndrec(pmLink,EXEC,_AtoP(path),_AtoP(argv),_AtoP(envp));
+  int r=sndrec(pmLink,EXEC,
+    _AtoP(path,curProc),_AtoP(argv,curProc),_AtoP(envp,curProc));
   return r;                                         // 新しい子の PID を返す
 }
 
@@ -327,7 +328,7 @@ public void exit(int status) {
 }
 
 public int wait(int[] sta) {
-  sta = _ItoA(_AtoP(sta));                          // 物理アドレスに変換
+  sta = _ItoA(_AtoP(sta, curProc));                 // 物理アドレスに変換
   int r = ECHILD;                                   // 一旦、エラー番号を設定
   PCB child = waitChild();                          // 子プロセスの終了を待つ
   if (child!=null) {                                // 子プロセスが終了した

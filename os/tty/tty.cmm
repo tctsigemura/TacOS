@@ -61,21 +61,18 @@ int readSem, writeSem;
 //----------------------------------------------------------------------------
 // ttyRead システムコール
 public int ttyRead(void[] buf, int len) {
-  int p = setPri(KERN);                                 // カーネルモードになる
-  buf = _ItoA(_AtoP(buf));                              // 物理アドレスに変換
+  buf = _ItoA(_AtoP(buf, curProc));                     // 物理アドレスに変換
   if (len<0) return -1;                                 // len<0 ならエラー
   semP(readSem);
   int r = getStr(buf, len);
   semV(readSem);
-  setPri(p);                                            // ユーザーモードに戻る
   return r;
 }
 
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
-  int p = setPri(KERN);                                 // カーネルモードになる
   int r;
-  buf = _ItoA(_AtoP(buf));                              // 物理アドレスに変換
+  buf = _ItoA(_AtoP(buf, curProc));                     // 物理アドレスに変換
   if (len<0) {
     r = -1;                                             // len<0 ならエラー
   } else {
@@ -83,13 +80,11 @@ public int ttyWrite(void[] buf, int len) {
     r = putStr(buf, len);
     semV(writeSem);
   }
-  setPri(p);                                            // ユーザーモードに戻る
   return r;
 }
 
 // ttyCtl システムコール
 public int ttyCtl(int request, int mode) {
-  int p = setPri(KERN);                                 // カーネルモードになる
   int r;
   if (request==TTYCTL_SETMODE) {
     setSIOCtl(mode);                                    // sio.hmm参照
@@ -99,7 +94,6 @@ public int ttyCtl(int request, int mode) {
   } else {                                              // 未定義の操作
     r = -1;
   }
-  setPri(p);                                            // ユーザーモードに戻る
   return r;
 }
 

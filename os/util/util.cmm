@@ -70,10 +70,11 @@ public int _uCmp32(int[] a, int[] b) {
   return _uCmp(a[1],b[1]);
 }
 
-// 現在のプロセスの仮想アドレスを物理アドレスに変換する
-public int _AtoP(void[] a) {
+// プロセスの仮想アドレスを物理アドレスに変換する
+public int _AtoP(void[] a, void[] pcb) {
+  PCB p = pcb;
   if (a==null) return 0;                            // 0 は null
-  return _AtoI(curProc.memBase)+_AtoI(a);
+  return _AtoI(p.memBase)+_AtoI(a);
 }
 
 // --------------------------------- 文字関係 -------------------------------
