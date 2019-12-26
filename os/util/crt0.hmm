@@ -37,6 +37,8 @@
  * $Id$
  */
 
+#include <process.hmm>
+
 // 特殊な命令を使用する関数
 #define EI   0x0080                                 // 割込み許可
 #define DI   0x0000                                 // 割込み不許可
@@ -54,6 +56,8 @@ public int _fp();                                   // FP を返す
 public int    _AtoI(void[] a);                      // 型変換ルーチン
 public void[] _AtoA(void[] a);                      // 型変換ルーチン
 public void[] _ItoA(int a);                         // 型変換ルーチン
+public int    _AtoPI(void[] a, PCB pcb);            // アドレス変換ルーチン
+public void[] _AtoPA(void[] a, PCB pcb);            // アドレス変換ルーチン
 public void[] _addrAdd(void[] a, int i);            // アドレス計算
 public int    _uCmp(int a, int b);                  // 符号無しの大小比較
 public int    _aCmp(void[] a, void[] b);            // アドレスの大小比較

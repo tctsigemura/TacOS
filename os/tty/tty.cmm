@@ -61,7 +61,7 @@ int readSem, writeSem;
 //----------------------------------------------------------------------------
 // ttyRead システムコール
 public int ttyRead(void[] buf, int len) {
-  buf = _ItoA(_AtoP(buf, curProc));                     // 物理アドレスに変換
+  buf = _AtoPA(buf, curProc);                           // 物理アドレスに変換
   if (len<0) return -1;                                 // len<0 ならエラー
   semP(readSem);
   int r = getStr(buf, len);
@@ -72,7 +72,7 @@ public int ttyRead(void[] buf, int len) {
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
   int r;
-  buf = _ItoA(_AtoP(buf, curProc));                     // 物理アドレスに変換
+  buf = _AtoPA(buf, curProc);                           // 物理アドレスに変換
   if (len<0) {
     r = -1;                                             // len<0 ならエラー
   } else {

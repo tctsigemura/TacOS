@@ -55,7 +55,6 @@
 
 #include <crt0.hmm>
 #include <kernel.hmm>
-#include <process.hmm>
 #include "util.hmm"
 
 // util の初期化ルーチン
@@ -68,13 +67,6 @@ public int _uCmp32(int[] a, int[] b) {
   int t = _uCmp(a[0],b[0]);
   if (t!=0) return t;
   return _uCmp(a[1],b[1]);
-}
-
-// プロセスの仮想アドレスを物理アドレスに変換する
-public int _AtoP(void[] a, PCB pcb) {
-  PCB p = pcb;
-  if (a==null) return 0;                            // 0 は null
-  return _AtoI(p.memBase)+_AtoI(a);
 }
 
 // --------------------------------- 文字関係 -------------------------------

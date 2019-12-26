@@ -105,31 +105,31 @@ public void fsMain() {
 
 // creat システムコール
 public int creat(char[] path) {
- int r = sndrec(fsLink, CREAT, _AtoP(path, curProc), 0, 0);
+ int r = sndrec(fsLink, CREAT, _AtoPI(path, curProc), 0, 0);
  return r;
 }
 
 // remove システムコール
 public int remove(char[] path) {
- int r = sndrec(fsLink, REMOVE, _AtoP(path, curProc), 0, 0);
+ int r = sndrec(fsLink, REMOVE, _AtoPI(path, curProc), 0, 0);
  return r;
 }
 
 // mkDir システムコール
 public int mkDir(char[] path) {
- int r = sndrec(fsLink, MKDIR, _AtoP(path, curProc), 0, 0);
+ int r = sndrec(fsLink, MKDIR, _AtoPI(path, curProc), 0, 0);
  return r;
 }
 
 // rmDir システムコール
 public int rmDir(char[] path) {
- int r = sndrec(fsLink, RMDIR, _AtoP(path, curProc), 0, 0);
+ int r = sndrec(fsLink, RMDIR, _AtoPI(path, curProc), 0, 0);
  return r;
 }
 
 // open システムコール
 public int open(char[] path, int mode) {
-  int fd = sndrec(fsLink, OPEN, _AtoP(path, curProc), mode, 0);
+  int fd = sndrec(fsLink, OPEN, _AtoPI(path, curProc), mode, 0);
   return fd;
 }
 
@@ -141,13 +141,13 @@ public int close(int fd) {
 
 // read システムコール
 public int read(int fd, void[] buf, int len) {
-  int r = sndrec(fsLink, READ, fd, _AtoP(buf, curProc), len);
+  int r = sndrec(fsLink, READ, fd, _AtoPI(buf, curProc), len);
   return r;
 }
 
 // write システムコール
 public int write(int fd, void[] buf, int len) {
-  int r = sndrec(fsLink, WRITE, fd, _AtoP(buf, curProc), len);
+  int r = sndrec(fsLink, WRITE, fd, _AtoPI(buf, curProc), len);
   return r;
 }
 
@@ -159,6 +159,6 @@ public int seek(int fd, int ptrh, int ptrl) {
 
 // stat システムコール
 public int stat(char[] path, void[] stat) {
- int r = sndrec(fsLink, STAT, _AtoP(path, curProc), _AtoP(stat, curProc), 0);
+ int r = sndrec(fsLink, STAT, _AtoPI(path, curProc), _AtoPI(stat, curProc), 0);
  return r;
 }

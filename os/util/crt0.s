@@ -103,6 +103,15 @@ __ItoA
         ld      g0,2,sp     ; void[] _ItoA(int a);
         ret
 
+;; 論理アドレスから物理アドレス（整数）へ変換
+__AtoPI                     ; int _AtoPI(void[] a, PCB p);
+;; 論理アドレスから物理アドレスへ変換
+__AtoPA
+        ld      g0,4,sp     ;   g0 = p
+        ld      g0,16,g0    ;   g0 = p.memBase
+        add     g0,2,sp     ;   g0 += a
+        ret
+
 ;; アドレスと整数の加算
 __addrAdd                   ; void[] _addrAdd(void[] a, int i);
         ld      g0,2,sp
