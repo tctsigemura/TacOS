@@ -61,6 +61,7 @@ int readSem, writeSem;
 //----------------------------------------------------------------------------
 // ttyRead システムコール
 public int ttyRead(void[] buf, int len) {
+  buf = _AtoPA(buf, curProc);                           // 物理アドレスに変換
   if (len<0) return -1;                                 // len<0 ならエラー
   semP(readSem);
   int r = getStr(buf, len);
@@ -70,22 +71,30 @@ public int ttyRead(void[] buf, int len) {
 
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
-  if (len<0) return -1;                                 // len<0 ならエラー
-  semP(writeSem);
-  int r = putStr(buf, len);
-  semV(writeSem);
+  int r;
+  buf = _AtoPA(buf, curProc);                           // 物理アドレスに変換
+  if (len<0) {
+    r = -1;                                             // len<0 ならエラー
+  } else {
+    semP(writeSem);
+    r = putStr(buf, len);
+    semV(writeSem);
+  }
   return r;
 }
 
 // ttyCtl システムコール
 public int ttyCtl(int request, int mode) {
+  int r;
   if (request==TTYCTL_SETMODE) {
     setSIOCtl(mode);                                    // sio.hmm参照
-    return 0;
+    r = 0;
   } else if (request==TTYCTL_GETMODE) {
-    return getSIOCtl();
+    r = getSIOCtl();
+  } else {                                              // 未定義の操作
+    r = -1;
   }
-  return -1;                                            // 未定義の操作
+  return r;
 }
 
 public void ttyInit() {

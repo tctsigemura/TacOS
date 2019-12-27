@@ -53,6 +53,7 @@
  *
  */
 
+#include <crt0.hmm>
 #include <kernel.hmm>
 #include "util.hmm"
 

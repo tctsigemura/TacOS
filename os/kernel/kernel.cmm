@@ -334,8 +334,8 @@ public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
   pcb.idx      = idx;                               // 一覧表で登録位置
   pcb.evtCnt   = 0;                                 // タイマー停止中
   pcb.evtSem   = newSem(0);                         // タイマー用のセマフォ
-  pcb.memBase  = null;                              // メモリ領域へのポインタ
-  pcb.memLen   = 0;                                 // メモリ領域のサイズ
+  pcb.memBase  = null;                              // メモリアドレス（後でpmが設定）
+  pcb.memLen   = 0xffff;                            // メモリサイズ（後でpmが設定）
   pcb.parent   = null;                              // 親プロセスへのポインタ
   pcb.exitStat = -1;                                // プロセスの終了ステータス
   if (fds!=null) {                                  // オープンファイル一覧が
@@ -602,6 +602,11 @@ void exception(int errno, char[] msg) {
   else          panic(msg);
 }
 
+// メモリ保護違反
+interrupt memVio() {
+  exception(EMEMVIO, "memVio");
+}
+
 // ゼロ割算
 interrupt zeroDiv() {
   exception(EZERODIV, "zeroDiv");
@@ -620,6 +625,7 @@ interrupt illInst() {
 // 例外処理初期化 : ベクタの初期化
 void excpInit() {                                   // ベクタにハンドラを登録
   int[] VECTOR =  _ItoA(0xffe0);
+  VECTOR[11] = addrof(memVio);
   VECTOR[12] = addrof(zeroDiv);
   VECTOR[13] = addrof(privVio);
   VECTOR[14] = addrof(illInst);
@@ -638,8 +644,12 @@ public void main() {
   lnkInit();                                        // リンク(lnkTbl)初期化
   ttyInit();                                        // TTY初期化
   procInit();                                       // プロセス(procTbl)初期化
+  out(0xf2, 0x0001);                                // MMU を有効にする
 
   // システムスタート
+#ifdef DEBUG
+  printF("Starting system...\n");
+#endif
   dispatch();                                       // プロセス実行開始
   panic("main");                                    // ここは実行されないはず
 }
