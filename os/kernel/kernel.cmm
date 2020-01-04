@@ -22,6 +22,8 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2019.12.27 : メモリ保護を追加
+ * 2019.11.18 : errno.hmm をインクルードするように変更
  * 2019.10.09 : ttyの非サーバ化に伴い、TTYのプロセス作成部分を削除
  * 2019.08.30 : main() で sioInit() と semInit() の順番を訂正（バグ）
  * 2019.06.13 : VGA, PS2を削除
@@ -94,12 +96,14 @@
 // クリティカルセクションは setPri() で囲む
 // プロセス間通信(IPC)をリンクで実現
 
+#include <errno.hmm>
 #include <sio.hmm>
 #include <util.hmm>
 #include <mm.hmm>
 #include <pm.hmm>
 #include <fs.hmm>
 #include <tty.hmm>
+#include <errno.hmm>
 #include "dispatcher.hmm"
 #include "init.hmm"
 #include "trap.hmm"
@@ -145,13 +149,13 @@ public void schProc(PCB proc) {
 // セマフォ管理
 //----------------------------------------------------------------------------
 Sem[] semTbl=array(SEM_MAX);                        // セマフォの一覧表
-boolean[] semInUse=array(SEM_MAX);                  // どれが使用中か（falseで初期化）
+boolean[] semInUse=array(SEM_MAX);                  // 使用中セマフォの一覧表
 
 // セマフォの割当て
 public int newSem(int init) {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   for (int i=0; i<SEM_MAX; i=i+1) {                 // 全てのセマフォについて
-    if (!semInUse[i]) {                             //   未使用のものを見つけたら
+    if (!semInUse[i]) {                             //   未使用のものを見つけた
       semInUse[i] = true;                           //     使用中に変更し
       semTbl[i].cnt = init;                         //     カウンタを初期化し
       setPri(r);                                    //     割込み状態を復元し
@@ -331,8 +335,8 @@ public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
   pcb.idx      = idx;                               // 一覧表で登録位置
   pcb.evtCnt   = 0;                                 // タイマー停止中
   pcb.evtSem   = newSem(0);                         // タイマー用のセマフォ
-  pcb.memBase  = null;                              // メモリ領域へのポインタ
-  pcb.memLen   = 0;                                 // メモリ領域のサイズ
+  pcb.memBase  = null;                              // メモリアドレス(pmが設定)
+  pcb.memLen   = 0;                                 // メモリサイズ(pmが設定)
   pcb.parent   = null;                              // 親プロセスへのポインタ
   pcb.exitStat = -1;                                // プロセスの終了ステータス
   if (fds!=null) {                                  // オープンファイル一覧が
@@ -599,6 +603,11 @@ void exception(int errno, char[] msg) {
   else          panic(msg);
 }
 
+// メモリ保護違反
+interrupt memVio() {
+  exception(EMEMVIO, "memVio");
+}
+
 // ゼロ割算
 interrupt zeroDiv() {
   exception(EZERODIV, "zeroDiv");
@@ -617,6 +626,7 @@ interrupt illInst() {
 // 例外処理初期化 : ベクタの初期化
 void excpInit() {                                   // ベクタにハンドラを登録
   int[] VECTOR =  _ItoA(0xffe0);
+  VECTOR[11] = addrof(memVio);
   VECTOR[12] = addrof(zeroDiv);
   VECTOR[13] = addrof(privVio);
   VECTOR[14] = addrof(illInst);
@@ -635,8 +645,12 @@ public void main() {
   lnkInit();                                        // リンク(lnkTbl)初期化
   ttyInit();                                        // TTY初期化
   procInit();                                       // プロセス(procTbl)初期化
+  out(0xf2, 0x0001);                                // MMU を有効にする
 
   // システムスタート
+#ifdef DEBUG
+  printF("Starting system...\n");
+#endif
   dispatch();                                       // プロセス実行開始
   panic("main");                                    // ここは実行されないはず
 }

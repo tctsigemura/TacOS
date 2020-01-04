@@ -22,6 +22,7 @@
 /*
  * sio/sio.cmm : シリアルドライバ
  *
+ * 2019.11.15 : モード定数をC--へ移動
  * 2019.09.25 : 複数文字の入力をするように変更、cookedモードを追加
  * 2019.03.01 : RN4020との接続情報をIPLから引き継ぐように変更(RN4020-RAM使用)
  * 2019.01.24 : RN4020とFT232両方に入出力するように変更
@@ -32,6 +33,7 @@
  *
  */
 
+#include <syslib.hmm>
 #include <util.hmm>
 #include <kernel.hmm>
 #include "sio.hmm"
@@ -64,10 +66,10 @@ interrupt sioTrs() {
   } else {                                    // 送信すべきデータがあれば
     char c = getBuf(trsBuf);                  //   次の文字をバッファから取出し
     out(SIO_Data,ord(c));                     //     送信する
-    if (mldpOn) out(RN4_Data,ord(c));         //     同じデータをRN4020にも送信
-    if (trsWait) {                            //   待っているプロセスがあれば
-      trsWait=false;                          //     フラグを下ろして
-      semV(trsSem);                           //        起こす
+    if (mldpOn) out(RN4_Data,ord(c));         //   同じデータをRN4020にも送信
+    if (trsWait&&trsBuf.cnt<=trsBuf.size/2) { //   待ちプロセスがありバッファに
+      trsWait=false;                          //     十分な空きがあれば
+      semV(trsSem);                           //       フラグを下ろして起こす
     }
   }
 }
@@ -155,7 +157,8 @@ void putRaw(char c) {
 
 // 受信した文字の処理
 void rcvProc(char c) {
-  if (!ISEmpty(trsBuf)) return;               // 出力中ならキー操作不可
+  if (echoBack && trsBuf.cnt>=trsBuf.size/2)  // エコーバックできないなら無視
+    return;                                   // (ボトムハーフはブロック不可)
   if (cooked) {                               // cookedモード
     if (c=='\n') {                            //   LF なら
       if (!rcvPrevCR) putLF();                //     CR (+ LF) => LF 変換
@@ -235,8 +238,8 @@ public void sioInit() {
 public int getSIOCtl() {
   int r = setPri(DI|KERN);                  // 割り込み禁止、カーネル
   int ctl = 0;
-  if (cooked) ctl = ctl | SIO_COOKED;
-  if (echoBack) ctl = ctl | SIO_ECHO;
+  if (cooked) ctl = ctl | TTYCTL_MODE_COOKED;
+  if (echoBack) ctl = ctl | TTYCTL_MODE_ECHO;
   setPri(r);                                // 割り込み状態を復元
   return ctl;
 }
@@ -244,7 +247,7 @@ public int getSIOCtl() {
 // 入出力の設定を変更
 public void setSIOCtl(int ctl) {
   int r = setPri(DI|KERN);                  // 割り込み禁止、カーネル
-  cooked = (ctl&SIO_COOKED)!=0;
-  echoBack = (ctl&SIO_ECHO)!=0;
+  cooked = (ctl&TTYCTL_MODE_COOKED)!=0;
+  echoBack = (ctl&TTYCTL_MODE_ECHO)!=0;
   setPri(r);                                // 割り込み状態を復元
 }

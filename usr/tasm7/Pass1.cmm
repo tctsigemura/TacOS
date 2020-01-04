@@ -1,0 +1,134 @@
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+#include <ctype.hmm>
+
+#include "Pass1.hmm"
+#include "Lexical.hmm"
+#include "SymTbl.hmm"
+#include "OperationTbl.hmm"
+#include "Util.hmm"
+#include "Error.hmm"
+
+// #define PRINTF
+
+// static変数
+boolean eofflag = false;    /* EOFフラグ */
+int pca;
+char[] str;
+int token_id;
+int pre_token_id;           /* 一つ前のトークン */
+int style;
+int address;
+boolean label;
+
+// Pass1の初期化
+public void initPass1(){
+    eofflag = false;
+    pca = 0;
+    str = null;
+    token_id = -1;
+    style = -1;
+    address = 0;
+    label = false;
+    initLexical();
+    initSymTbl();
+}
+
+public void pass1(FILE sourcefp){
+    setLxFp(sourcefp);
+    #ifdef PRINTF
+        printf("pass1start\n");
+    #endif
+    token_id = getToken();                  /* 最初のトークンを取ってくる */
+    if(token_id != LxSPC){                  /* ファイルの最初がスペース以外なら */
+        str = getLxStr();                   /* Lexicalのstrを取ってくる */
+        if(isAlpha(str[0])){                /* ラベルに適した文字なら */
+            asignLabel(pca,str);            /* ラベルを登録 */
+        } else{                             /* ラベルにできない文字なら */
+            token_id = LxERR;               /* トークンをエラーにセット */
+        }
+    }
+    
+    while(token_id != LxEOF && token_id != LxERR){    /* ファイルの終わりまで */
+        while(token_id == LxEOL){              /* 改行なら */
+            token_id = getToken();          /* 次のトークンを取ってくる */
+            if(token_id == LxNAM){          /* 行の先頭が空白以外なら */
+                str = getLxStr();           /* Lexicalのstrを取ってくる */
+                if(isAlpha(str[0])){         /* ラベルに適した文字なら */
+                    asignLabel(pca,str);    /* ラベルを登録 */
+                }
+            } else if(token_id == LxCOM){
+                skipToNewLineOrEOF();
+            } else if(token_id == LxEOF){   /* ファイルの終わりなら */
+                break;                      /* pass1のループを抜ける */
+            }
+        }
+
+        //printf("pass1 getToken()\n");
+        token_id = getToken();              /* 次のトークンを取ってくる */
+
+        if(token_id == LxCOM){
+            skipToNewLineOrEOF();
+        } 
+        
+        else if(token_id == LxEQU){       /* EQU命令なら */
+            getToken();                     /* <式>の部分を取ってくる */
+            address = eqAnalyzer();         /* <式>の解析結果を代入 */
+            changeSymAddr(pca,address);     /* ラベルのアドレスを変更 */
+            token_id = getTokenID();        /* 式解析中にtoken_idが変わったのでgetする*/
+        } 
+        
+        else if(token_id == LxORG){
+            getToken();                     /* <式>の部分を取ってくる */
+            pca = eqAnalyzer();             /* <式>の解析結果を代入 */
+            token_id = getTokenID();        /* 式解析中にtoken_idが変わったのでgetする */
+        } 
+        
+        else if(token_id == LxDC){        /* DC命令なら */
+            while(token_id != LxEOL && token_id != LxCOM){
+                token_id = getToken();          /* 次のトークンを取ってくる */
+                if(token_id == LxSTR){          /* <文字列>なら */
+                    str = getLxStr();           /* Lexicalのstrを取ってくる */
+                    pca = pca + strLen(str);    /* strの長さだけpcaを増加 */
+                } else if(token_id == LxNUM){   /* <数値>なら */
+                        pca = pca + 1;
+                }
+            }
+            
+            if(token_id == LxCOM){      /* コメントで終わったなら */
+                skipToNewLineOrEOF();   /* 次の行へ行く */
+            }
+        } 
+        
+        else if(token_id == LxDS){
+            while(token_id != LxEOL && token_id != LxCOM){
+                token_id = getToken();          /* 次のトークンを取ってくる */
+                if(token_id == LxSTR){          /* <文字列>なら */
+                    pca = pca + 1;    /* strの長さだけpcaを増加 */
+                } else if(token_id == LxNUM){   /* <数値>なら */
+                        pca = pca + 1;
+                }
+            }
+        } 
+        
+        else if(token_id == LxEOL){
+        } 
+        
+        else if(token_id == LxEOF){
+        } 
+        
+        else if(0 <= token_id  && token_id < LxRSV_NUM){
+            pca = pca + searchSize(token_id);
+            skipToNewLineOrEOF();
+        } 
+        
+        else{
+            error("bad instruction!!bad instruction!!bad instruction!!bad instruction!!bad instruction!!bad instruction!!bad instruction!!");
+        }
+
+    }
+
+
+    printSymTbl();
+}

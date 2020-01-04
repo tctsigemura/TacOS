@@ -2,7 +2,7 @@
 ; TacOS Source Code
 ;    Tokuyama kousen Advanced educational Computer
 ;
-; Copyright (C) 2009-2018 by
+; Copyright (C) 2009-2019 by
 ;                      Dept. of Computer Science and Electronic Engineering,
 ;                      Tokuyama College of Technology, JAPAN
 ;
@@ -17,13 +17,14 @@
 ; る損害に関しても，その責任を負わない．
 ;
 
-; 
+;
 ; util/crt0.s : カーネル用スタートアップ
 ;
+; 2019.12.27 : 論理アドレスから物理アドレスの変換 _ItoP(), _AtoP() 追加
 ; 2018.11.30 : TaC7a と TaC7b を自動識別し SP の初期値を決める．
 ; 2017.12.10 : _setPri のコメントを訂正
 ; 2016.01.20 : __fp() を追加
-; 2016.01.06 : コメントの体裁を清書 
+; 2016.01.06 : コメントの体裁を清書
 ; 2015.09.02 : __AtoA 追加(重村)
 ; 2014.05.07 : 村田開発開始
 ; 2012.09.20 : TaC-CPU V2 対応、Kernel 専用(_end(), _memsize() を削除)
@@ -42,25 +43,25 @@
 __memSiz ws     1           ; 主記憶の最終アドレスを格納する
 
 .start                      ; IPL からここにジャンプしてくる
-        ld      sp,#0xe000  ; TaC7a と仮定しするとメモリの最後は 0xdfff
-	ld	g1,#-1      ;
-	st	g1,0,sp     ; TaC7a なら 0xe000 から 0xeffff は上位バイトが
-	ld	g0,0,sp     ;   実装されていないのでデータが化けるはず
-	cmp	g0,g1       ;
-	jnz     .l          ; データが一致しなければ TaC7a
-        ld      sp,#0xf000  ; 一致すれば TaC7b なのでメモリの最後は 0xefff
-	st	g1,0,sp     ; TaC7b の古いファームなら 0xf000 はROM
-	ld	g0,0,sp     ;   化けるようなら古いファーム
-	cmp	g0,g1       ;
-	jnz     .l          ; データが一致しなければ TeC7b の古いファーム
-        ld      sp,#0xffe0  ; 一致すれば TaC7b の新しいファームなので 0xffe0
+        ld      sp,#0xe000  ; TaC7a の古いファームならメモリの最後は 0xdfff
+        ld      g1,#-1      ;
+        st      g1,0,sp     ; TaC7a の古いファームなら 0xe000 から 0xeffff は
+        ld      g0,0,sp     ;  上位バイトが未実装なのでデータが化けるはず
+        cmp     g0,g1       ;
+        jnz     .l          ; データが一致しなければ TaC7a の古いファーム
+        ld      sp,#0xf000  ; 次に TaC7b-d の古いファームと仮定し 0xefff
+        st      g1,0,sp     ; TaC7b-d の古いファームなら 0xf000 はROM
+        ld      g0,0,sp     ;   化けるようなら古いファーム
+        cmp     g0,g1       ;
+        jnz     .l          ; データが一致しなければ TeC7b-d の古いファーム
+        ld      sp,#0xffe0  ; 一致すれば TaC7a-d の新しいファームなので 0xffe0
 .l      st      sp,__memSiz ; TacOSに主記憶のサイズを知らせる
         call    _main       ; カーネルのメインに飛ぶ
 .m      halt                ; 万一カーネルが終了したらここで終わる
-        jmp     .m          ; 
+        jmp     .m          ;
 
-;; CPU のフラグの値を返すと同時に新しい値に変更 
-_setPri 
+;; CPU のフラグの値を返すと同時に新しい値に変更
+_setPri
         ld      g0,2,sp     ; 引数の値を G0 に取り出す
         push    g0          ; 新しい状態をスタックに積む
         ld      g0,flag     ; 古いフラグの値を返す準備をする
@@ -72,7 +73,7 @@ _in                         ; int in(int p);
         in      g0,g1       ; I/O ポートから入力する
         ret
 
-;; ワードを I/O ポートへ出力する 
+;; ワードを I/O ポートへ出力する
 _out                        ; void out(int p,int v);
         ld      g0,2,sp     ; ポートアドレス
         ld      g1,4,sp     ; 出力データ
@@ -81,21 +82,35 @@ _out                        ; void out(int p,int v);
 
 ;; CPU を停止
 _halt
-	jmp	_halt
-;       halt
+        halt
+        jmp     _halt
+
+;; 一時停止
+_pause
+        halt
+        ret
 
 ;; FP の値を取得する
 __fp
         ld      g0,0,fp
         ret
-	
+
 ;; アドレスから整数へ変換
 __AtoI                      ; int _AtoI(void[] a);
 ;; アドレスからアドレスへ変換
 __AtoA                      ; void[] _AtoA(void[] a);
 ;; 整数からアドレスへ変換
-__ItoA                          
+__ItoA
         ld      g0,2,sp     ; void[] _ItoA(int a);
+        ret
+
+;; 論理アドレスから物理アドレス（整数）へ変換
+__ItoP                      ; void[] _AtoP(int a, PCB p);
+;; 論理アドレスから物理アドレスへ変換
+__AtoP                      ; void[] _AtoP(void[] a, PCB p);
+        ld      g0,4,sp     ;   g0 = p
+        ld      g0,16,g0    ;   g0 = p.memBase
+        add     g0,2,sp     ;   g0 += a
         ret
 
 ;; アドレスと整数の加算
@@ -122,7 +137,7 @@ __args                      ; void[] _args();
         ld      g0,fp
         add     g0,#6
         ret
-        
+
 ;; 32ビット加算ルーチン
 __add32                     ; int[] _add32(int[] dst, int[] src);
         ld      g0,2,sp     ; ディスティネーション(アドレス)

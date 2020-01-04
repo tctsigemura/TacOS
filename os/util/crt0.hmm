@@ -22,6 +22,7 @@
 /*
  * util/crt0.hmm :crt0.s の外部インターフェイス
  *
+ * 2019.12.27 : 論理アドレスから物理アドレスの変換 _ItoP(), _AtoP() 追加
  * 2019.01.27 : I/O特権モード追加
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.20 : _fp() を追加
@@ -37,6 +38,8 @@
  * $Id$
  */
 
+#include <process.hmm>
+
 // 特殊な命令を使用する関数
 #define EI   0x0080                                 // 割込み許可
 #define DI   0x0000                                 // 割込み不許可
@@ -47,12 +50,15 @@ public int setPri(int l);                           // フラグ値の変更
 public int in(int p);                               // ポートから入力
 public void out(int p, int v);                      // ポートへ出力
 public void halt();                                 // CPU を停止
+public void pause();                                // 一時停止
 public int _fp();                                   // FP を返す
 
 // C-- をサポートする関数
 public int    _AtoI(void[] a);                      // 型変換ルーチン
 public void[] _AtoA(void[] a);                      // 型変換ルーチン
 public void[] _ItoA(int a);                         // 型変換ルーチン
+public void[] _ItoP(int a, PCB pcb);                // 論理=>物理アドレス変換
+public void[] _AtoP(void[] a, PCB pcb);             // 論理=>物理アドレス変換
 public void[] _addrAdd(void[] a, int i);            // アドレス計算
 public int    _uCmp(int a, int b);                  // 符号無しの大小比較
 public int    _aCmp(void[] a, void[] b);            // アドレスの大小比較

@@ -78,7 +78,7 @@ char[] datBuf = array(BUFSIZ);
 char[][] ch = {"mono","stereo"};
 
 void play(char[] fname) {
-  int fd = open(fname, READ);
+  int fd = open(fname, O_RDONLY);
   if (fd<0) {
     perror(fname);
     exit(1);

@@ -35,7 +35,7 @@ public void ttyMain();                              // 待ち受けルーチン
 /*----------------------------------------------------------------------------
  *   名前   : ttyRead
  *   戻り値 : 読み込んだ文字数
- *   引数   : char[] buf 入力された文字列を格納するバッファ
+ *   引数   : void[] buf 入力された文字列を格納するバッファ
  *            次のようなプログラムで準備しておく
  *              -----------------------------------------------------------
  *              char[] buf = malloc(81);            // 1行の最大入力数は80文字
@@ -70,7 +70,3 @@ public int ttyCtl(int request, int mode);
  *   解説   : ttyを初期化する
  */
 public void ttyInit();
-
-// ttyCtl() に渡す request 番号
-#define TTYCTL_GETMODE        0
-#define TTYCTL_SETMODE        1

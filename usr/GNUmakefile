@@ -19,6 +19,7 @@
 #
 # Makefile : usr ディレクトリ用の Makefile
 #
+# 2019.11.14         : envtest env pwd printenv を追加
 # 2019.03.13         : in out を追加
 # 2018.11.24         : ar cp fsize mv を追加
 # 2018.01.26         : lib ディレクトリを削除（C-- 標準ライブラリを用いる）
@@ -30,7 +31,7 @@ MAKEFLAGS=--no-print-directory
 
 # サブディレクトリ
 SUBDIRS:=ar cat cp dump echo edit fsize hello in ls mkdir mv out rm rmdir \
-	shell touch ss sr spitest readtest head
+	shell touch ss sr spitest readtest head envtest env pwd printenv realpath
 # port
 
 all :

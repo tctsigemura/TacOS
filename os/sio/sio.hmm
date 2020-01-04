@@ -22,6 +22,7 @@
 /*
  * sio/sio.hmm : sio.cmm の外部インタフェース
  *
+ * 2019.11.15 : モード定数をC--へ移動
  * 2019.10.02 : putSIO() を1文字出力から可変長出力に変更
  * 2019.09.25 : getSIO() を1文字入力から可変長入力に変更
  * 2018.11.01 : 新規作成
@@ -35,6 +36,3 @@ public int getSIO(char[] buf, int len);   // 入力
 public void sioInit();                    // 初期化
 public void setSIOCtl(int ctl);           // 入出力の設定を変更
 public int getSIOCtl();                   // 入出力の設定を取得
-
-#define SIO_COOKED    0x0001              // cooked モード
-#define SIO_ECHO      0x0002              // echo モード

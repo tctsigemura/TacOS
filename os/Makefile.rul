@@ -31,6 +31,7 @@ ifdef DEBUG
 CMFLAGS+=-DDEBUG
 endif
 
+CMFLAGS+=-I/usr/local/cmmInclude
 CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../pm -I../tty \
                       -I../sio
 

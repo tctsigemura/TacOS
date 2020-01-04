@@ -22,6 +22,7 @@
 /*
  * tty/tty.cmm : 端末サーバの本体、キーボード入力の受付とディスプレイ表示をする
  *
+ * 2019.12.29 : システムコールの引数の論理アドレスと物理アドレスの変換を追加
  * 2019.10.07 : メソッドの名前を con -> tty と変更
  * 2019.10.02 : conWrite() に長さを指定するように変更
  * 2019.09.26 : conRead() が getSIO() を呼ぶように変更
@@ -40,6 +41,7 @@
  *
  */
 
+#include <syslib.hmm>
 #include <util.hmm>
 #include <kernel.hmm>
 #include <syscall.hmm>
@@ -62,13 +64,14 @@ int readSem, writeSem;
 public int ttyRead(void[] buf, int len) {
   if (len<0) return -1;                                 // len<0 ならエラー
   semP(readSem);
-  int r = getStr(buf, len);
+  int r = getStr(_AtoP(buf, curProc), len);             // 物理アドレスで操作
   semV(readSem);
   return r;
 }
 
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
+  buf = _AtoP(buf, curProc);                            // 物理アドレスに変換
   if (len<0) return -1;                                 // len<0 ならエラー
   semP(writeSem);
   int r = putStr(buf, len);
@@ -84,7 +87,7 @@ public int ttyCtl(int request, int mode) {
   } else if (request==TTYCTL_GETMODE) {
     return getSIOCtl();
   }
-  return -1;                                            // 未定義の操作
+  return -1;
 }
 
 public void ttyInit() {
