@@ -22,6 +22,7 @@
 /*
  * pm/pm.cmm : プロセスマネージャ(PM)の本体、プロセスの生成と管理を行う
  *
+ * 2019.12.29 : メモリ保護に対応
  * 2019.11.18 : errno.hmm をインクルードするように変更
  * 2019.01.27 : I/O特権モード追加
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
@@ -171,63 +172,63 @@ int allocMem() {
 
 // TEXT セグメントと DATA セグメントをメモリに読み込む
 int readTextData() {
-  for (int pAddr=pText; _uCmp(pAddr,pBss)<0; pAddr=pAddr+1) {// TEXTとDATA について
-    MEM[pAddr] = getByte();                         //  ファイルから読んで格納
+  for (int pAdr=pText; _uCmp(pAdr,pBss)<0; pAdr=pAdr+1) {// TEXTとDATA について
+    MEM[pAdr] = getByte();                          //  ファイルから読んで格納
     if (eof) return ENOEXEC;                        //  ファイルが短い
   }
   return 0;                                         // 正常終了
 }
 
-// スタックに文字列の配列をコピーする (返り値: strAddr)
-int copyCA(int[] USP, int index, int strAddr, char[][] ary, int size, PCB p) {
+// スタックに文字列の配列をコピーする (返り値: strAdr)
+int copyCA(int[] USP, int index, int strAdr, char[][] ary, int size, PCB pcb) {
   for (int i=0; i<size; i=i+1) {                    // すべての要素について
-    USP[index + i] = strAddr;                       //   参照配列位置格納
-    char[] str = _AtoPA(ary[i], p);                 //   文字列の実体を取得
-    strCpy(_ItoA(pText+strAddr), str);              //   文字列をコピー
-    strAddr = strAddr + strLen(str) + 1;            //   文字列格納位置を進める
+    USP[index + i] = strAdr;                        //   参照配列位置格納
+    char[] str = _AtoP(ary[i], pcb);                //   文字列の実体を取得
+    strCpy(_ItoA(pText+strAdr), str);               //   文字列をコピー
+    strAdr = strAdr + strLen(str) + 1;              //   文字列格納位置を進める
   }
   USP[index + size] = 0x0000;                       // null を格納
-  return strAddr;
+  return strAdr;
 }
 
 // スタックの底に argc, argv, envp, argv[0], ... を格納する
-void copyArgsEnvp(char[][] argv, char[][] envp, PCB p) {
+void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb) {
   // 注意: argv, envp は論理アドレスの配列
   // スタックの底に確保する領域のサイズを計算する
   int st = 2 + 2 + 2 + 2 + 2;                       // 文字列以外
   int argc = 0;                                     // コマンド行引数の個数
   while (argv!=null && argv[argc]!=null) {          // コマンド行引数について
-    st = st + strLen(_AtoPA(argv[argc], p)) + 1 + 2;//  argv 配列と文字列の領域
+    st = st + strLen(_AtoP(argv[argc],pcb))+1+2;    //  argv 配列と文字列の領域
     argc = argc + 1;                                //   サイズを合計していく
   }
   int envs = 0;                                     // 環境変数の個数
   while (envp!=null && envp[envs]!=null) {          // 環境変数について
-    st = st + strLen(_AtoPA(envp[envs], p)) + 1 + 2;//  envp 配列と文字列の領域
+    st = st + strLen(_AtoP(envp[envs],pcb))+1+2;    //  envp 配列と文字列の領域
     envs = envs + 1;                                //   サイズを合計していく
   }
   pUsp = pUsp - ((st+1) & ~1);                      // スタックの終了位置調整
 
   // スタックの底に確保した領域に argc, argv, envp, ... を書込む
   int[] USP = _ItoA(pUsp);                          // スタックを表現する配列
-  int argvAddr = pUsp - pText + 2 + 2 + 2;          // argv 参照配列の論理アドレス
-  int envpAddr = argvAddr + 2*argc + 2;             // envp 参照配列の論理アドレス
-  int strAddr  = envpAddr + 2*envs + 2;             // 文字列の論理アドレス
+  int argvAdr = pUsp - pText + 2 + 2 + 2;           // argv 配列の論理アドレス
+  int envpAdr = argvAdr + 2*argc + 2;               // envp 配列の論理アドレス
+  int strAdr  = envpAdr + 2*envs + 2;               // 文字列の論理アドレス
 
   USP[0] = argc;                                    // argc 格納
-  USP[1] = argvAddr;                                // argv 参照配列の位置
-  USP[2] = envpAddr;                                // envp 参照配列の位置
+  USP[1] = argvAdr;                                 // argv 参照配列の位置
+  USP[2] = envpAdr;                                 // envp 参照配列の位置
 
   int index = 3;                                    // 配列のインデックス
 
   // argv の格納
-  strAddr = copyCA(USP, index, strAddr, argv, argc, p);
+  strAdr = copyCA(USP, index, strAdr, argv, argc, pcb);
   index = index + argc + 1;
   // envp の格納
-  strAddr = copyCA(USP, index, strAddr, envp, envs, p);
+  strAdr = copyCA(USP, index, strAdr, envp, envs, pcb);
 }
 
 // exec システムコールの処理をする
-int sysExec(char[] path, char[][] argv, char[][] envp, PCB p) {
+int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
   int r;                                           // 実行結果
   r = openByte(path);                              // EXE ファイルをオープン
   if(r<0) return ENOEXEC;                          //   見つからなかった
@@ -262,36 +263,36 @@ pause();
     MEM[pBss+i] = chr(0);                          //   0を格納する
 
   // コマンド行引数を親プロセスから子プロセスのユーザスタックにコピーする
-  copyArgsEnvp(argv, envp, p);
+  copyArgsEnvp(argv, envp, pcb);
 
   // PCB を確保・初期化し新しいプロセスを実行可能にする
   int pcbSize = sizeof(PCB)+P_KERN_STKSIZ          // PCB とカーネルスタック
                 +P_FILE_MAX*sizeof(int);           //   FDの一覧表の領域
-  PCB pcb = malloc(pcbSize);                       // PCBを確保
-  if (pcb==null) {                                 //   エラー発生
+  PCB newPcb = malloc(pcbSize);                    // PCBを確保
+  if (newPcb==null) {                              //   エラー発生
     free(_ItoA(pText));
     return ENOMEM;
   }
-  int[] fds = _ItoA(_AtoI(pcb)+sizeof(PCB)+P_KERN_STKSIZ);
+  int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
 
   int priv = EI|USER;                              // 普通はユーザモード
   if (magic==IMAGIC) priv = EI|IPRV;               // I/O特権モード
-  newProc(0, p.enice, pUsp-pText, priv, pcb, fds); // PCB 等初期化
-  pcb.memBase = _ItoA(pText);                      // メモリ空間アドレス
-  pcb.memLen  = pEnd - pText;                      // メモリ空間サイズ
-  pcb.parent  = p;                                 // 親プロセスを設定
-  schProc(pcb);                                    // プロセスを実行可能に
-  return pcb.pid;                                  // PID を返す
+  newProc(0,pcb.enice,pUsp-pText,priv,newPcb,fds); // PCB 等初期化
+  newPcb.memBase = _ItoA(pText);                   // メモリ空間アドレス
+  newPcb.memLen  = pEnd - pText;                   // メモリ空間サイズ
+  newPcb.parent  = pcb;                            // 親プロセスを設定
+  schProc(newPcb);                                 // プロセスを実行可能に
+  return newPcb.pid;                               // PID を返す
 }
 
 //-----------------------------------------------------------------------------
 // プロセスマネージャーの本体(ここで各システムコールを実行する)
 //-----------------------------------------------------------------------------
 
-int pmSysCall(int op, int prm1, int prm2, int prm3, PCB client) {
+int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
   int r = -1;
   if (op==EXEC) { // exec(path,argv,envp,parent)
-    r = sysExec(_ItoA(prm1), _ItoA(prm2), _ItoA(prm3), client);
+    r = sysExec(_ItoP(prm1, pcb), _ItoP(prm2, pcb), _ItoP(prm3, pcb), pcb);
   } else
     r = -1;                                         // どれでもなければエラー
   return r;
@@ -314,8 +315,7 @@ public void pmMain() {
 //-----------------------------------------------------------------------------
 
 public int exec(char[] path, char[][] argv, char[][] envp) {
-  int r=sndrec(pmLink,EXEC,
-    _AtoPI(path,curProc),_AtoPI(argv,curProc),_AtoPI(envp,curProc));
+  int r=sndrec(pmLink,EXEC, _AtoI(path), _AtoI(argv), _AtoI(envp));
   return r;                                         // 新しい子の PID を返す
 }
 
@@ -330,7 +330,7 @@ public void exit(int status) {
 }
 
 public int wait(int[] sta) {
-  sta = _AtoPA(sta, curProc);                       // 物理アドレスに変換
+  sta = _AtoP(sta, curProc);                        // 物理アドレスに変換
   int r = ECHILD;                                   // 一旦、エラー番号を設定
   PCB child = waitChild();                          // 子プロセスの終了を待つ
   if (child!=null) {                                // 子プロセスが終了した

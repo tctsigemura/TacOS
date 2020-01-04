@@ -2,7 +2,7 @@
 ; TacOS Source Code
 ;    Tokuyama kousen Advanced educational Computer
 ;
-; Copyright (C) 2009-2018 by
+; Copyright (C) 2009-2019 by
 ;                      Dept. of Computer Science and Electronic Engineering,
 ;                      Tokuyama College of Technology, JAPAN
 ;
@@ -20,6 +20,7 @@
 ;
 ; util/crt0.s : カーネル用スタートアップ
 ;
+; 2019.12.27 : 論理アドレスから物理アドレスの変換 _ItoP(), _AtoP() 追加
 ; 2018.11.30 : TaC7a と TaC7b を自動識別し SP の初期値を決める．
 ; 2017.12.10 : _setPri のコメントを訂正
 ; 2016.01.20 : __fp() を追加
@@ -42,18 +43,18 @@
 __memSiz ws     1           ; 主記憶の最終アドレスを格納する
 
 .start                      ; IPL からここにジャンプしてくる
-        ld      sp,#0xe000  ; TaC7a と仮定しするとメモリの最後は 0xdfff
+        ld      sp,#0xe000  ; TaC7a の古いファームならメモリの最後は 0xdfff
         ld      g1,#-1      ;
-        st      g1,0,sp     ; TaC7a なら 0xe000 から 0xeffff は上位バイトが
-        ld      g0,0,sp     ;   実装されていないのでデータが化けるはず
+        st      g1,0,sp     ; TaC7a の古いファームなら 0xe000 から 0xeffff は
+        ld      g0,0,sp     ;  上位バイトが未実装なのでデータが化けるはず
         cmp     g0,g1       ;
-        jnz     .l          ; データが一致しなければ TaC7a
-        ld      sp,#0xf000  ; 一致すれば TaC7b なのでメモリの最後は 0xefff
-        st      g1,0,sp     ; TaC7b の古いファームなら 0xf000 はROM
+        jnz     .l          ; データが一致しなければ TaC7a の古いファーム
+        ld      sp,#0xf000  ; 次に TaC7b-d の古いファームと仮定し 0xefff
+        st      g1,0,sp     ; TaC7b-d の古いファームなら 0xf000 はROM
         ld      g0,0,sp     ;   化けるようなら古いファーム
         cmp     g0,g1       ;
-        jnz     .l          ; データが一致しなければ TeC7b の古いファーム
-        ld      sp,#0xffe0  ; 一致すれば TaC7b の新しいファームなので 0xffe0
+        jnz     .l          ; データが一致しなければ TeC7b-d の古いファーム
+        ld      sp,#0xffe0  ; 一致すれば TaC7a-d の新しいファームなので 0xffe0
 .l      st      sp,__memSiz ; TacOSに主記憶のサイズを知らせる
         call    _main       ; カーネルのメインに飛ぶ
 .m      halt                ; 万一カーネルが終了したらここで終わる
@@ -104,9 +105,9 @@ __ItoA
         ret
 
 ;; 論理アドレスから物理アドレス（整数）へ変換
-__AtoPI                     ; int _AtoPI(void[] a, PCB p);
+__ItoP                      ; void[] _AtoP(int a, PCB p);
 ;; 論理アドレスから物理アドレスへ変換
-__AtoPA
+__AtoP                      ; void[] _AtoP(void[] a, PCB p);
         ld      g0,4,sp     ;   g0 = p
         ld      g0,16,g0    ;   g0 = p.memBase
         add     g0,2,sp     ;   g0 += a

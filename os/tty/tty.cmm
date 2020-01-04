@@ -22,6 +22,7 @@
 /*
  * tty/tty.cmm : 端末サーバの本体、キーボード入力の受付とディスプレイ表示をする
  *
+ * 2019.12.29 : システムコールの引数の論理アドレスと物理アドレスの変換を追加
  * 2019.10.07 : メソッドの名前を con -> tty と変更
  * 2019.10.02 : conWrite() に長さを指定するように変更
  * 2019.09.26 : conRead() が getSIO() を呼ぶように変更
@@ -61,40 +62,32 @@ int readSem, writeSem;
 //----------------------------------------------------------------------------
 // ttyRead システムコール
 public int ttyRead(void[] buf, int len) {
-  buf = _AtoPA(buf, curProc);                           // 物理アドレスに変換
   if (len<0) return -1;                                 // len<0 ならエラー
   semP(readSem);
-  int r = getStr(buf, len);
+  int r = getStr(_AtoP(buf, curProc), len);             // 物理アドレスで操作
   semV(readSem);
   return r;
 }
 
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
-  int r;
-  buf = _AtoPA(buf, curProc);                           // 物理アドレスに変換
-  if (len<0) {
-    r = -1;                                             // len<0 ならエラー
-  } else {
-    semP(writeSem);
-    r = putStr(buf, len);
-    semV(writeSem);
-  }
+  buf = _AtoP(buf, curProc);                            // 物理アドレスに変換
+  if (len<0) return -1;                                 // len<0 ならエラー
+  semP(writeSem);
+  int r = putStr(buf, len);
+  semV(writeSem);
   return r;
 }
 
 // ttyCtl システムコール
 public int ttyCtl(int request, int mode) {
-  int r;
   if (request==TTYCTL_SETMODE) {
     setSIOCtl(mode);                                    // sio.hmm参照
-    r = 0;
+    return 0;
   } else if (request==TTYCTL_GETMODE) {
-    r = getSIOCtl();
-  } else {                                              // 未定義の操作
-    r = -1;
+    return getSIOCtl();
   }
-  return r;
+  return -1;
 }
 
 public void ttyInit() {
