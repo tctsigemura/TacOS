@@ -1,4 +1,4 @@
-v#include <stdio.hmm>
+#include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
 #include <syslib.hmm>                    // TaC版は一部のシステムコールを使う
@@ -136,9 +136,13 @@ void saveFile(char[] fileName) {
   }
   for(int i = 0; i < lines; i = i + 1){
     fprintf(fp, "%s", textBuffer[i]);
-    // 最終行が０文字なら改行を入れない
-    if(strLen(textBuffer[lines-1]) != 0){
+    if(i != lines-1){
       fprintf(fp, "%s", "\n");
+    } else {
+      // 最終行が０文字なら改行を入れない
+      if(strLen(textBuffer[lines-1]) != 0){
+        fprintf(fp, "%s", "\n");
+      }
     }
   }
   fclose(fp);
