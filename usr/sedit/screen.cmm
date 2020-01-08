@@ -38,7 +38,7 @@ public void printBufferInfo(){
 // 全画面表示
 public void displayAll(){
   // 画面クリア
-  printf("\x1b[2J\x1b[H");
+  clear();
   int end = COLUMNS - 1;
   if(lines-1 - top < end){
     end = lines-1 - top;
@@ -68,14 +68,14 @@ public void displayAllFromCursor(){
 
   // 次の行から表示
   int start = current + 1;
-  int end = COLUMNS - c.y - 2;
-  if(lines - start < end){
-    end = lines - start;
+  int end = start + COLUMNS - c.y - 2;
+  if(lines <= end){
+    end = lines - 1;
   }
   // 表示
-  for(int i = start; i <= start + end; i = i + 1){
+  for(int i = start; i <= end; i = i + 1){
     printf("\r%s", textBuffer[i]);
-    if (i != start + end) {
+    if (i != end) {
       printf("\n");
     }
   }
