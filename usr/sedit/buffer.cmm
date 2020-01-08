@@ -23,12 +23,14 @@ public void insertLine(int row, int column){
   }
 
   // 行の途中で挿入されたとき
-  int i=0, j=row;
-  while ((textBuffer[column+1][i]=textBuffer[column][j])!='\0') {
-    i = i + 1;
-    j = j + 1;
+  if(row != BUFLEN-1){
+    int i=0, j=row;
+    while ((textBuffer[column+1][i]=textBuffer[column][j])!='\0') {
+      i = i + 1;
+      j = j + 1;
+    }
+    textBuffer[column][row]='\0';
   }
-  textBuffer[column][row]='\0';
   lines = lines + 1;
 }
 
