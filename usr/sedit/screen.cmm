@@ -25,6 +25,9 @@ public void moveCursor(){
 // 行末に移動
 public void moveToEndOfLine(){
   c.x = strLen(textBuffer[current]);
+  if(c.x >= ROWS){
+    c.x = ROWS-1;
+  }
 }
 
 // デバッグ用
