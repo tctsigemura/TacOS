@@ -1,0 +1,13 @@
+#define LINES 150
+#define BUFLEN 80
+
+public int lines;   //合計
+public char[][] textBuffer;
+
+public void bufferInit();
+public void insertLine(int row, int column);
+public void insertChar(char c, int row, int column);
+public void removeChar(int row, int column);
+public void removeLine(int row, int column);
+public void cutLine(int row, int column);
+public void pasteLine(int row, int column);

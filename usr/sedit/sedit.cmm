@@ -1,0 +1,196 @@
+#include <stdio.hmm>
+#include <stdlib.hmm>
+#include <string.hmm>
+#include <syslib.hmm>                    // TaC版は一部のシステムコールを使う
+#include "buffer.hmm"
+#include "screen.hmm"
+
+#define CTRL(c) chr(0x1f & ord(c))
+
+char[] kbdBuf = array(BUFLEN);            // 入力用
+boolean isEsc= false;
+
+// 入力文字の処理
+void keyboard(char key){
+  if(key == '\x1b'){
+    isEsc = true;
+    return;
+  } else if(isEsc){
+    if(key == '['){
+      return;
+    }
+    if (key == 'A'){  // up
+      moveUp();
+      if (c.y == 0){
+        displayAll();
+      }
+    }else if (key == 'B'){  // down
+      moveDown();
+      if (c.y == COLUMNS-1){
+        displayAll();
+      }
+    } else if (key == 'C'){ // right
+      moveRight();
+    } else if (key == 'D'){  // left
+      moveLeft();
+    }
+    isEsc = false;
+    moveCursor();
+    return;
+  } else if (key == '\x7f'){    // del
+    // 行の左端
+    if(c.x == 0){
+      removeLine(c.x, current);
+      moveUp();
+      clearFromCursor();
+      moveCursor();
+      displayAllFromCursor();
+      moveToEndOfLine();
+    } else {
+      removeChar(c.x, current);
+      moveLeft();
+      moveCursor();
+      displayLineFromCursor();
+    }
+    moveCursor();
+    return;
+  } else if(key == '\x09'){ // tab
+    int move = c.x % 4;
+    if(move == 0){
+      move = 4;
+    }
+    for(int i = 0; i < move; i=i+1){
+      insertChar(' ', c.x, current);
+    }
+    displayLineFromCursor();
+    for(int i = 0; i < move; i=i+1){
+      moveRight();
+    }
+    moveCursor();
+    return;
+  } else if (key == '\r' || key == '\n'){ // 改行
+    int oldX = c.x;
+    insertLine(c.x, current);
+    moveDown();
+    // カーソルが画面の一番下なら全画面更新
+    if (c.y == COLUMNS-1){
+      displayAll();
+    } else {
+      c.x = oldX;
+      // 画面右端にカーソルがあった場合は先に移動
+      if(c.x == ROWS-1){
+        moveCursor();
+      }
+      clearFromCursor();
+      // 後ろにあるものを消してから移動して表示する
+      c.x = 0;
+      moveCursor();
+      displayAllFromCursor();
+    }
+    moveCursor();
+    return;
+  } else if(ord(key) <= 0x1f){
+    if(key == CTRL('Y')){ // Ctrl Y
+      pasteLine(c.x, current);
+      displayLineFromCursor();
+    } else if(key == CTRL('K')){ // Ctrl K
+      cutLine(c.x, current);
+      displayLineFromCursor();
+    } else if(key == CTRL('A')){ // Ctrl A
+      c.x = 0;
+    } else if(key == CTRL('E')){ // Ctrl E
+      moveToEndOfLine();
+    }
+    moveCursor();
+    return;
+  }
+  insertChar(key, c.x, current);
+  displayLineFromCursor();
+
+  moveRight();
+  moveCursor();
+
+  return;
+}
+
+// ファイルの内容を処理
+void loadFile(char[] fileName) {
+  FILE fp;
+  char ch;
+  fp = fopen(fileName, "r"); // ファイルを開く
+  if (fp == null) {
+    perror(fileName);
+    printf("\x1b[2J\x1b[H");
+  } else {
+    while(!feof(fp)) {
+      ch = fgetc(fp);
+      keyboard(ch);
+    }
+    fclose(fp);
+  }
+}
+
+// ファイルに書き込む
+void saveFile(char[] fileName) {
+  remove(fileName);
+
+  FILE fp;
+  fp = fopen(fileName, "w");
+  if (fp == null) {
+    perror(fileName);
+    return;
+  }
+  for(int i = 0; i < lines; i = i + 1){
+    fprintf(fp, "%s", textBuffer[i]);
+    if(i != lines-1){
+      fprintf(fp, "%s", "\n");
+    } else {
+      // 最終行が０文字なら改行を入れない
+      if(strLen(textBuffer[lines-1]) != 0){
+        fprintf(fp, "%s", "\n");
+      }
+    }
+  }
+  fclose(fp);
+}
+
+public int main(int argc, char[][] argv){
+  if(argc!=2){
+    fprintf(stderr, "Usage, %s <filename>\n", argv[0]);
+    return 1;
+  }
+  bufferInit();
+  screenInit();
+
+  char[] fileName = argv[1];
+
+  char ch;
+  int orgMode = ttyCtl(TTYCTL_GETMODE, 0);     // 普通のモード
+  int rawMode = orgMode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;  // １文字入力
+
+  stdout.buf = null;  // stdoutのバッファリングを禁止
+  clear();
+
+  // ファイル読み込み
+  loadFile(fileName);
+
+  ttyCtl(TTYCTL_SETMODE, rawMode);
+  while(true){
+    // 文字入力
+    ttyRead(kbdBuf, 1);
+
+    // qを押したら終わり
+    ch = kbdBuf[0];
+    if(isEsc && ch == 'q'){
+      break;
+    }
+    keyboard(ch);
+  }
+  ttyCtl(TTYCTL_SETMODE, orgMode);
+
+  // save
+  saveFile(fileName);
+  printf("\x1b[J\r\n");
+
+  return 0;
+}
