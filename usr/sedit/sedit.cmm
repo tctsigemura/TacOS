@@ -45,7 +45,7 @@ void keyboard(char key){
       removeLine(c.x, current);
       moveUp();
       displayAllFromCursor();
-      moveToEndOfRow();
+      moveToEndOfLine();
     } else {
       removeChar(c.x, current);
       moveLeft();

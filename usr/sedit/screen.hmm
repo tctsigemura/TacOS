@@ -15,7 +15,7 @@ public void screenInit();
 public void clear();
 public void printBufferInfo();
 public void moveCursor();
-public void moveToEndOfRow();
+public void moveToEndOfLine();
 public void displayAll();
 public void displayLine();
 public void displayLineFromCursor();
