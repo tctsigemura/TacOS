@@ -20,6 +20,7 @@
 ;
 ; kernel/trap.s : SVC ハンドラ(トラップ)
 ;
+; 2020.01.06 : kill と signal を追加
 ; 2019.06.13 : ttyCtl を追加
 ; 2016.01.11 : システムコール番号のエラーチェックを変更
 ; 2016.01.06 : .sysNumErr を修正
@@ -61,10 +62,12 @@
 ;14     ttyRead
 ;15     ttyWrite
 ;16     ttyCtl
-;17     malloc
-;18     free
+;17     kill
+;18     signal
+;19     malloc
+;20     free
 
-.nSys   equ     17          ; システムコール数を定義
+.nSys   equ     19          ; システムコール数を定義
 
 ; .sysTbl ラベルは dw と同じ行に書くこと(同じセグメントのラベルにするため)
 .sysTbl dw      _exec       ; 0  exec
@@ -84,6 +87,8 @@
         dw      _ttyRead    ; 14 ttyRead
         dw      _ttyWrite   ; 15 ttyWrite
         dw      _ttyCtl     ; 16 ttyCtl
+        dw      _kill       ; 17 kill
+        dw      _signal     ; 18 signal
 ; MM の malloc(#17)と free(#18)は OS 内部専用システムコールなので SVC で扱わない
 
 ; ---------------------------- SVC ハンドラ(トラップ) -------------------------

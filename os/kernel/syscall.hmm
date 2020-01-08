@@ -22,6 +22,7 @@
 /*
  *　kernel/syscall.hmm : システムコールに関するデータを含むファイル
  *
+ * 2020.01.06 : KILL と SIGNAL を追加
  * 2019.11.15 : STAT を追加、エラーコードをC--へ移動
  * 2019.06.13 : TTYCTL を追加
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
@@ -77,7 +78,9 @@
 #define TTYREAD         14
 #define TTYWRITE        15
 #define TTYCTL          16
-#define MALLOC          17
-#define FREE            18
+#define KILL            17
+#define SIGNAL          18
+#define MALLOC          19
+#define FREE            20
 
 #endif

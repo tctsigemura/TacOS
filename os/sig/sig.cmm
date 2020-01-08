@@ -1,0 +1,72 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2011-2020 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * sig/sig.cmm : シグナルの制御
+ *
+ * 2020.01.06 : 新規作成
+ *
+ * $Id$
+ *
+ */
+
+#include <syslib.hmm>
+#include <util.hmm>
+#include <kernel.hmm>
+#include <syscall.hmm>
+#include <errno.hmm>
+
+//TODO:(pid,シグナルハンドラのテーブル)の連結リスト
+
+//----------------------------------------------------------------------------
+// システムコールインターフェイス
+//   クライアントプロセスが下位のルーチンを呼出す
+//----------------------------------------------------------------------------
+// kill システムコール
+public int kill(int pid, int sig) {
+  int r = setPri(DI|KERN);                          // 割り込み禁止
+  int ret = 0;
+  if (curProc.pid==pid) {                           // 実行中
+    //TODO:シグナルハンドラを実行する
+  } else {                                          // それ以外
+    PCB proc = readyQueue;                          //   実行可能列から探索
+    while (proc!=null) {
+      if (proc.pid==pid) {                          //     見つけた
+        proc.signals = proc.signals | (1<<sig);     //       通知
+        break;
+      }
+      proc = proc.next;
+    }
+    if (proc==null) ret = EINVAL;                   //   見つからなかった
+  }
+  setPri(r);
+  return ret;
+}
+
+// signal システムコール
+public void[] signal(int signum, void[] sighandler) {
+  int r = setPri(DI|KERN);                          // 割り込み禁止
+  // 実行時はユーザモードなのでアドレス変換は不要
+  int prev = curProc.sighandlers[signum];
+  curProc.sighandlers[signum] = _AtoI(sighandler);
+  setPri(r);
+  return _ItoA(prev);
+}
