@@ -40,8 +40,8 @@ void keyboard(char key){
     moveCursor();
     return;
   } else if (key == '\x7f'){    // del
-    // 行の長さが０または左端
-    if(strLen(textBuffer[current]) == 0 || c.x == 0){
+    // 行の左端
+    if(c.x == 0){
       removeLine(c.x, current);
       moveUp();
       displayAllFromCursor();
@@ -69,9 +69,6 @@ void keyboard(char key){
     moveCursor();
     return;
   } else if (key == '\r' || key == '\n'){ // 改行
-    // 判定用に記憶
-    int length = strLen(textBuffer[current]);
-    int oldX = c.x;
     insertLine(c.x, current);
     moveDown();
     c.x = 0;

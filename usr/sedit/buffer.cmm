@@ -86,10 +86,8 @@ public void removeLine(int row, int column){
 }
 
 public void cutLine(int row, int column){
-  for(int i = 0; i < BUFLEN; i = i + 1){
-    clipboard[i] = '\0';
-  }
   int length = strLen(textBuffer[column]);
+  clipboard[length - row] = '\0';
   for(int i = 0; i < length - row; i = i + 1){
     clipboard[i] = textBuffer[column][row + i];
   }
@@ -97,7 +95,7 @@ public void cutLine(int row, int column){
 }
 
 public void pasteLine(int row, int column){
-  for(int i = 0; i < strLen(clipboard); i=i+1){
+  for(int i = 0; ; i=i+1){
     if(clipboard[i] == '\0' || row + i == BUFLEN){
       break;
     }
