@@ -50,6 +50,9 @@ public void insertChar(char ch, int row, int column){
 
 // 文字削除(カーソルの左の文字を削除)
 public void removeChar(int row, int column){
+  if(row == 0){
+    return;
+  }
   int length = strLen(textBuffer[column]);
   // 後ろの文字を詰める
   for(int i = row; i <= length; i = i + 1){
