@@ -8,7 +8,7 @@ char[] clipboard = array(BUFLEN+1);
 
 // 初期化
 public void bufferInit(){
-  lines = 1;
+  lines = 1;  // 初期状態で1行存在
 }
 
 // 新しい行追加
@@ -48,7 +48,7 @@ public void insertChar(char ch, int row, int column){
   textBuffer[column][row] = ch;
 }
 
-// 文字削除
+// 文字削除(カーソルの左の文字を削除)
 public void removeChar(int row, int column){
   int length = strLen(textBuffer[column]);
   // 後ろの文字を詰める

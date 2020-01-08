@@ -14,12 +14,12 @@ public void screenInit(){
 
 // 画面クリア
 public void clear(){
-  printf("\x1b[2J\x1b[H");
+  printf("\x1b[2J\x1b[H");  // 全画面消去＋左上隅へ移動
 }
 
 // カーソル移動
 public void moveCursor(){
-  printf("\x1b[%d;%dH", (c.y+1), (c.x+1));
+  printf("\x1b[%d;%dH", (c.y+1), (c.x+1));  // カーソル移動(1~)
 }
 
 // 行末に移動
@@ -55,7 +55,7 @@ public void displayAll(){
 
 // カーソルから全画面表示
 public void displayAllFromCursor(){
-  // カーソル以降を消去
+  // カーソル以降の画面全体を消去
   printf("\x1b[J");
 
   moveCursor();
@@ -83,11 +83,12 @@ public void displayAllFromCursor(){
 
 // 現在の行を更新
 public void displayLine(){
-  printf("\r\x1b[2K%s", textBuffer[current]);
+  printf("\r\x1b[2K%s", textBuffer[current]); // 左端に移動＋行全体を消去
 }
 
 // カーソルから行表示
 public void displayLineFromCursor(){
+  // カーソルから行末までを消去
   printf("\x1b[K");
   for(int i = c.x; i < strLen(textBuffer[current]); i = i + 1){
     printf("%c", textBuffer[current][i]);
