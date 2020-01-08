@@ -40,8 +40,8 @@ public void displayAll(){
   // 画面クリア
   printf("\x1b[2J\x1b[H");
   int end = COLUMNS - 1;
-  if(lines - top < end){
-    end = lines - top;
+  if(lines-1 - top < end){
+    end = lines-1 - top;
   }
 
   // 表示
@@ -61,7 +61,7 @@ public void displayAllFromCursor(){
   moveCursor();
   // 現在行
   displayLineFromCursor();
-  if (current == lines) {
+  if (current == lines-1) {
     return;
   }
   printf("\n");
@@ -118,7 +118,7 @@ public void moveLeft(){
 
 // カーソルを下へ
 public void moveDown(){
-  if(current+1 > lines){
+  if(current+1 >= lines){
     return;
   }
 
@@ -130,7 +130,7 @@ public void moveDown(){
   if(c.y == COLUMNS){
     c.y = COLUMNS - 1;
     // 下に表示可能な部分があれば一番上の行を更新
-    if(top + (COLUMNS-1) < lines){
+    if(top + (COLUMNS-1) < lines-1){
       top = top + 1;
     }
   }

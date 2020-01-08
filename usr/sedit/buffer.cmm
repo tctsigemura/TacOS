@@ -13,7 +13,7 @@ public void bufferInit(){
 
 // 新しい行追加
 public void insertLine(int row, int column){
-  if (lines-1 >= LINES){
+  if (lines >= LINES){
     return;
   }
 
