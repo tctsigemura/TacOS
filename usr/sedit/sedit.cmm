@@ -5,12 +5,10 @@
 #include "buffer.hmm"
 #include "screen.hmm"
 
+#define CTRL(c) chr(0x1f & ord(c))
+
 char[] kbdBuf = array(BUFLEN);            // 入力用
 boolean isEsc= false;
-
-char mask1f(char a){
-  return chr(0x1f & ord(a));
-}
 
 // 入力文字の処理
 void keyboard(char key){
@@ -81,16 +79,16 @@ void keyboard(char key){
     moveCursor();
     return;
   } else if(ord(key) <= 0x1f){
-    if(key == mask1f('Y')){ // Ctrl Y
+    if(key == CTRL('Y')){ // Ctrl Y
       pasteLine(c.x, current);
       displayLineFromCursor();
-    } else if(key == mask1f('K')){ // Ctrl K
+    } else if(key == CTRL('K')){ // Ctrl K
       cutLine(c.x, current);
       displayLineFromCursor();
-    } else if(key == mask1f('A')){ // Ctrl A
+    } else if(key == CTRL('A')){ // Ctrl A
       c.x = 0;
-    } else if(key == mask1f('E')){ // Ctrl E
-      moveToEndOfRow();
+    } else if(key == CTRL('E')){ // Ctrl E
+      moveToEndOfLine();
     }
     moveCursor();
     return;
