@@ -13,6 +13,7 @@ public int top;
 public void screenInit();
 
 public void clear();
+public void clearFromCursor();
 public void printBufferInfo();
 public void moveCursor();
 public void moveToEndOfLine();

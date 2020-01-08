@@ -42,6 +42,8 @@ void keyboard(char key){
     if(c.x == 0){
       removeLine(c.x, current);
       moveUp();
+      clearFromCursor();
+      moveCursor();
       displayAllFromCursor();
       moveToEndOfLine();
     } else {
@@ -67,13 +69,22 @@ void keyboard(char key){
     moveCursor();
     return;
   } else if (key == '\r' || key == '\n'){ // 改行
+    int oldX = c.x;
     insertLine(c.x, current);
     moveDown();
-    c.x = 0;
     // カーソルが画面の一番下なら全画面更新
     if (c.y == COLUMNS-1){
       displayAll();
     } else {
+      c.x = oldX;
+      // 画面右端にカーソルがあった場合は先に移動
+      if(c.x == ROWS-1){
+        moveCursor();
+      }
+      clearFromCursor();
+      // 後ろにあるものを消してから移動して表示する
+      c.x = 0;
+      moveCursor();
       displayAllFromCursor();
     }
     moveCursor();

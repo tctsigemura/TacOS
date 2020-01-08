@@ -17,6 +17,9 @@ public void clear(){
   printf("\x1b[2J\x1b[H");  // 全画面消去＋左上隅へ移動
 }
 
+public void clearFromCursor(){
+  printf("\x1b[J");   // カーソル以降の画面全体を消去
+}
 // カーソル移動
 public void moveCursor(){
   printf("\x1b[%d;%dH", (c.y+1), (c.x+1));  // カーソル移動(1~)
@@ -58,10 +61,6 @@ public void displayAll(){
 
 // カーソルから全画面表示
 public void displayAllFromCursor(){
-  // カーソル以降の画面全体を消去
-  printf("\x1b[J");
-
-  moveCursor();
   // 現在行
   displayLineFromCursor();
   if (current == lines-1) {
