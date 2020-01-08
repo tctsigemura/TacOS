@@ -30,6 +30,8 @@ public void insertLine(int row, int column){
       j = j + 1;
     }
     textBuffer[column][row]='\0';
+  } else {
+    textBuffer[column+1][0] = '\0';
   }
   lines = lines + 1;
 }
