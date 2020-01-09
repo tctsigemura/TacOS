@@ -344,8 +344,9 @@ public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
       fds[i]   = -1;                                //     初期化する
   }
   pcb.fds      = fds;                               // オープンファイル一覧登録
-  pcb.signals  = 0;                                 // 発生しているシグナル
-  //pcb.sighandlers
+  pcb.signals  = 0x00;                              // 発生しているシグナル
+  pcb.sigMask  = 0x00;                              // シグナルマスク
+  pcb.sigHandler=0;                                 // シグナルハンドラ
   pcb.prev     = null;                              // 列で前の PCB
   pcb.next     = null;                              // 列で次の PCB
   pcb.magic    = P_MAGIC;                           // マジック番号

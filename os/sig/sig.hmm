@@ -27,6 +27,15 @@
  * $Id$
  */
 
+#define SIGINT  1
+#define SIGQUIT 2
+#define SIGABRT 3
+#define SIGKILL 4
+#define SIGTERM 5
+#define SIGSTOP 6
+#define SIGTSTP 7
+#define SIGCONT 8
+
 /*----------------------------------------------------------------------------
  *   名前   : kill
  *   戻り値 : int  終了ステータス
@@ -43,4 +52,4 @@ public int kill(int pid, int sig);
 *          : int sighandler シグナルを受け取るハンドラ
 *   解説   : プロセスにシグナルを送る
 */
-public void[] signal(int signum, void[] sighandler)
+public void[] signal(int signum, void[] sighandler);
