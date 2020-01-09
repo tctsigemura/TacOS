@@ -44,9 +44,3 @@ public int kill(int pid, int sig);
 *   解説   : プロセスにシグナルを送る
 */
 public void[] signal(int signum, void[] sighandler)
-
-/*----------------------------------------------------------------------------
- *   名前   : ttyInit
- *   解説   : ttyを初期化する
- */
-public void ttyInit();

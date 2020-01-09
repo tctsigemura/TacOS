@@ -44,29 +44,31 @@
 public int kill(int pid, int sig) {
   int r = setPri(DI|KERN);                          // 割り込み禁止
   int ret = 0;
+  if (sig<1 || sig>8) return EINVAL;                // sig:1..8
   if (curProc.pid==pid) {                           // 実行中
     //TODO:シグナルハンドラを実行する
   } else {                                          // それ以外
     PCB proc = readyQueue;                          //   実行可能列から探索
-    while (proc!=null) {
+    while (true) {
       if (proc.pid==pid) {                          //     見つけた
         proc.signals = proc.signals | (1<<sig);     //       通知
         break;
       }
       proc = proc.next;
+      if (proc==readyQueue) {                       //     見つからなかった
+        ret = EINVAL;
+        break;
+      }
     }
-    if (proc==null) ret = EINVAL;                   //   見つからなかった
   }
-  setPri(r);
   return ret;
 }
 
 // signal システムコール
 public void[] signal(int signum, void[] sighandler) {
-  int r = setPri(DI|KERN);                          // 割り込み禁止
+  if (sig<1 || sig>8) return EINVAL;                // sig:1..8
   // 実行時はユーザモードなのでアドレス変換は不要
   int prev = curProc.sighandlers[signum];
   curProc.sighandlers[signum] = _AtoI(sighandler);
-  setPri(r);
   return _ItoA(prev);
 }
