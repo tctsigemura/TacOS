@@ -34,6 +34,8 @@
 #include <syscall.hmm>
 #include <errno.hmm>
 
+#include "sig.hmm"
+
 //TODO:(pid,シグナルハンドラのテーブル)の連結リスト
 
 //----------------------------------------------------------------------------
@@ -65,10 +67,21 @@ public int kill(int pid, int sig) {
 }
 
 // signal システムコール
-public void[] signal(int signum, void[] sighandler) {
-  if (sig<1 || sig>8) return EINVAL;                // sig:1..8
-  // 実行時はユーザモードなのでアドレス変換は不要
-  int prev = curProc.sighandlers[signum];
-  curProc.sighandlers[signum] = _AtoI(sighandler);
-  return _ItoA(prev);
+public int signal(int sighandler) {
+  int prev = curProc.sigHandler;
+  curProc.sigHandler = sighandler;
+  return prev;
+}
+
+// sigprocmask システムコール
+public int sigprocmask(int how, int sigset, int[] oldset) {
+  if ((sigset & ~0xff)!=0) return EINVAL;           // 値の範囲チェック
+  int old = curProc.sigMask;
+  if (how==SIG_BLOCK) curProc.sigMask = old | sigset;
+  else if (how==SIG_UNBLOCK) curProc.sigMask = old & ~sigset;
+  else if (how==SIG_SETMASK) curProc.sigMask = sigset;
+  else return EINVAL;
+  oldset = _AtoP(oldset, curProc);                  // アドレス変換
+  oldset[0] = old;                                  // 古い値を返す
+  return 0;
 }

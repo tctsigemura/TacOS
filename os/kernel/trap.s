@@ -20,7 +20,7 @@
 ;
 ; kernel/trap.s : SVC ハンドラ(トラップ)
 ;
-; 2020.01.06 : kill と signal を追加
+; 2020.01.06 : kill と signal と sigprocmask を追加
 ; 2019.06.13 : ttyCtl を追加
 ; 2016.01.11 : システムコール番号のエラーチェックを変更
 ; 2016.01.06 : .sysNumErr を修正
@@ -64,10 +64,11 @@
 ;16     ttyCtl
 ;17     kill
 ;18     signal
-;19     malloc
-;20     free
+;19     sigprocmask
+;20     malloc
+;21     free
 
-.nSys   equ     19          ; システムコール数を定義
+.nSys   equ     20          ; システムコール数を定義
 
 ; .sysTbl ラベルは dw と同じ行に書くこと(同じセグメントのラベルにするため)
 .sysTbl dw      _exec       ; 0  exec
@@ -89,13 +90,14 @@
         dw      _ttyCtl     ; 16 ttyCtl
         dw      _kill       ; 17 kill
         dw      _signal     ; 18 signal
-; MM の malloc(#17)と free(#18)は OS 内部専用システムコールなので SVC で扱わない
+        dw      _sigprocmask; 19 sigprocmask
+; MM の malloc(#20)と free(#21)は OS 内部専用システムコールなので SVC で扱わない
 
 ; ---------------------------- SVC ハンドラ(トラップ) -------------------------
 ; システムコール番号でインデックスされたシステムコールテーブル(sysTbl)から、
 ; 目的のシステムコールの本体を呼び出す
 _svCall
-; ----------- システムコール番号が妥当(0~15)かチェックする --------------------
+; ----------- システムコール番号が妥当(0~19)かチェックする --------------------
         cmp     g0,#.nSys   ; システムコール番号とシステムコール数を比較
         jnc     .sysNumErr  ; C フラグが立たなければエラー
 

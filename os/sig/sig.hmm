@@ -36,6 +36,10 @@
 #define SIGTSTP 7
 #define SIGCONT 8
 
+#define SIG_BLOCK   1
+#define SIG_UNBLOCK 2
+#define SIG_SETMASK 3
+
 /*----------------------------------------------------------------------------
  *   名前   : kill
  *   戻り値 : int  終了ステータス
@@ -48,8 +52,20 @@ public int kill(int pid, int sig);
 /*----------------------------------------------------------------------------
 *   名前   : signal
 *   戻り値 : 元の割り込みハンドラ
-*   引数   : int signum シグナル番号
-*          : int sighandler シグナルを受け取るハンドラ
-*   解説   : プロセスにシグナルを送る
+*   引数   : int sighandler シグナルを受け取るハンドラ
+*   解説   : シグナルハンドラを設定する
 */
-public void[] signal(int signum, void[] sighandler);
+public int signal(int sighandler);
+
+/*----------------------------------------------------------------------------
+*   名前   : sigprocmask
+*   戻り値 : int  終了ステータス
+*   引数   : int how 動作
+*          : int sigset シグナルのビットマップ
+*          : int[] oldset 前のビットマップ
+*   解説   : シグナルマスクを操作する
+*             how=SIG_BLOCK のとき、 sigset のシグナルを追加する
+*             how=SIG_UNBLOCK のとき、 sigset のシグナルを除去する
+*             how=SIG_SETMASK のとき、 sigset で置き換える
+*/
+public int sigprocmask(int how, int sigset, int[] oldset);
