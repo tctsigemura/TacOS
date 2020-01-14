@@ -3,6 +3,9 @@
 #include "OperationTbl.hmm"
 #include "Lexical.hmm"
 
+/*************** 命令表 ********************/
+// 中身のデータは順にトークン番号,命令サイズ,機械語,記述スタイルを表す
+
 public OperationTbl[] operationtbl = {
 { LxNO,     1,		0x00,		1		}, 
 { LxLD,   	2,		0x10,		4		},
@@ -42,38 +45,42 @@ public OperationTbl[] operationtbl = {
 { LxDC,		0,		0xFF,		8		}
 };
 
+
+/************* 命令サイズを返す関数 **************/
 public int searchSize(int token_id){
-    int i;
+    int i;                                              // 添字用
 
-    for(i = 0; i < LxRSV_NUM; i = i+1){                  /* 予約語の個数まで */
-        if(token_id == operationtbl[i].operation_id){   /* token_idと一致するか */
-            return operationtbl[i].size;                /* 予約語のサイズを返す */
+    for(i = 0; i < LxOP_NUM; i = i+1){                  // 命令の個数まで検索
+        if(token_id == operationtbl[i].operation_id){   // トークン番号と一致するか
+            return operationtbl[i].size;                // 命令のサイズを返す
         }
     }
 
-    return -1;                                    /* 一致しなかった場合の返り値 */
+    return -1;                                          // 一致しなかった場合の返り値
 }
 
+/************* 機械語を返す関数 ******************/
 public int searchMachineCode(int token_id){
-    int i;
+    int i;                                              // 添字用
 
-    for(i = 0; i < LxRSV_NUM; i = i+1){                  /* 予約語の個数まで */
-        if(token_id == operationtbl[i].operation_id){   /* token_idと一致するか */
-            return operationtbl[i].machine_code;        /* 予約語のコードを返す */
+    for(i = 0; i < LxOP_NUM; i = i+1){                  // 命令の個数まで
+        if(token_id == operationtbl[i].operation_id){   // トークン番号と一致するか
+            return operationtbl[i].machine_code;        // 命令の機械語を返す
         }
     }
 
-    return -1;                                  /* 一致しなかった場合の返り値 */
+    return -1;                                          // 一致しなかった場合の返り値
 }
 
+/*************** 記述スタイルを返す関数 **************/
 public int searchStyle(int token_id){
-    int i;
+    int i;                                              // 添字用
 
-    for(i = 0; i < LxRSV_NUM; i = i+1){                  /* 予約語の個数まで */
-        if(token_id == operationtbl[i].operation_id){   /* token_idと一致するか */
-            return operationtbl[i].style;               /* 予約語のstyleを返す */
+    for(i = 0; i < LxOP_NUM; i = i+1){                  // 命令の個数まで
+        if(token_id == operationtbl[i].operation_id){   // トークン番号と一致するか
+            return operationtbl[i].style;               // 記述スタイルを返す
         }
     }
-    return -1;                                  /* 一致しなかった場合の返り値 */
+    return -1;                                          // 一致しなかった場合の返り値
 }
 

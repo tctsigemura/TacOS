@@ -4,64 +4,93 @@
 
 #include "SymTbl.hmm"
 
-/*
- * static変数
- */
-int label_cnt;                                  /* ラベルの個数のカウント用 */
-char[][] label = array(DATA,LABEL_LENGTH);      /* ラベル名を記憶する配列 */
-int[] label_address = array(DATA);              /* ラベルのアドレスを記憶する配列 */
 
-// SymTblの初期化
-public void initSymTbl(){
-    label_cnt = 0;
-}
+// static変数
+int label_cnt;                                  // ラベルの個数のカウント用
+char[][] label = array(DATA,LABEL_LENGTH);      // ラベル名を記憶する配列
+int[] label_address = array(DATA);              // ラベルのアドレスを記憶する配列
 
+/****************** デバッグに使う関数 *******************/
 public void printSymTbl(){
-    //printf("printSymTbl()\n");
-    int i;
-    for(i = 0; i < label_cnt; i = i+1){
+    printf("Used printSymTbl()\n");                         // この関数を使用したことを出力
+    printf("label cnt = %d\n",label_cnt);                   // 登録されているラベルの個数を出力
+    int i;                                                  // 添字用
+    for(i = 0; i < label_cnt; i = i+1){                     // 登録されているラベルの個数回繰り返す
+        printf("label = %s, address = %x\n",label[i]);      // ラベル名とそのアドレスを出力
     }
 }
-/*
- * ラベルを登録する
- */
-public void asignLabel(int pca, char[] str){
+
+/********************************************************/
+
+// 名前表の初期化を行う関数
+public void initSymTbl(){
+    label_cnt = 0;                      // ラベルの個数を初期化
+    int i;                              // 添字用
+    for(i = 0; i < DATA; i = i+1){      // 登録できる最大個数まで
+        label_address[i] = -1;          // ラベルアドレスを-1で初期化 (データが入っていないことを明確にするため)
+    }
+}
+
+// 引数のアドレスにラベルの綴りを名前表に登録する関数
+public void asignLabel(int address, char[] str){
     int i;
-    for(i=0;i<LENGTH;i=i+1){                    /* ラベルの最大長まで */
-        label[label_cnt][i]=str[i];            /* ラベルの文字を登録 */
-        if(str[i] == '\0'){                     /* ラベルの文字の登録を終えたら */
-            label_address[label_cnt] = pca;     /* ラベルのアドレスを登録 */
-            break;                              /* ラベル登録終了 */
+    for(i=0;i<LENGTH;i=i+1){                    // ラベルの最大長まで
+        label[label_cnt][i]=str[i];             // ラベルの文字を登録
+        if(str[i] == '\0'){                     // ラベルの文字の登録を終えたら
+            label_address[label_cnt] = address; // ラベルのアドレスを登録
+            break;                              // ラベル登録終了
         } 
     }
-    label_cnt = label_cnt+1;                    /* ラベルの個数を増やす */
+    label_cnt = label_cnt+1;                    // ラベルの個数をカウントアップ
 }
 
-/******** ラベルのアドレスを返す関数 *********/
+// ラベル名からアドレスを返す関数
 public int getLabelAddr(char[] str){
-    //printf("getLabelAddress() *%s*\n",str);
-    int address = -1;
-
-    int i;
-    for(i = 0; i < label_cnt; i = i+1){
-        if(strCmp(str,label[i]) == 0){
-            address = label_address[i];
+    int address = -1;                           // 検索にヒットしなかったら-1を返すように設定
+    int i;                                      // 添字用
+    
+    for(i = 0; i < label_cnt; i = i+1){         // 登録されているラベルの個数まで
+        if(strCmp(str,label[i]) == 0){          // 名前表からラベルを検索
+            address = label_address[i];         // ヒットしたラベルのアドレスをセット
         }
     }
 
-    return address;
+    return address;                             // アドレスを返す
 }
-/*********************************************/
 
-/******** ラベルのアドレスを変更する関数 **********/
-public void changeSymAddr(int pca, int address){
-    int i;
-    for(i=0;i<=label_cnt;i=i+1){                 /* 登録されているラベルの個数まで */
-        if(label_address[i] == pca){            /* ラベルのアドレスを検索 */
-            label_address[i] = address;         /* ラベルのアドレスを変更 */
-    //printf("Label address changed label_name=*%s*, label_address=*%d*\n",label[i],label_address[i]);
-            break;
+// ラベル名が登録されているか調べる関数
+public boolean searchLabel(char[] str){
+    int i;                                  // 添字用
+
+    for(i = 0; i < label_cnt; i = i+1){     // 登録されているラベルの個数まで
+        if(strCmp(str,label[i]) == 0){      // 名前表から検索
+            return true;                    // ヒットしたらtrueを返す
+        }
+    }
+
+    return false;                           // ヒットしなかったらfalseを返す
+}
+
+// 引数のアドレスにラベルが登録されているか調べる関数
+public boolean searchSymAdr(int address){
+    if(label_address[address] != -1) {      // ラベルにアドレスが登録されていれば
+        return true;                        // trueを返す
+    }
+    else {                                  // ラベルにアドレスが登録されていなければ
+        return false;                       // falseを返す
+    }
+
+    return false;                           // 正常終了しない場合もfalseを返す
+}
+
+// 第一引数のアドレスに登録されているラベルを第二引数のアドレスに変更する関数
+public void changeSymAdr(int address1, int address2){
+    int i;                                      // 添字用
+
+    for(i=0;i<=label_cnt;i=i+1){                // 登録されているラベルの個数まで
+        if(label_address[i] == address1){            // ラベルのアドレスを検索
+            label_address[i] = address2;         // ラベルのアドレスを変更
+            break;                              // ラベルアドレスを変更したら抜け出す
         }
     }
 }
-/**************************************************/

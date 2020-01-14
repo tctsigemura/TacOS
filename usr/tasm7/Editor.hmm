@@ -14,9 +14,9 @@ public void setComment(char[] str);
 public void setMachineCode(int code);
 
 public void printBuffer();
-public void printHex();
+public void printBinary();
 
 public void setLstFp(FILE lstfp);
-public void setHexFp(FILE hfp);
+public void setBinaryFp(FILE bfp);
 
 #endif  /* EDITOR_H */
