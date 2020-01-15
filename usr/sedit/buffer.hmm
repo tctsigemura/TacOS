@@ -4,6 +4,7 @@ public int lines;   //合計
 public int columns;
 public char[][] textBuffer;
 
+public void freeBuffer();
 public void bufferInit();
 public void insertLine(int row, int column);
 public void insertChar(char c, int row, int column);

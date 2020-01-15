@@ -4,11 +4,39 @@
 #include <syslib.hmm>                    // TaC版は一部のシステムコールを使う
 #include "buffer.hmm"
 #include "screen.hmm"
+#include <ctype.hmm>
 
 #define CTRL(c) chr(0x1f & ord(c))
 
-char[] kbdBuf = array(BUFLEN);            // 入力用
+char[] kbdBuf = array(80);            // 入力用
 boolean isEsc= false;
+int orgMode, rawMode;
+
+void init(){
+  printf("\x1b?s\n");
+  char ch;
+  int num = 0;
+  ttyCtl(TTYCTL_SETMODE, rawMode);
+  while(true){
+    ttyRead(kbdBuf, 1);
+    ch = kbdBuf[0];
+
+    if(ch == 's'){
+      rows = num;
+      break;
+    } else if(ch == ','){
+      columns = num;
+      num = 0;
+    } else {
+      if(isDigit(ch)){
+        num = num*10 + ord(ch)-48;
+      }
+    }
+  }
+  ttyCtl(TTYCTL_SETMODE, orgMode);
+  screenInit();
+  bufferInit();
+}
 
 // 入力文字の処理
 void keyboard(char key){
@@ -159,15 +187,13 @@ public int main(int argc, char[][] argv){
     fprintf(stderr, "Usage, %s <filename>\n", argv[0]);
     return 1;
   }
-  bufferInit();
-  screenInit();
-
   char[] fileName = argv[1];
 
   char ch;
-  int orgMode = ttyCtl(TTYCTL_GETMODE, 0);     // 普通のモード
-  int rawMode = orgMode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;  // １文字入力
+  orgMode = ttyCtl(TTYCTL_GETMODE, 0);     // 普通のモード
+  rawMode = orgMode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;  // １文字入力
 
+  init();
   stdout.buf = null;  // stdoutのバッファリングを禁止
   clear();
 
@@ -190,6 +216,7 @@ public int main(int argc, char[][] argv){
 
   // save
   saveFile(fileName);
+  freeBuffer();
   printf("\x1b[J\r\n");
 
   return 0;

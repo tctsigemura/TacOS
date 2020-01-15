@@ -3,11 +3,28 @@
 #include <string.hmm>
 #include "buffer.hmm"
 
-public char[][] textBuffer = array(LINES, BUFLEN+1); // 書き込まれた文字保存用
-char[] clipboard = array(BUFLEN+1);
+char[] clipboard;
+public char[][] textBuffer;
+
+void makeBuffer(){
+  textBuffer = malloc(sizeof(void[]) * LINES);
+  for (int i = 0; i < LINES; i = i + 1){
+    textBuffer[i] = malloc(sizeof(char) * columns);
+  }
+  clipboard = malloc(sizeof(char) * columns);
+}
+
+public void freeBuffer(){
+  for (int i = 0; i < LINES; i = i + 1){
+    free(textBuffer[i]);
+  }
+  free(textBuffer);
+  free(clipboard);
+}
 
 // 初期化
 public void bufferInit(){
+  makeBuffer();
   lines = 1;  // 初期状態で1行存在
 }
 
