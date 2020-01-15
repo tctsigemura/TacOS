@@ -26,7 +26,7 @@ void keyboard(char key){
       }
     }else if (key == 'B'){  // down
       moveDown();
-      if (c.y == COLUMNS-1){
+      if (c.y == rows-1){
         displayAll();
       }
     } else if (key == 'C'){ // right
@@ -73,12 +73,12 @@ void keyboard(char key){
     insertLine(c.x, current);
     moveDown();
     // カーソルが画面の一番下なら全画面更新
-    if (c.y == COLUMNS-1){
+    if (c.y == rows-1){
       displayAll();
     } else {
       c.x = oldX;
       // 画面右端にカーソルがあった場合は先に移動
-      if(c.x == ROWS-1){
+      if(c.x == columns-1){
         moveCursor();
       }
       clearFromCursor();

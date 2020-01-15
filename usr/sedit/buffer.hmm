@@ -1,5 +1,4 @@
 #define LINES 150
-#define BUFLEN 80
 
 public int lines;   //合計
 public int columns;

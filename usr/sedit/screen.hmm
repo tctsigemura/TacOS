@@ -4,6 +4,7 @@ struct cursor{
 };
 
 public int current;
+public int rows;
 public cursor c;
 public int top;
 

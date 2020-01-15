@@ -12,100 +12,100 @@ public void bufferInit(){
 }
 
 // 新しい行追加
-public void insertLine(int row, int column){
+public void insertLine(int column, int row){
   if (lines >= LINES){
     return;
   }
 
   // 最後の行から現在の行の次までずらす
-  for(int i = lines-1; i > column; i = i - 1){
+  for(int i = lines-1; i > row; i = i - 1){
     strCpy(textBuffer[i+1], textBuffer[i]);
   }
 
   // 行の途中で挿入されたとき
-  if(row != BUFLEN-1){
-    int i=0, j=row;
-    while ((textBuffer[column+1][i]=textBuffer[column][j])!='\0') {
+  if(column != columns-1){
+    int i=0, j=column;
+    while ((textBuffer[row+1][i]=textBuffer[row][j])!='\0') {
       i = i + 1;
       j = j + 1;
     }
-    textBuffer[column][row]='\0';
+    textBuffer[row][column]='\0';
   } else {
-    textBuffer[column+1][0] = '\0';
+    textBuffer[row+1][0] = '\0';
   }
   lines = lines + 1;
 }
 
 // 文字挿入
-public void insertChar(char ch, int row, int column){
-  int length = strLen(textBuffer[column]); // 挿入前の文字列の長さ
+public void insertChar(char ch, int column, int row){
+  int length = strLen(textBuffer[row]); // 挿入前の文字列の長さ
   // 画面サイズを超える
-  if (length >= BUFLEN){
+  if (length >= columns){
     return;
   }
 
   // 挿入部分からずらす
-  for(int i = length; i >= row; i = i - 1){
-    textBuffer[column][i + 1] = textBuffer[column][i];
+  for(int i = length; i >= column; i = i - 1){
+    textBuffer[row][i + 1] = textBuffer[row][i];
   }
 
-  textBuffer[column][row] = ch;
+  textBuffer[row][column] = ch;
 }
 
 // 文字削除(カーソルの左の文字を削除)
-public void removeChar(int row, int column){
-  if(row == 0){
+public void removeChar(int column, int row){
+  if(column == 0){
     return;
   }
-  int length = strLen(textBuffer[column]);
+  int length = strLen(textBuffer[row]);
   // 後ろの文字を詰める
-  for(int i = row; i <= length; i = i + 1){
-    textBuffer[column][i-1] = textBuffer[column][i];
+  for(int i = column; i <= length; i = i + 1){
+    textBuffer[row][i-1] = textBuffer[row][i];
   }
 }
 
 // 行削除
-public void removeLine(int row, int column){
+public void removeLine(int column, int row){
   // その行の長さが０もしくはカーソル位置が左端なら後ろの行から詰める
-  if(column == 0){
+  if(row == 0){
     return;
   }
   // 後ろに文字がある
-  if(row == 0 && strLen(textBuffer[column]) != 0){
+  if(column == 0 && strLen(textBuffer[row]) != 0){
     int x = 0;
     // 文字を後ろからずらす
-    for(int i = strLen(textBuffer[column-1]); i < BUFLEN; i = i + 1){
-      textBuffer[column-1][i] = textBuffer[column][x];
-      if(textBuffer[column][x] == '\0'){
+    for(int i = strLen(textBuffer[row-1]); i < columns; i = i + 1){
+      textBuffer[row-1][i] = textBuffer[row][x];
+      if(textBuffer[row][x] == '\0'){
         break;
       }
       x = x + 1;
     }
     // 行の内容をクリア
-    textBuffer[column][0] = '\0';
+    textBuffer[row][0] = '\0';
   }
   // 行をずらす
-  for (int i = column; i < lines-1; i = i + 1){
+  for (int i = row; i < lines-1; i = i + 1){
     strCpy(textBuffer[i], textBuffer[i+1]);
   }
   textBuffer[lines-1][0] = '\0';
   lines = lines - 1;
 }
 
-public void cutLine(int row, int column){
-  int length = strLen(textBuffer[column]);
-  clipboard[length - row] = '\0';
-  for(int i = 0; i < length - row; i = i + 1){
-    clipboard[i] = textBuffer[column][row + i];
+public void cutLine(int column, int row){
+  int length = strLen(textBuffer[row]);
+  clipboard[length - column] = '\0';
+  for(int i = 0; i < length - column; i = i + 1){
+    clipboard[i] = textBuffer[row][column + i];
   }
-  textBuffer[column][row] = '\0';
+  textBuffer[row][column] = '\0';
 }
 
-public void pasteLine(int row, int column){
+public void pasteLine(int column, int row){
   for(int i = 0; ; i=i+1){
-    if(clipboard[i] == '\0' || row + i == BUFLEN){
+    if(clipboard[i] == '\0' || column + i == columns){
       break;
     }
-    insertChar(clipboard[i], row+i, column);
+    insertChar(clipboard[i], column+i, row);
   }
 }
