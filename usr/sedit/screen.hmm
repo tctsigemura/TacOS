@@ -1,6 +1,3 @@
-#define ROWS 80
-#define COLUMNS 24
-
 struct cursor{
   int x;
   int y;

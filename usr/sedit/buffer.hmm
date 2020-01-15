@@ -2,6 +2,7 @@
 #define BUFLEN 80
 
 public int lines;   //合計
+public int columns;
 public char[][] textBuffer;
 
 public void bufferInit();
