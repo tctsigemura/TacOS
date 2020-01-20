@@ -6,9 +6,9 @@ public char[][] textBuffer;
 
 public void freeBuffer();
 public void bufferInit();
-public void insertLine(int row, int column);
-public void insertChar(char c, int row, int column);
-public void removeChar(int row, int column);
-public void removeLine(int row, int column);
-public void cutLine(int row, int column);
-public void pasteLine(int row, int column);
+public void insertLine(int column, int row);
+public void insertChar(char c, int column, int row);
+public void removeChar(int column, int row);
+public void removeLine(int column, int row);
+public void cutLine(int column, int row);
+public void pasteLine(int column, int row);
