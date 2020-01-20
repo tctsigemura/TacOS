@@ -65,7 +65,7 @@ void keyboard(char key){
     isEsc = false;
     moveCursor();
     return;
-  } else if (key == '\x7f'){    // del
+  } else if (key == '\x7f' || key == '\x08'){    // del or bs
     // 行の左端
     if(c.x == 0){
       removeLine(c.x, current);
