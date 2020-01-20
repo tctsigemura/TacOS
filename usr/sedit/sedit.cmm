@@ -8,7 +8,7 @@
 
 #define CTRL(c) chr(0x1f & ord(c))
 
-char[] kbdBuf = array(80);            // 入力用
+char[] kbdBuf = array(1);            // 入力用
 boolean isEsc= false;
 int orgMode, rawMode;
 

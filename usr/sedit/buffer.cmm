@@ -8,10 +8,11 @@ public char[][] textBuffer;
 
 void makeBuffer(){
   textBuffer = malloc(sizeof(void[]) * LINES);
-  for (int i = 0; i < LINES; i = i + 1){
-    textBuffer[i] = malloc(sizeof(char) * columns);
+  for(int i = 0; i < LINES; i = i + 1){
+    textBuffer[i] = malloc(sizeof(char) * (columns+1));
   }
-  clipboard = malloc(sizeof(char) * columns);
+  textBuffer[0][0] ='\0'; // ゴミデータが入らないようにする
+  clipboard = malloc(sizeof(char) * (columns+1));
 }
 
 public void freeBuffer(){
