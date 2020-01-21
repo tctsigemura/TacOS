@@ -1,7 +1,5 @@
-#define LINES 150
-
-public int lines;   //合計
-public int columns;
+vpublic int lines;   //合計
+public int maxLine;
 public char[][] textBuffer;
 
 public void freeBuffer();

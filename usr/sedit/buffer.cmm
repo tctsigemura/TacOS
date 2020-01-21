@@ -6,9 +6,11 @@
 char[] clipboard;
 public char[][] textBuffer;
 
-void makeBuffer(){
-  textBuffer = malloc(sizeof(void[]) * LINES);
-  for(int i = 0; i < LINES; i = i + 1){
+void makeBuffer(int columns){
+  int maxSize = 150 * 81;   // 横幅の最大サイズが８０と仮定
+  maxLine = maxSize / (columns+1); // 割り当てたヒープ領域をできるだけ使うようにする
+  textBuffer = malloc(sizeof(void[]) * maxLine);
+  for(int i = 0; i < maxLine; i = i + 1){
     textBuffer[i] = malloc(sizeof(char) * (columns+1));
   }
   textBuffer[0][0] ='\0'; // ゴミデータが入らないようにする
@@ -16,7 +18,7 @@ void makeBuffer(){
 }
 
 public void freeBuffer(){
-  for (int i = 0; i < LINES; i = i + 1){
+  for (int i = 0; i < maxLine; i = i + 1){
     free(textBuffer[i]);
   }
   free(textBuffer);
@@ -31,7 +33,7 @@ public void bufferInit(){
 
 // 新しい行追加
 public void insertLine(int column, int row){
-  if (lines >= LINES){
+  if (lines >= maxLine){
     return;
   }
 
