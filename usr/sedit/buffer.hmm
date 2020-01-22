@@ -1,8 +1,9 @@
-vpublic int lines;   //合計
+public int lines;   //合計
+public int columns
 public int maxLine;
 public char[][] textBuffer;
 
-public void freeBuffer();
+public void makeBuffer();
 public void bufferInit();
 public void insertLine(int column, int row);
 public void insertChar(char c, int column, int row);

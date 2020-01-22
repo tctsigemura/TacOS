@@ -208,7 +208,6 @@ public int main(int argc, char[][] argv){
 
   // save
   saveFile(fileName);
-  freeBuffer();
   printf("\x1b[J\r\n");
 
   return 0;
