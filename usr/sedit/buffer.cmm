@@ -12,8 +12,8 @@ void makeBuffer(){
   textBuffer = malloc(sizeof(void[]) * maxLine);
   for(int i = 0; i < maxLine; i = i + 1){
     textBuffer[i] = malloc(sizeof(char) * (columns+1));
+    textBuffer[i][0] ='\0'; // ゴミデータが入らないようにする
   }
-  textBuffer[0][0] ='\0'; // ゴミデータが入らないようにする
   clipboard = malloc(sizeof(char) * (columns+1));
 }
 
