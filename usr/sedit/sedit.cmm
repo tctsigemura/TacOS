@@ -176,7 +176,7 @@ void saveFile(char[] fileName) {
 public int main(int argc, char[][] argv){
   if(argc < 2 || 3 < argc || (argc == 3 && strCmp(argv[1], "-t") != 0)){
     fprintf(stderr, "Usage: %s [-t] <filename> \n", argv[0]);
-    fprintf(stderr, "   -t: Not use TeC terminal \n");
+    fprintf(stderr, "   -t: Not using a terminal for TeC \n");
     return 1;
   }
   char[] fileName = argv[argc-1];
