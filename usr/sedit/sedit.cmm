@@ -29,7 +29,7 @@ void init(){
       num = 0;
     } else {
       if(isDigit(ch)){
-        num = num*10 + ord(ch)-48;
+        num = num*10 + ord(ch) - ord('0');
       }
     }
   }
