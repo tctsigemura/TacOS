@@ -34,8 +34,6 @@ void init(){
     }
   }
   ttyCtl(TTYCTL_SETMODE, orgMode);
-  screenInit();
-  bufferInit();
 }
 
 // 入力文字の処理
@@ -176,17 +174,26 @@ void saveFile(char[] fileName) {
 }
 
 public int main(int argc, char[][] argv){
-  if(argc!=2){
-    fprintf(stderr, "Usage, %s <filename>\n", argv[0]);
+  if(argc < 2 || 3 < argc || (argc == 3 && strCmp(argv[1], "-t") != 0)){
+    fprintf(stderr, "Usage: %s [-t] <filename> \n", argv[0]);
+    fprintf(stderr, "   -t: Not use TeC terminal \n");
     return 1;
   }
-  char[] fileName = argv[1];
+  char[] fileName = argv[argc-1];
 
   char ch;
   orgMode = ttyCtl(TTYCTL_GETMODE, 0);     // 普通のモード
   rawMode = orgMode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;  // １文字入力
 
-  init();
+  if(argc == 2){
+    init();
+  } else {
+    columns = 80;
+    rows = 24;
+  }
+  screenInit();
+  bufferInit();
+
   stdout.buf = null;  // stdoutのバッファリングを禁止
   clear();
   // ファイル読み込み
