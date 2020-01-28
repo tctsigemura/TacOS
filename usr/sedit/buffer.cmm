@@ -7,8 +7,8 @@ char[] clipboard;
 public char[][] textBuffer;
 
 void makeBuffer(){
-  int maxSize = 150 * 81;   // 横幅の最大サイズが８０と仮定
-  maxLine = maxSize / (columns+1); // 割り当てたヒープ領域をできるだけ使うようにする
+  int maxSize = 100 * 81;   // 横幅の最大サイズが８０と仮定
+  maxLine = maxSize / (columns+1); // 割り当てたヒープ領域をできるだけ使う
   textBuffer = malloc(sizeof(void[]) * maxLine);
   for(int i = 0; i < maxLine; i = i + 1){
     textBuffer[i] = malloc(sizeof(char) * (columns+1));
