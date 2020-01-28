@@ -4,11 +4,37 @@
 #include <syslib.hmm>                    // TaC版は一部のシステムコールを使う
 #include "buffer.hmm"
 #include "screen.hmm"
+#include <ctype.hmm>
 
 #define CTRL(c) chr(0x1f & ord(c))
 
-char[] kbdBuf = array(BUFLEN);            // 入力用
+char[] kbdBuf = array(1);            // 入力用
 boolean isEsc= false;
+int orgMode, rawMode;
+
+void init(){
+  printf("\x1b?s\n");
+  char ch;
+  int num = 0;
+  ttyCtl(TTYCTL_SETMODE, rawMode);
+  while(true){
+    ttyRead(kbdBuf, 1);
+    ch = kbdBuf[0];
+
+    if(ch == 's'){
+      rows = num;
+      break;
+    } else if(ch == ','){
+      columns = num;
+      num = 0;
+    } else {
+      if(isDigit(ch)){
+        num = num*10 + ord(ch) - ord('0');
+      }
+    }
+  }
+  ttyCtl(TTYCTL_SETMODE, orgMode);
+}
 
 // 入力文字の処理
 void keyboard(char key){
@@ -26,7 +52,7 @@ void keyboard(char key){
       }
     }else if (key == 'B'){  // down
       moveDown();
-      if (c.y == COLUMNS-1){
+      if (c.y == rows-1){
         displayAll();
       }
     } else if (key == 'C'){ // right
@@ -55,10 +81,7 @@ void keyboard(char key){
     moveCursor();
     return;
   } else if(key == '\x09'){ // tab
-    int move = c.x % 4;
-    if(move == 0){
-      move = 4;
-    }
+    int move = 4 - c.x % 4;
     for(int i = 0; i < move; i=i+1){
       insertChar(' ', c.x, current);
     }
@@ -73,12 +96,12 @@ void keyboard(char key){
     insertLine(c.x, current);
     moveDown();
     // カーソルが画面の一番下なら全画面更新
-    if (c.y == COLUMNS-1){
+    if (c.y == rows-1){
       displayAll();
     } else {
       c.x = oldX;
       // 画面右端にカーソルがあった場合は先に移動
-      if(c.x == ROWS-1){
+      if(c.x == columns-1){
         moveCursor();
       }
       clearFromCursor();
@@ -106,7 +129,6 @@ void keyboard(char key){
   }
   insertChar(key, c.x, current);
   displayLineFromCursor();
-
   moveRight();
   moveCursor();
 
@@ -118,10 +140,7 @@ void loadFile(char[] fileName) {
   FILE fp;
   char ch;
   fp = fopen(fileName, "r"); // ファイルを開く
-  if (fp == null) {
-    perror(fileName);
-    printf("\x1b[2J\x1b[H");
-  } else {
+  if (fp != null) {
     while(!feof(fp)) {
       ch = fgetc(fp);
       keyboard(ch);
@@ -155,22 +174,28 @@ void saveFile(char[] fileName) {
 }
 
 public int main(int argc, char[][] argv){
-  if(argc!=2){
-    fprintf(stderr, "Usage, %s <filename>\n", argv[0]);
+  if(argc < 2 || 3 < argc || (argc == 3 && strCmp(argv[1], "-t") != 0)){
+    fprintf(stderr, "Usage: %s [-t] <filename> \n", argv[0]);
+    fprintf(stderr, "   -t: Not using a terminal for TeC \n");
     return 1;
   }
-  bufferInit();
-  screenInit();
-
-  char[] fileName = argv[1];
+  char[] fileName = argv[argc-1];
 
   char ch;
-  int orgMode = ttyCtl(TTYCTL_GETMODE, 0);     // 普通のモード
-  int rawMode = orgMode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;  // １文字入力
+  orgMode = ttyCtl(TTYCTL_GETMODE, 0);     // 普通のモード
+  rawMode = orgMode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED;  // １文字入力
+
+  if(argc == 2){
+    init();
+  } else {
+    columns = 80;
+    rows = 24;
+  }
+  screenInit();
+  bufferInit();
 
   stdout.buf = null;  // stdoutのバッファリングを禁止
   clear();
-
   // ファイル読み込み
   loadFile(fileName);
 

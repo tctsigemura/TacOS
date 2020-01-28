@@ -28,16 +28,16 @@ public void moveCursor(){
 // 行末に移動
 public void moveToEndOfLine(){
   c.x = strLen(textBuffer[current]);
-  if(c.x >= ROWS){
-    c.x = ROWS-1;
+  if(c.x >= columns){
+    c.x = columns-1;
   }
 }
 
 // デバッグ用
 public void printBufferInfo(){
-  printf("\x1b[%d;%dH", COLUMNS, 1);
+  printf("\x1b[%d;%dH", rows, 1);
   printf("\r\x1b[2K");
-  printf("(%d, %d), current:%d, top:%d, lines:%d, length:%d", c.x, c.y, current, top, lines, strLen(textBuffer[current]));
+  printf("(%d, %d), current:%d, top:%d, lines:%d, length:%d, size:%d, %d", c.x, c.y, current, top, lines, strLen(textBuffer[current]), columns, rows);
   moveCursor();
 }
 
@@ -45,7 +45,7 @@ public void printBufferInfo(){
 public void displayAll(){
   // 画面クリア
   clear();
-  int end = COLUMNS - 1;
+  int end = rows - 1;
   if(lines-1 - top < end){
     end = lines-1 - top;
   }
@@ -70,7 +70,7 @@ public void displayAllFromCursor(){
 
   // 次の行から表示
   int start = current + 1;
-  int end = start + COLUMNS - c.y - 2;
+  int end = start + rows - c.y - 2;
   if(lines <= end){
     end = lines - 1;
   }
@@ -102,8 +102,8 @@ public void moveRight(){
   c.x = c.x + 1;
 
   // 最大数を超えない
-  if(c.x >= ROWS){
-    c.x = ROWS - 1;
+  if(c.x >= columns){
+    c.x = columns - 1;
   } else if(c.x > strLen(textBuffer[current])){
     c.x = strLen(textBuffer[current]);
   }
@@ -129,10 +129,10 @@ public void moveDown(){
   if(c.x > strLen(textBuffer[current])){
     moveToEndOfLine();
   }
-  if(c.y == COLUMNS){
-    c.y = COLUMNS - 1;
+  if(c.y == rows){
+    c.y = rows - 1;
     // 下に表示可能な部分があれば一番上の行を更新
-    if(top + (COLUMNS-1) < lines-1){
+    if(top + (rows-1) < lines-1){
       top = top + 1;
     }
   }
