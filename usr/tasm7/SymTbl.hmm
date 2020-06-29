@@ -8,7 +8,9 @@
 public void printSymTbl();
 
 public void initSymTbl();
-public void asignLabel(int pca, char[] str);
+public void asignLabel(int address, char[] str);
 public int getLabelAddr(char[] str);
-public void changeSymAddr(int pca, int address);
+public boolean searchLabel(char[] str);
+public boolean searchSymAdr(int address);
+public void changeSymAdr(int address1, int address2);
 #endif      /* SYMTBL */

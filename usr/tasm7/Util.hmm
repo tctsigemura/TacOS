@@ -4,5 +4,6 @@ public int address2Analyzer();
 public int valueAnalyzer();
 public int eqAnalyzer();
 public char[] toHex(int digit);
+public boolean regChecker(int reg_id);
 public void ch();
 #endif /* UTIL_H */

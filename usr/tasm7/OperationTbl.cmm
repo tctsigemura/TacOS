@@ -3,77 +3,83 @@
 #include "OperationTbl.hmm"
 #include "Lexical.hmm"
 
+/*************** 命令表 ********************/
+// 中身のデータは順にトークン番号,命令サイズ,機械語,記述スタイルを表す
+
 public OperationTbl[] operationtbl = {
-{ LxNO,     1,		0x00,		1		}, 
-{ LxLD,   	2,		0x10,		4		},
-{ LxST,		2,		0x20,		5		}, 
-{ LxADD, 	2,		0x30,		4		},
-{ LxSUB,	2,		0x40,		4		}, 
-{ LxCMP,  	2,		0x50,		4		},
-{ LxAND,	2,		0x60,		4		}, 
-{ LxOR,   	2,		0x70,		4		},
-{ LxXOR,	2,		0x80,		4		}, 
-{ LxSHLA, 	1,		0x90,		2		},
-{ LxSHLL,	1,		0x91,		2		}, 
-{ LxSHRA, 	1,		0x92,		2		},
-{ LxSHRL,	1,		0x93,		2		}, 
-{ LxJMP, 	2,		0xA0,		6		},
-{ LxJZ,		2,		0xA4,		6		}, 
-{ LxJC,  	2,		0xA8,		6		},
-{ LxJM,		2,		0xAC,		6		}, 
-{ LxCALL, 	2,		0xB0,		6		},
-{ LxJNZ, 	2,		0xB4,		6		}, 
-{ LxJNC, 	2,		0xB8,		6		},
-{ LxJNM, 	2,		0xBC,		6		}, 
-{ LxIN, 	2,		0xC0,		3		},
-{ LxOUT,	2,		0xC3,		3		}, 
-{ LxPUSH, 	1,		0xD0,		2		},
-{ LxPUSHF,	1,		0xDD,		1		}, 
-{ LxPOP, 	1,		0xD2,		2		},
-{ LxPOPF,	1,		0xDF,		1		}, 
-{ LxEI,		1,		0xE0,		1		},
-{ LxDI,		1,		0xE3,		1		}, 
-{ LxRET,	1,		0xEC,		1		},
-{ LxRETI,	1,		0xEF,		1		}, 
-{ LxHALT,	1,		0xFF,		1		},
-{ LxEQU,	0,		0xFF,		7		}, 
-{ LxORG,	0,		0xFF,		7		},
-{ LxDS,		0,		0xFF,		7		}, 
-{ LxDC,		0,		0xFF,		8		}
+{ LxNO, 1, 0x00, 1},
+{ LxLD, 2, 0x10, 4},
+{ LxST, 2, 0x20, 5},
+{ LxADD,    2, 0x30, 4},
+{ LxSUB,    2, 0x40, 4},
+{ LxCMP,    2, 0x50, 4},
+{ LxAND,    2, 0x60, 4},
+{ LxOR, 2, 0x70, 4},
+{ LxXOR,	2, 0x80, 4},
+{ LxSHLA, 	1, 0x90, 2},
+{ LxSHLL,	1, 0x91, 2},
+{ LxSHRA, 	1, 0x92, 2},
+{ LxSHRL,   1, 0x93, 2},
+{ LxJMP,    2, 0xA0, 6},
+{ LxJZ, 2, 0xA4, 6},
+{ LxJC, 2, 0xA8, 6},
+{ LxJM, 2, 0xAC, 6},
+{ LxCALL,   2, 0xB0, 6},
+{ LxJNZ,    2, 0xB4, 6},
+{ LxJNC,    2, 0xB8, 6},
+{ LxJNM,    2, 0xBC, 6},
+{ LxIN, 2, 0xC0, 3},
+{ LxOUT,    2, 0xC3, 3},
+{ LxPUSH,   1, 0xD0, 2},
+{ LxPUSHF,  1, 0xDD, 1},
+{ LxPOP,    1, 0xD2, 2},
+{ LxPOPF,   1, 0xDF, 1},
+{ LxEI, 1, 0xE0, 1},
+{ LxDI, 1, 0xE3, 1},
+{ LxRET,    1, 0xEC, 1},
+{ LxRETI,   1, 0xEF, 1},
+{ LxHALT,   1, 0xFF, 1},
+{ LxEQU,    0, 0xFF, 7},
+{ LxORG,    0, 0xFF, 7},
+{ LxDS, 0, 0xFF, 7},
+{ LxDC, 0, 0xFF, 8}
 };
 
+
+/************* 命令サイズを返す関数 **************/
 public int searchSize(int token_id){
-    int i;
+    int i;                                              // 添字用
 
-    for(i = 0; i < LxRSV_NUM; i = i+1){                  /* 予約語の個数まで */
-        if(token_id == operationtbl[i].operation_id){   /* token_idと一致するか */
-            return operationtbl[i].size;                /* 予約語のサイズを返す */
+    for(i = 0; i < LxOP_NUM; i = i+1){                  // 命令の個数まで検索
+        if(token_id == operationtbl[i].operation_id){   // トークン番号と一致するか
+            return operationtbl[i].size;                // 命令のサイズを返す
         }
     }
 
-    return -1;                                    /* 一致しなかった場合の返り値 */
+    return -1;                                          // 一致しなかった場合の返り値
 }
 
+/************* 機械語を返す関数 ******************/
 public int searchMachineCode(int token_id){
-    int i;
+    int i;                                              // 添字用
 
-    for(i = 0; i < LxRSV_NUM; i = i+1){                  /* 予約語の個数まで */
-        if(token_id == operationtbl[i].operation_id){   /* token_idと一致するか */
-            return operationtbl[i].machine_code;        /* 予約語のコードを返す */
+    for(i = 0; i < LxOP_NUM; i = i+1){                  // 命令の個数まで
+        if(token_id == operationtbl[i].operation_id){   // トークン番号と一致するか
+            return operationtbl[i].machine_code;        // 命令の機械語を返す
         }
     }
 
-    return -1;                                  /* 一致しなかった場合の返り値 */
+    return -1;                                          // 一致しなかった場合の返り値
 }
 
+/*************** 記述スタイルを返す関数 **************/
 public int searchStyle(int token_id){
-    int i;
+    int i;                                              // 添字用
 
-    for(i = 0; i < LxRSV_NUM; i = i+1){                  /* 予約語の個数まで */
-        if(token_id == operationtbl[i].operation_id){   /* token_idと一致するか */
-            return operationtbl[i].style;               /* 予約語のstyleを返す */
+    for(i = 0; i < LxOP_NUM; i = i+1){                  // 命令の個数まで
+        if(token_id == operationtbl[i].operation_id){   // トークン番号と一致するか
+            return operationtbl[i].style;               // 記述スタイルを返す
         }
     }
-    return -1;                                  /* 一致しなかった場合の返り値 */
+    return -1;                                          // 一致しなかった場合の返り値
 }
-

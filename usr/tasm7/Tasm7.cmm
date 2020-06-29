@@ -1,75 +1,136 @@
+// コメント付与終了
+
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
 #include <errno.hmm>
-#ifndef C
-#include <syslib.hmm>                  // TaC版は一部のシステムコールを使用する
-#endif
+#include <syslib.hmm>       // TaCで実行する場合は入れる
 
 #include "Assemble.hmm"
+#include "Error.hmm"
 #include "Pass1.hmm"
 #include "Pass2.hmm"
 
+#define FLENGTH 31          // ファイル名は最大30文字 ('\0'を入れるために1つ分領域を多くとる)
+//#define DEBUG             // DEBUGする場合に使用
+#define TAC               // TaCで実行する場合に使用
+
 // 大域変数
-FILE sFp;                              // ソースファイル
-FILE lFp;                              // リストファイル
-FILE bFp;                              // バイナリファイル
+public FILE sourcefp;       // アセンブリ言語プログラムファイルファイルポインタ
+public FILE listfp;         // リストファイルのファイルポインタ
+public FILE binaryfp;       // バイナリファイルのファイルポインタ
+
+//
+char[] filename = array(FLENGTH + 1);    // .lstと.binを後で出力するために領域を一つ増やす
 
 // 使い方表示関数
 void usage(char[] name) {
-  fprintf(stderr, "Usage: %s [-h] <name>.t7\n",name);
-  fprintf(stderr, "  -h : show this message\n");
-  exit(1);
-}
-
-// 拡張子を変更してオープンする
-FILE xOpen(char[] fname, char[] ext, char[] mod) {
-  int extPos = strRchr(fname, '.');                   // 拡張子の位置
-  //strCpy(subStr(fname, extPos), ext);                 // 拡張子を変更
-
-  #ifndef C
-  remove(fname);                                      // TaC版では一旦消す
-  #endif
-
-  FILE fp = fopen(fname, mod);                        // ファイルオープン
-  if (lFp == null) {
-    perror(fname);
-    exit(1);
-  }
-  return fp;
+    fprintf(stderr, "usage: %s [-h] [<source file>]\n",name);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -h : show this message\n");
+    fprintf(stderr, "\n");
 }
 
 // main 関数
 public int main(int argc, char[][] argv){
-  int flength = strLen(argv[1]);
-  if (argc<2 ||                                       // ファイル名が無い
-      strCmp(argv[1],"-h")==0 ||                      // ヘルプ
-      argc>2 ||                                       // 余分な引数
-      flength < 4 /*||                                  // ファイル名が短過ぎる
-      strCmp(subStr(argv[1], flength-3), ".t7")!=0*/) { // 拡張子が正しくない
-    usage(argv[0]);
-  }
+    int  i = 1;
+    int j;
 
-  char[] fname = malloc(flength + 2);                 // 長めに
-  strCpy(fname, argv[1]);
-  
-  lFp = xOpen(fname, ".lst", "w");                    // リストファイル
-  bFp = xOpen(fname, ".bin", "w");                    // バイナリファイル
-    
-    
-  //Pass1の実行
-  sFp = xOpen(fname, ".t7",  "r");                    // ソースファイルオープン
-  initPass1();                                        // 初期化
-  pass1(sFp);                                         // パス１
-  fclose(sFp);                                        // ソースファイルクローズ
+    // 引数チェック
+    if (argc==i){                                                       // 入力ファイルが指定されていない
+        fileError("No input files were specified -- nothing to do");    // エラー
+        usage(argv[0]);                                                 // 使い方表示
+        exit(0);                                                        // プログラム終了
+    } else if(argc>2) {                                                 // 引数が多すぎる場合
+        fileError("Too many input files");                              // エラー出力
+        usage(argv[0]);                                                 // 使い方表示
+        exit(0);                                                        // プログラム終了
+    }
 
-  // Pass2の実行
-  sFp = xOpen(fname, ".t7",  "r");                    // ソースファイル
-  initPass2();                                        // 初期化
-  pass2(sFp,lFp,bFp);                                 // パス２
-  fclose(sFp);                                        // ソースファイルクローズ
+
+    // オプション処理
+    if (argc>i && (strCmp(argv[i],"-h")==0 ) ) {                        // -hオプションの場合
+        usage(argv[0]);                                                 // 使い方を表示
+        exit(1);                                                        // プログラム終了
+    }
     
-  fclose(lFp);                                        // リストファイルク
-  fclose(bFp);                                        // バイナリファイル
-  return 0 ;                                          // 正常終了
+    int flength = strLen(argv[i]);              // ファイル名の長さを格納
+    
+    // ファイルの長さチェック
+    if(flength <= FLENGTH){                     // 30文字以内なら
+        strCpy(filename,argv[i]);               // ファイル名の文字列をセット
+    } else{                                     // 30文字を超えていたら
+        fileError("File name is too long");     // エラー
+        exit(0);                                // プログラム終了
+    }
+
+    // 引数にアセンブリ言語プログラムのファイルがあった場合の処理
+    if (argc==i+1) {                                                                                    // 引数としてソースファイルがある
+
+        printf("%s\n",filename);
+        // ファイル拡張子のチェック
+        if(filename[flength-3] == '.' && filename[flength-2] == 't' && filename[flength-1] == '7'){     // ファイル名が".t7"で終わるなら
+            sourcefp = fopen(argv[i],"r");                                                              // ソースファイルをオープン
+            if(sourcefp == null){                                                                       // オープン失敗の場合は、
+                fileError2("Cannot open file",argv[i]);                                                 //エラー出力
+                exit(0);                                                                                // プログラム終了
+            }
+        } else{                                                                                         // 拡張子が".t7"以外なら
+            fileError("File extension must end with .t7");                                              // エラー
+            exit(0);                                                                                    // プログラム終了
+        }
+
+        // リストファイルのオープン処理
+        filename[flength - 2] = 'l';        //
+        filename[flength - 1] = 's';        // 拡張子を変更
+        filename[flength] = 't';            //
+        filename[flength + 1] = '\0';       //
+        
+        #ifdef TAC                          // TaC上で動作させるなら
+            remove(filename);               // リストファイルがあればファイルを削除
+        #endif
+
+        
+        listfp = fopen(filename,"w");                   // リストファイルをオープン
+        if(listfp == null){                             // オープン失敗なら
+            fileError2("Cannot open file",filename);    // エラー
+            exit(0);                                    // プログラム終了
+        } else {                                        // オープン成功なら
+            printf("made %s\n",filename);               // リストファイルを生成したことを出力
+        }
+ 
+        // バイナリファイルのオープン処理
+        filename[flength - 2] = 'b';        //
+        filename[flength - 1] = 'i';        // 拡張子を変更
+        filename[flength] = 'n';            //
+        filename[flength + 1] = '\0';       //
+
+        #ifdef TAC                          // TaC上で動作させるなら
+            remove(filename);               // バイナリファイルを削除
+        #endif
+
+        binaryfp = fopen(filename,"w");                 // バイナリファイルのオープン
+        if(binaryfp == null){                           // オープン失敗
+            fileError2("Cannot open file",filename);    // エラー
+            exit(0);                                    // プログラム終了
+        } else {                                        // オープン成功
+            printf("made %s\n",filename);               // バイナリファイルを生成したことを出力
+        }
+    }
+    
+        
+    // Pass1実行
+    initPass1();        // Pass1初期化
+    pass1(sourcefp);    // Pass1を実行
+    fclose(sourcefp);   // アセンブリ言語プログラムファイルをクローズ
+
+    // Pass2の実行
+    sourcefp = fopen(argv[1],"r");      // 最初から読み込むためにアセンブリ言語プログラムファイルをオープンしなおす
+    initPass2();                        // Pass2を初期化
+    pass2(sourcefp,listfp,binaryfp);    // Pass2を実行
+    fclose(sourcefp);                   // アセンブリ言語プログラムファイルをクローズ
+    fclose(listfp);                     // リストファイルをクローズ
+    fclose(binaryfp);                   // バイナリファイルをクローズ
+    return 0 ;                          // プログラム終了
+
 }

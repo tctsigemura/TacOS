@@ -1,6 +1,6 @@
 #ifndef PASS2_H
 
 public void initPass2();
-public void pass2(FILE sourcefp, FILE listfp, FILE hexfp);
+public void pass2(FILE sourcefp, FILE listfp, FILE binaryfp);
 
 #endif  /* PASS2_H */

@@ -1,3 +1,4 @@
+
 #include <string.hmm>
 #include <stdlib.hmm>
 #include <stdio.hmm>
@@ -6,185 +7,159 @@
 #include "Editor.hmm"
 #include "Util.hmm"
 
-//#define UNIX
+//#define DEBUG
 
 /**** static 変数 ****/
-FILE listfp;
-FILE hexfp;
+FILE listfp;                        // リストファイルのファイルポインタ
+FILE binaryfp;                      // バイナリファイルのファイルポインタ
 
-char[] buf = array(80);             /* リスト用出力バッファ */
-char[] pca = array(4);              /* プログラムカウンタ */
-
-char[] first_byte = array(4);       /* 一つ目の機械語 */
-char[] second_byte = array(4);      /* 二つ目の機械語 */
-char[] third_byte = array(4);       /* 三つ目の機械語 */
-char[] forth_byte = array(4);       /* 四つ目の機械語 */
-
-char[] label = array(13);           /* ラベル長は最大で12文字 */
-char[] rsvword = array(9);          /* 予約語の最大長は5文字 */
-char[] opr = array(80);             /* オペランド */
-char[] comment = array(80);         /* コメント */
-
-int[] machine_code = array(256);    /* 機械語を記憶する部分 */
-
-char[] str = array(80);             /* 任意の文字列を記憶する配列 */
-int cnt;                            /* 機械語の個数をカウント */
+char[] buf = array(81);             // リストファイル用出力バッファ80文字
+char[] pca = array(4);              // ロケーションカウンタ
+                                       
+char[] first_byte = array(4);       // 一つ目の機械語配列
+char[] second_byte = array(4);      // 二つ目の機械語配列
+char[] third_byte = array(4);       // 三つ目の機械語配列
+char[] forth_byte = array(4);       // 四つ目の機械語配列
+                                       
+char[] label = array(13);           // ラベル長は最大で12文字
+char[] rsvword = array(9);          // 予約語の最大長は8文字
+char[] opr = array(81);             // オペランドは最大80文字
+char[] comment = array(81);         // コメントは最大80文字
+                                       
+int[] machine_code = array(256);    // 機械語を記憶する部分
+                                       
+char[] str = array(80);             // 任意の文字列を記憶する配列
+int cnt;                            // 機械語の個数をカウント
 
 /************* バッファの初期化 ****************/
 public void initBuffers(){
-   buf[0] = '\0';
-   pca[0] = '\0';
-   first_byte[0] = '\0';
-   second_byte[0] = '\0';
-   third_byte[0] = '\0';
-   forth_byte[0] = '\0';
-   label[0] = '\0';
-   rsvword[0] = '\0';
-   opr[0] = '\0';
-   comment[0] = '\0';
+   buf[0] = '\0';           // バッファの初期化
+   pca[0] = '\0';           // ロケーションカウンタの初期化
+   first_byte[0] = '\0';    // 第一機械語配列を初期化
+   second_byte[0] = '\0';   // 第二機械語配列を初期化
+   third_byte[0] = '\0';    // 第三機械語配列を初期化
+   forth_byte[0] = '\0';    // 第四機械語配列を初期化
+   label[0] = '\0';         // ラベル配列を初期化
+   rsvword[0] = '\0';       // 予約語配列を初期化
+   opr[0] = '\0';           // オペランド配列を初期化
+   comment[0] = '\0';       // コメント配列を初期化
 }
 /***********************************************/
 
 /************* 機械語の初期化 *******************/
 public void initMachineCode(){
-   int i;
+   int i;                           // 添字用
    
-   cnt = 0;
-   for(i = 0; i < 256; i = i+1){
-       machine_code[i] = 0;
+   cnt = 0;                         // 機械語の個数を初期化
+   for(i = 0; i < 256; i = i+1){    // TeCが扱える最大のプログラム長まで
+       machine_code[i] = 0;         // 機械語配列を0で初期化
    }
 }
 /***********************************************/
 
 /*********** pcaのセッター ***********/
 public void setPca(int lxpca){
-   //printf("setPca()\n");
-   if(lxpca == 1000){                   /* ORGの命令なら(1000をORGに設定) */
-       pca[0] = ' ';
-       pca[1] = ' ';
-   }else{
-       strCpy(pca,toHex(lxpca));        /* 16進文字列に変換 */
+   if(lxpca == 1000){               // ORGの命令なら(1000をORGということにしました)
+       pca[0] = ' ';                // pcaを空白にする
+       pca[1] = ' ';                // pcaを空白にする
+   }else{                           // ORG命令以外なら
+       strCpy(pca,toHex(lxpca));    // 16進文字列に変換したものをpca配列にセット
    }
 
-   pca[2] = '\0';                           /* Hの部分は必要ないので消す */
+   pca[2] = '\0';                   // Hの部分は必要ないので消す
 }
 /*************************************/
 
 /****************** 第一バイトのセッター *****************/
 public void setFirstByte(int machine_code){
-   //printf("setFirstByte()\n");
-   strCpy(first_byte,toHex(machine_code));      /* 16進文字列に変換 */
-   first_byte[2] = '\0';                        /* Hの部分は必要ないので消す */
+   strCpy(first_byte,toHex(machine_code));      // 16進文字列に変換したものを第一機械語配列にセット
+   first_byte[2] = '\0';                        // Hの部分は必要ないので消す
 }
 /*********************************************/
 
 /****************** 第二バイトのセッター ******************/
 public void setSecondByte(int machine_code){
-   //printf("setSecondByte()\n");
-   strCpy(second_byte,toHex(machine_code));        /* 16進文字列に変換 */
-   second_byte[2] = '\0';                          /* Hの部分は必要ないので消す */
+   strCpy(second_byte,toHex(machine_code));     // 16進文字列に変換したものを第二機械語配列にセット
+   second_byte[2] = '\0';                       // Hの部分は必要ないので消す
 }
 /**********************************************************/
 
 /****************** 第三バイトのセッター ******************/
 public void setThirdByte(int machine_code){
-   //printf("setThirdByte()\n");
-   strCpy(third_byte,toHex(machine_code));         /* 16進文字列に変換 */
-   third_byte[2] = '\0';                           /* Hの部分は必要ないので消す*/
+   strCpy(third_byte,toHex(machine_code));      // 16進文字列に変換したものを第三機械語配列にセット
+   third_byte[2] = '\0';                        // Hの部分は必要ないので消す
 }
 /**********************************************************/
 
 /****************** 第四バイトのセッター ******************/
 public void setForthByte(int machine_code){
-   //printf("setForthByte()\n");
-   strCpy(forth_byte,toHex(machine_code));         /* 16進文字列に変換 */
-   forth_byte[2] = '\0';                           /* Hの部分は必要ないので消す */
+   strCpy(forth_byte,toHex(machine_code));      // 16進文字列に変換したものを第四機械語配列にセット
+   forth_byte[2] = '\0';                        // Hの部分は必要ないので消す
 }
 /**********************************************************/
 
 /******************* ラベルのセッター **********************/
 public void setLabel(char[] string){
-   strCpy(label,string);
+   strCpy(label,string);                // 引数の文字列をラベル配列に設定
 }
 /**********************************************************/
 
 /******************* 予約語のセッター **********************/
 public void setRsvWord(char[] string){
-   strCpy(rsvword,string);
+   strCpy(rsvword,string);              // 引数の文字列予約語配列に設定
 }
 /**********************************************************/
 
 /******************* オペランドのセッター ******************/
 public void setOpr(char[] string){
-    //printf("setOpr() string = *%s*\n",string);
-    int i;
-    int oprlen = strLen(opr);           /* oprの長さを格納 */
-    int length = strLen(string);        /* 入力文字列の長さを格納 */
-    for(i = 0; i < length; i = i+1){
-        opr[oprlen] = string[i];        /* 文字を格納 */
-        oprlen = oprlen + 1;            /* 次の領域にする */
+    int i;                              // 添字用
+    int oprlen = strLen(opr);           // 現在のオペランドの文字列の長さを格納
+    int length = strLen(string);        // 入力文字列の長さを格納 */
+    for(i = 0; i < length; i = i+1){    // 入力文字列の長さまで
+        opr[oprlen] = string[i];        // 文字を追加で格納
+        oprlen = oprlen + 1;            // 次のオペランド配列の領域に移動する
    }
 
-   opr[oprlen] = '\0';
+   opr[oprlen] = '\0';                  // オペランド配列を完成させる
 }
 /**********************************************************/
 
 /******************* コメントのセッター **********************/
 public void setComment(char[] string){
-   //printf("setComment()  %s\n",string);
-   
-   int i = 0;
-   int j = 0;
-   int length = strLen(string);
+   int i = 0;                           // 添字用
+   int length = strLen(string);         // 入力文字列の長さを格納
 
-    for(i = 0; i < length; i = i+1){
-        comment[i] = string[j];
-        j = j+1;                    /* 次の文字へ */
+    for(i = 0; i < length; i = i+1){    // 入力文字列の長さまで
+        comment[i] = string[i];         // コメント配列に入力文字列の文字をセット
    }
 
-    comment[i] = '\0';
-
+    comment[i] = '\0';                  // コメント配列を完成させる
 }
 
 /******************* 機械語のセッター ***********************/
 public void setMachineCode(int code){
-   machine_code[cnt] = code;           /* 機械語をセット */
-   cnt = cnt + 1;                      /* 機械語個数をカウントアプ */
+   machine_code[cnt] = code;           // 機械語配列に機械語をセット
+   cnt = cnt + 1;                      // 機械語個数をカウントアップ
 }
 /***********************************************************/
 
 /**********************************************************/
 
-/********** Editorのstrのセッター *************/
-public void setEdiStr(char[] string){
-   int i;
-   int len = strLen(string);
-
-   for(i = 0; i < len; i = i+1){
-       str[i] = string[i];
-   }
-   
-   str[i] = ' ';             /* スペースを追加 */
-   str[i+1] = '\0';          /* 文字列を完成させる */
-}
-/**********************************************/
-
 /*********** pcaをbufに格納する関数 ***************/
 void storePca(){
-    //printf("storePca() *%s*\n",pca);
-    int buflen = strLen(buf);          // 出力用bufの長さを格納
-    int length = strLen(pca);       // 入力用lenの長さを格納
+    int buflen = strLen(buf);           // 出力用bufの長さを格納
+    int length = strLen(pca);           // ロケーションカウンタの長さを格納
 
-    int i;
+    int i;                              // 添字用
 
 
-    for(i = 0; i < length; i = i+1){   // 入力の文字列の長さまで
-        buf[buflen] = pca[i];       // バッファに続けて代入
+    for(i = 0; i < length; i = i+1){    // 入力の文字列の長さまで
+        buf[buflen] = pca[i];           // バッファに続けて代入
         buflen = buflen + 1;
     }
-    buf[buflen] = ' ';              // 整列させるための空白を入れる
-    buf[buflen+1] = ' ';            // 整列させるための空白を入れる
-    buf[buflen+2] = '\0';           // 文字列を完成させる
+    buf[buflen] = ' ';                  // 整列させるための空白を入れる
+    buf[buflen+1] = ' ';                // 整列させるための空白を入れる
+    buf[buflen+2] = '\0';               // 文字列を完成させる
   
    }
 
@@ -192,25 +167,24 @@ void storePca(){
 
 /*********** first_byteをbufに格納する関数 ***************/
 void storeFirstByte(){
-    //printf("storeFirstByte()\n");
-    int buflen = strLen(buf);          // 出力用bufの長さを格納
-    int length = strLen(first_byte);       // 入力用lenの長さを格納
+    int buflen = strLen(buf);               // 出力用bufの長さを格納
+    int length = strLen(first_byte);        // 第一機械語配列の長さを格納
 
-    int i;
+    int i;                                  // 添字用
     
-    if(length == 0){
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
-    } else {
-        for(i = 0; i < length; i = i+1){   // 入力の文字列の長さまで
-            buf[buflen] = first_byte[i];       // バッファに続けて代入
-            buflen = buflen + 1;
+    if(length == 0){                        // 第一機械語配列が空なら
+        buf[buflen] = ' ';                  // 空白を格納
+        buflen = buflen + 1;                // バッファ配列を次の領域へ移動
+        buf[buflen] = ' ';                  // 空白を格納
+        buflen = buflen + 1;                // バッファ配列を次の領域へ移動
+    } else {                                // 第一機械語配列に機械語が格納されているなら
+        for(i = 0; i < length; i = i+1){    // 入力の文字列の長さまで
+            buf[buflen] = first_byte[i];    // バッファに続けて代入
+            buflen = buflen + 1;            // バッファ配列を次の領域へ移動
         }
     }
-    buf[buflen] = ' ';              // 整列させるための空白を入れる
-    buf[buflen+1] = '\0';           // 文字列を完成させる
+    buf[buflen] = ' ';                      // 整列させるための空白を入れる
+    buf[buflen+1] = '\0';                   // 文字列を完成させる
   
 }
 
@@ -218,25 +192,24 @@ void storeFirstByte(){
 
 /*********** second_byteをbufに格納する関数 ***************/
 void storeSecondByte(){
-    //printf("storeSecondByte()\n");
-    int buflen = strLen(buf);          // 出力用bufの長さを格納
-    int length = strLen(second_byte);       // 入力用lenの長さを格納
+    int buflen = strLen(buf);               // 出力用bufの長さを格納
+    int length = strLen(second_byte);       // 第二機械語配列の長さを格納
 
-    int i;
+    int i;                                  // 添字用
 
-    if(length == 0){
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
-    } else{
-        for(i = 0; i < length; i = i+1){   // 入力の文字列の長さまで
-            buf[buflen] = second_byte[i];       // バッファに続けて代入
-            buflen = buflen + 1;
+    if(length == 0){                        // 第二機械語配列が空なら
+        buf[buflen] = ' ';                  // 空白を格納
+        buflen = buflen + 1;                // バッファ配列を次の領域に移動
+        buf[buflen] = ' ';                  // 空白を格納
+        buflen = buflen + 1;                // バッファ配列を次の領域に移動
+    } else{                                 // 第二機械語配列に機械語が格納されているなら
+        for(i = 0; i < length; i = i+1){    // 入力の文字列の長さまで
+            buf[buflen] = second_byte[i];   // バッファに続けて代入
+            buflen = buflen + 1;            // バッファ配列を次の領域に移動
         }
     }
-    buf[buflen] = ' ';              // 整列させるための空白を入れる
-    buf[buflen+1] = '\0';           // 文字列を完成させる
+    buf[buflen] = ' ';                      // 整列させるための空白を入れる
+    buf[buflen+1] = '\0';                   // 文字列を完成させる
   
 }
 
@@ -244,25 +217,24 @@ void storeSecondByte(){
 
 /*********** third_byteをbufに格納する関数 ***************/
 void storeThirdByte(){
-    //printf("storeThirdByte()\n");
-    int buflen = strLen(buf);          // 出力用bufの長さを格納
-    int length = strLen(third_byte);       // 入力用lenの長さを格納
+    int buflen = strLen(buf);               // 出力用bufの長さを格納
+    int length = strLen(third_byte);        // 第三機械語配列の長さを格納
 
-    int i;
+    int i;                                  // 添字用
 
-    if(length == 0){
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
-    } else{
-        for(i = 0; i < length; i = i+1){   // 入力の文字列の長さまで
-            buf[buflen] = third_byte[i];       // バッファに続けて代入
-            buflen = buflen + 1;
+    if(length == 0){                        // 第三機械語配列が空なら
+        buf[buflen] = ' ';                  // 空白を格納
+        buflen = buflen + 1;                // バッファ配列を次の領域に移動
+        buf[buflen] = ' ';                  // 空白を格納
+        buflen = buflen + 1;                // バッファ配列を次の領域に移動
+    } else{                                 // 第三機械語配列に機械語が格納されているなら
+        for(i = 0; i < length; i = i+1){    // 入力の文字列の長さまで
+            buf[buflen] = third_byte[i];    // バッファに続けて代入
+            buflen = buflen + 1;            // バッファ配列を次の領域へ移動
         }
     }
-    buf[buflen] = ' ';              // 整列させるための空白を入れる
-    buf[buflen+1] = '\0';           // 文字列を完成させる
+    buf[buflen] = ' ';                      // 整列させるための空白を入れる
+    buf[buflen+1] = '\0';                   // 文字列を完成させる
   
 }
 
@@ -270,25 +242,24 @@ void storeThirdByte(){
 
 /*********** forth_byteをbufに格納する関数 ***************/
 void storeForthByte(){
-    //printf("storeForthByte()\n");
-    int buflen = strLen(buf);          // 出力用bufの長さを格納
-    int length = strLen(forth_byte);       // 入力用lenの長さを格納
+    int buflen = strLen(buf);               // 出力用bufの長さを格納
+    int length = strLen(forth_byte);        // 第四機械語配列の長さを格納
 
-    int i;
+    int i;                                  // 添字用
 
-    if(length == 0){
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
-    } else{
-        for(i = 0; i < length; i = i+1){   // 入力の文字列の長さまで
-            buf[buflen] = forth_byte[i];       // バッファに続けて代入
-            buflen = buflen + 1;
+    if(length == 0){                        // 第四機械語配列が空なら
+        buf[buflen] = ' ';                  // 空白を設定
+        buflen = buflen + 1;                // バッファ配列を次の領域に移動
+        buf[buflen] = ' ';                  // 空白を設定
+        buflen = buflen + 1;                // バッファ配列を次の領域に移動
+    } else{                                 // 第四機械語配列に機械語が格納されているなら
+        for(i = 0; i < length; i = i+1){    // 入力の文字列の長さまで
+            buf[buflen] = forth_byte[i];    // バッファに続けて代入
+            buflen = buflen + 1;            // バッファ配列を次の領域に移動
         }
     }
-    buf[buflen] = ' ';              // 整列させるための空白を入れる
-    buf[buflen+1] = '\0';           // 文字列を完成させる
+    buf[buflen] = ' ';                      // 整列させるための空白を入れる
+    buf[buflen+1] = '\0';                   // 文字列を完成させる
   
 }
 
@@ -296,23 +267,22 @@ void storeForthByte(){
 
 /************* bufにラベルを格納する関数 **************/
 void storeLabel(){
-    //printf("storeLabel()  *%s*\n",label);
-    int buflen = strLen(buf);       /* 出力bufの長さを格納 */
-    int length = strLen(label);     /* 入力文字列の長さを格納*/
+    int buflen = strLen(buf);               // 出力bufの長さを格納
+    int length = strLen(label);             // ラベルの長さを格納*/
 
-    int i;
+    int i;                                  // 添字用
 
-    for(i = 0; i < length; i = i+1){
-        buf[buflen] = label[i];
-        buflen = buflen + 1;
+    for(i = 0; i < length; i = i+1){        // ラベルの長さまで
+        buf[buflen] = label[i];             // ラベルをバッファ配列に格納
+        buflen = buflen + 1;                // バッファ配列の次の領域へ移動
     }
 
-    for(i = 0; i < 8-length; i = i+1){
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
+    for(i = 0; i < 8-length; i = i+1){      // リストを整列させるために使用
+        buf[buflen] = ' ';                  // リストを整列させるために使用
+        buflen = buflen + 1;                // リストを整列させるために使用
     }
 
-    buf[buflen] = '\0';
+    buf[buflen] = '\0';                     // 文字列を完成させる
 
 }
 
@@ -320,23 +290,22 @@ void storeLabel(){
 
 /************* bufに予約語を格納する関数 **************/
 void storeRsvWord(){
-    //printf("storeRsvWord()  *%s\n",rsvword);
-    int buflen = strLen(buf);       /* 出力bufの長さを格納 */
-    int length = strLen(rsvword);     /* 入力文字列の長さを格納*/
+    int buflen = strLen(buf);               // 出力bufの長さを格納
+    int length = strLen(rsvword);           // 予約語の長さを格納
 
-    int i;
+    int i;                                  // 添字用
 
-    for(i = 0; i < length; i = i+1){
-        buf[buflen] = rsvword[i];
-        buflen = buflen + 1;
+    for(i = 0; i < length; i = i+1){        // 予約語の長さまで
+        buf[buflen] = rsvword[i];           // 予約語をバッファ配列に格納
+        buflen = buflen + 1;                // バッファ配列を次の領域に移動
     }
 
-    for(i = 0; i < 8-length; i = i+1){
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
+    for(i = 0; i < 8-length; i = i+1){      // リストを整列させるために使用
+        buf[buflen] = ' ';                  // リストを整列させるために使用
+        buflen = buflen + 1;                // リストを整列させるために使用
     }
 
-    buf[buflen] = '\0';
+    buf[buflen] = '\0';                     // 文字列を完成させる
 
 }
 
@@ -344,23 +313,22 @@ void storeRsvWord(){
 
 /************* bufにオペランドを格納する関数 **************/
 void storeOpr(){
-   // printf("storeOpr()  *%s\n",opr);
-    int buflen = strLen(buf);       /* 出力bufの長さを格納 */
-    int length = strLen(opr);     /* 入力文字列の長さを格納*/
+    int buflen = strLen(buf);               // 出力bufの長さを格納
+    int length = strLen(opr);               // コメントの長さを格納
 
-    int i;
+    int i;                                  // 添字用
 
-    for(i = 0; i < length; i = i+1){
-        buf[buflen] = opr[i];
-        buflen = buflen + 1;
+    for(i = 0; i < length; i = i+1){        // オペランドの長さまで
+        buf[buflen] = opr[i];               // オペランドをバッファ配列に格納
+        buflen = buflen + 1;                // バッファ配列を次の領域に移動
     }
 
-    for(i = 0; i < 15-length; i = i+1){
-        buf[buflen] = ' ';
-        buflen = buflen + 1;
+    for(i = 0; i < 15-length; i = i+1){     // リストを整列させるために使用
+        buf[buflen] = ' ';                  // リストを整列させるために使用
+        buflen = buflen + 1;                // リストを整列させるために使用
     }
 
-    buf[buflen] = '\0';
+    buf[buflen] = '\0';                     // 文字列を完成させる
 
 }
 
@@ -368,83 +336,119 @@ void storeOpr(){
 
 /************* bufにコメントを格納する関数 **************/
 void storeComment(){
-    //printf("storeComment()  *%s\n",comment);
-    int buflen = strLen(buf);       /* 出力bufの長さを格納 */
-    int length = strLen(comment);     /* 入力文字列の長さを格納*/
+    int buflen = strLen(buf);               // 出力bufの長さを格納
+    int length = strLen(comment);           // 入力文字列の長さを格納
 
-    int i;
-
-    for(i = 0; i < length; i = i+1){
-        buf[buflen] = comment[i];
-        buflen = buflen + 1;
+    int i;                                  // 添字用
+    for(i = 0; i < length; i = i+1){        // コメントの長さまで
+        buf[buflen] = comment[i];           // コメントをバッファ配列に格納
+        buflen = buflen + 1;                // バッファ配列を次の領域に移動
     }
-    buf[buflen] = '\0';
+
+    buf[buflen] = '\0';                     // 文字列を完成させる
 
 }
 
 /*******************************************************/
 
+/************** コメントのみの行の出力 ****************************/
+void printComment(){
+    int buflen = 16;                    // リストのコメント行において行頭からどれだけ間隔を空けるか設定
+    int length = strLen(comment);       // コメントの長さを格納
+    int i = 0;                          // 添字用
+
+    while(i < buflen){                  // 設定した間隔の長さまで
+        buf[i] = ' ';                   // 空白を格納
+        i = i+1;                        // 添字をカウントアップ
+    }
+
+    for(i = 0; i < length; i = i+1){    // コメントの長さまで
+        buf[buflen] = comment[i];       // コメントをバッファ配列に格納
+        buflen = buflen + 1;            // バッファ配列を次の領域に移動
+    }
+
+    buf[buflen] = '\n';                 // バッファに改行を格納
+    buf[buflen+1] = '\0';               // 文字列を完成させる
+
+    fputs(buf,listfp);                  // バッファをリストファイルに出力
+}
+
 /***************** バッファ出力 *******************/
 public void printBuffer(){
-   int buflen;                     // 出力用bufの長さを格納
-   int len;                        // 入力用lenの長さを格納
+   int buflen;                          // 出力用bufの長さを格納
+   int len;                             // 入力用lenの長さを格納
    
-   int i;
-   int j;
+   int i;                               // 添字用
 
-   for(i = 0; i < 9; i = i+1){         // 入力の個数まで
+    // バッファ配列に順に格納していき,出力する
+   for(i = 0; i < 9; i = i+1){          // 入力の個数まで
        
-       if(i == 0){
-           storePca();
-       } else if(i == 1){
-           storeFirstByte();
-       } else if(i == 2){
-           storeSecondByte();
-       } else if(i == 3){
-           storeThirdByte();        // 第三バイトをstrに格納
-       } else if(i == 4){
-           storeForthByte();        // 第四バイトをstrに格納
-       } else if(i == 5){
-           storeLabel();            // ラベルをstrに格納
-       } else if(i == 6){
-           storeRsvWord();          // 予約語をstrに格納
-       } else if(i == 7){
-           storeOpr();          // オペランドをstrに格納
-       } else if(i == 8){
-           storeComment();         // コメントをstrに格納
+       if(i == 0){                      // 最初に格納するものは
+           storePca();                  // ロケーションカウンタ
+       } else if(i == 1){               // 二番目は
+           storeFirstByte();            // 第一機械語配列
+       } else if(i == 2){               // 三番目は
+           storeSecondByte();           // 第二機械語配列
+       } else if(i == 3){               // 四番目は
+           storeThirdByte();            // 第三機械語配列
+       } else if(i == 4){               // 五番目は
+           storeForthByte();            // 第四機械語配列
+       } else if(i == 5){               // 六番目は
+           storeLabel();                // ラベル
+       } else if(i == 6){               // 七番目は
+           storeRsvWord();              // 予約語
+       } else if(i == 7){               // 八番目は
+           storeOpr();                  // オペランド
+       } else if(i == 8){               // 九番目は
+           storeComment();              // コメント
        }
        
    }
 
-   buflen = strLen(buf);
-   buf[buflen] = '\n';
-   buf[buflen+1] = '\0';
+   buflen = strLen(buf);                // バッファ長さを求める
+   buf[buflen] = '\n';                  // 最後に改行を入れる
+   buf[buflen+1] = '\0';                // ↲文字列を完成させる
+    
+    // コメントのみか検査
+    i = 0;                              // 添字を初期化
+    // バッファの最初の文字まで飛ぶ
+    while(buf[i] == ' '){               // バッファの中身が空白の間
+        i = i+1;                        // バッファが指す領域を次へ移動
+    }
 
-    #ifdef UNIX
+    if(buf[i] == ';'){                   // 最初の文字がセミコロンなら(バッファがコメントのみなら)
+        printComment();                  // コメントのみのリストファイル出力
+    }
+    else{                                // コメント以外も含む行なら
+        fputs(buf,listfp);               // バッファを通常通りリストファイルに出力
+    }
+
+    #ifdef DEBUG
         printf("Buffer     *%s*\n",buf);
     #endif
 
-   fputs(buf,listfp);                  // リストファイルに出力
 }
 /***************************************************************************/
 
 /************** 16進ファイルに出力 *****************************************/
-public void printHex(){
-    int i;                              /* プログラムの番地を記憶する変数 */
+public void printBinary(){
+    int i;                                      // 添字用
+    #ifdef DEBUG
+    printf("cnt = %d\n",cnt);
+        for(i = 0; i < cnt; i = i+1){
+            printf("machine_code[%d] = %x\n",i,machine_code[i]);
+        }
+    #endif
 
-    for(i = 0; i < cnt; i = i+1){        /* 機械語の個数分繰り返す */
-        fputc(chr(machine_code[i]), hexfp);
-    
-       //strCpy(str,toHex(machine_code[i]));  /* int型からchar型に変換 */
-        //str[2] = '\0';                  /* 'H'を取り除く */
-        //fputs(str,hexfp);               /* 16進ファイルに出力 */
-        
+    for(i = 0; i <= cnt; i = i+1){              // 機械語の個数分繰り返す
+        fputc(chr(machine_code[i]), binaryfp);  // バイナリファイルに1バイトずつ書き込む
     }
 
-    while(i <= 0xda + 2){
-        fputc(chr(0),hexfp);
-        // fputs("00",hexfp);
-        i = i+1;
+
+    // プログラム長以外を00Hで埋める部分
+    while(i <= 0xda + 2){                       // プログラムは0daHまで,+2は最初のプログラム開始番地とプログラム長を含めるため
+        fputc(chr(0),binaryfp);                 // 00Hで埋める
+        i = i+1;                                // 次の領域へ移動
     }
 }
 
@@ -452,12 +456,13 @@ public void printHex(){
 
 /*********************** リストファイルのセッター **************************/
 public void setLstFp(FILE lstfp){
-   listfp = lstfp;                     // Editorのリストファイルのポインタをセット
+    listfp = lstfp;                     // Editorのリストファイルのポインタをセット
+    fputs("ADR CODE        Label   Insturuction            Comment\n\n",lstfp); // リストの最初の出力
 }
 /***************************************************************************/
 
 /********************** 16進ファイルのセッター *****************************/
-public void setHexFp(FILE hfp){
-   hexfp = hfp;                        // Editorの16進ファイルのポインタをセット
+public void setBinaryFp(FILE bfp){
+   binaryfp = bfp;                      // Editorの16進ファイルのポインタをセット
 }
 /***************************************************************************/

@@ -13,11 +13,15 @@
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <string.hmm>
+#include <ctype.hmm>
 
 #include "Util.hmm"
 #include "Lexical.hmm"
 #include "SymTbl.hmm"
 #include "Editor.hmm"
+#include "Error.hmm"
+
+//#define UNIX
 
 /**** static変数 ****/
 char[] str = array(LENGTH);
@@ -26,19 +30,33 @@ int token_id;
 int factor();
 int term();
 int expression();
+int sign;
+
+boolean isOprator(){
+    if(LxPLS <= token_id && token_id <= LxDIV){
+        return true;
+    }
+    else{
+        return false;
+    }
+    return false;
+}
 
 /*
  * <因子１> ::= <因子> | + <因子> | - <因子>
  * <因子> ::= <数値> | <ラベル> | ( <式> )
  */
 int factor(){
+    sign = 1;
     int v = 0;
     
     /* 因子１ */
     if(token_id==LxPLS){              // 正の数なら
+        sign = 1;
 	    setOpr("+");                // アセンブルリスト用
 	    token_id = getToken();      // 次のトークンを取ってくる
     } else if(token_id==LxMNS){       // 負の数
+        sign = -1;
 	    v = -1;                     // 
 	    setOpr("-");                // アセンブルリスト用
 	    token_id = getToken();
@@ -46,38 +64,43 @@ int factor(){
 
     /* 因子 */
     if(token_id==LxNUM){                    // 数値（10進数, 16進数, 文字定数）
-	    v = getDigit();                     // トークンの数値を取ってくる
-        //printf(" factor v = *%d*\n",v);
-	    setOpr(getLxStr());                 // オペランド配列に登録
+        str = getLxStr();                   // Lexicalのstrを取ってくる
+        if(str[0] == '\''){                 // 文字定数なら
+            v = ord(str[1]);
+            setOpr(str);
+        }
+        //if(isAlpha(str[0])){                     // strがアルファベットなら
+        //    setOpr("'");
+        //    v = ord(str[0]);                    // str[0]をint型に変換
+        //    setOpr(str);
+        //    setOpr("'");
+        //} 
+        else{                               // 10進数、16進数なら
+	        v = getDigit();                     // トークンの数値を取ってくる
+	        setOpr(str);                 // オペランド配列に登録
+        }
     } else if(token_id==LxNAM){             // ラベル
-        //printf("eqAnalyzer NAM getLxStr() *%s*\n",getLxStr());
 	    int i = getLabelAddr(getLxStr());   // ラベルのアドレスを取ってくる
-        //printf("factor i = *%d*\n",i);
 	    setOpr(getLxStr());                 // アセンブルリストに登録
 	    if(i == -1){                        // ラベルが登録されてない
-            //printf("can't find label\n");
-	        exit(1);                        // ラベルがないというエラー処理
+            error2("Undifined label",getLxStr());  // エラー
 	    } else{
 	        v = v + i;                      // ラベルのアドレスを足す
-            //printf("factor of NAM value = *%d*\n",v);
 	    }
     } else if(token_id==LxLBR){             // 左括弧だったら
 	    setOpr("(");                        // アセンブルリスト用
 	    token_id = getToken();
 	    v = expression();                   // 式を計算
 	    if(token_id!=LxRBR){                // 右括弧以外なら
-            //printf("can't find )\n");
-            exit(1);                        // エラー処理
+            error2("Can't find ')'",getLxStr());        // エラー
 	    }
 	    setOpr(")");                        // アセンブルリスト用
     } else{
-        //printf("bad expression\n");
-        exit(1);                            // 式が不正であるエラー処理
+        error2("Bad expression",getLxStr());       // エラー
     }
 
-    //printf("End of factor getToken()\n");
     token_id = getToken();                  // 次のトークンを取ってきておく
-    return v;                               // 結果を返す
+    return sign * v;                               // 結果を返す
 }
 
 /*
@@ -107,14 +130,29 @@ int expression(){
     int v = term();                         // <項>の解析を呼び出す
     
     while(token_id==LxPLS || token_id==LxMNS){  // 加算,減算の間
-	    if(token_id==LxPLS){                  // 加算なら
+	        //加算
+        if(token_id==LxPLS){                  
 	        setOpr("+");                    // アセンブルリスト用
 	        token_id = getToken();          // 次のトークンを取ってくる
+
+                // 演算子に演算子が続くならエラー
+            if(isOprator()){
+                error2("Bad expression",getLxStr());
+            }
+
 	        v = v + term();                 // <項>の解析結果と加算
-	    } else{                             // 減算なら
+	    } 
+            //減算
+        else{
 	        setOpr("-");                    // アセンブルリスト用
 	        token_id = getToken();          // 次のトークンを取ってくる
-	        v = v - term();                 // <項>の解析を呼び出す
+            
+                // 演算子に演算子が続くならエラー
+	        if(isOprator()){
+                error2("Bad expression",getLxStr());
+            }
+
+            v = v - term();                 // <項>の解析を呼び出す
 	    }
     }
     return v;                       // 結果を返す
@@ -122,7 +160,6 @@ int expression(){
 
 
 public int address1Analyzer(){
-    //printf("address1Analyzer()\n");
     int value;
     token_id = getTokenID();        /* 現在のトークン番号を取ってくる */
     if(token_id == LxIMM){          /* イミディエイトなら */
@@ -150,13 +187,27 @@ public int valueAnalyzer(){
 ***********************************************/
 
 public int eqAnalyzer(){
-    //printf("eqAnalyzer()\n");
     int value;
     token_id = getTokenID();        /* 現在のトークン番号を取ってくる */
-    //printf("eqAnalyzer token_id = *%d*\n",token_id);
+    #ifdef UNIX
+        printf("eqAnalyzer token_id = *%d*, str = %s\n",token_id,getLxStr());
+    #endif
     value = expression();           /* 式の解析を開始 */
-    //printf("Return eqAnalyzer value = *%d*   token_id = *%d*\n",value,token_id);
+    
+    if(value < 0) {                             // 解がマイナスなら
+        return value = 256 + value;                 
+    }
+
+    else if(0 <= value && value <= 255) {           // 0~255の間なら
+        return value;                           // 結果を返す
+    }
+
+    else if(255 < value) {                      // 256以上なら
+        return value = value - 256;
+    }
+
     return value;
+
 }
 
 /************** 16進数値を16進文字列に変換 *************/
@@ -189,6 +240,16 @@ public char[] toHex(int digit){
     return hex;
 }
 /******************************************************/
+
+public boolean regChecker(int reg_id){
+    if(36 <= reg_id && reg_id <= 39){
+        return true;
+    }
+    else{
+        return false;
+    }
+    return false;
+}
 
 void setEqOpr(){
     str = getLxStr();

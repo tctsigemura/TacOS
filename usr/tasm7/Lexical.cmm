@@ -1,250 +1,458 @@
+
+/*
+ *基本的にこのLexicalはchで処理を行うため、
+ *nextchに常にトークンの先頭がくる設計になっている.
+ *
+ *特別な処理以外ではnextchの判定を
+ *行わない設計にもなっているので注意.
+ *
+ */
+
+
 #include <string.hmm>
 #include <stdlib.hmm>
 #include <stdio.hmm>
 #include <ctype.hmm>
 
 #include "Lexical.hmm"
+#include "Error.hmm"
 
-// static 変数
-FILE fp;                                 // Lexicalのファイルポインタ
-char ch='\0';                            // 現在の文字
-char nextch='\n';                        // 1つ先の文字
-int  val;                                // 数値を入力した際に値を格納
-boolean eof=false;                       // 入力がEOFになった
-char[] str = array(LENGTH);              // 名前を入力した際に綴りを格納
 
+// static変数
+FILE fp;                    // Lexicalのファイルポインタ
+char ch;                    // 現在の文字
+char nextch;                // 1つ先の文字
+int line;                   // 現在行
+int token_id;               // トークン番号
+boolean label_flag;         // トークンがラベルならtrueが入る
+char[] str = array(LENGTH); // つづりの記憶領域を生成
+
+// 予約語表
 RsvWord[] rsvword = {
-  { "NO",   LxNO   }, { "LD",   LxLD   }, { "ST",   LxST   }, 
-  { "ADD",  LxADD  }, { "SUB",  LxSUB  }, { "CMP",  LxCMP  },
-  { "AND",  LxAND  }, { "OR",   LxOR   }, { "XOR",  LxXOR  }, 
-  { "SHLA", LxSHLA }, { "SHLL", LxSHLL }, { "SHRA", LxSHRA },
-  { "SHRL", LxSHRL }, { "JMP",  LxJMP  }, { "JZ",   LxJZ   }, 
-  { "JC",   LxJC   }, { "JM",   LxJM   }, { "CALL", LxCALL },
-  { "JNZ",  LxJNZ  }, { "JNC",  LxJNC  }, { "JNM",  LxJNM  }, 
-  { "IN",   LxIN   }, { "OUT",  LxOUT  }, { "PUSH", LxPUSH },
-  { "PUSHF",LxPUSHF}, { "POP",  LxPOP  }, { "POPF", LxPOPF }, 
-  { "EI",   LxEI   }, { "DI",   LxDI   }, { "RET",  LxRET  },
-  { "RETI", LxRETI }, { "HALT", LxHALT }, { "EQU",  LxEQU  }, 
-  { "ORG",  LxORG  }, { "DS",   LxDS   }, { "DC",   LxDC   },
-  { "G0",   LxG0   }, { "G1",   LxG1   }, { "G2",   LxG2   }, 
-  { "SP",   LxSP   }
+{ "NO",		LxNO },
+{ "LD",		LxLD },
+{ "ST", 	LxST },
+{ "ADD", 	LxADD },
+{ "SUB", 	LxSUB },
+{ "CMP",	LxCMP },
+{ "AND", 	LxAND },
+{ "OR",   	LxOR },
+{ "XOR", 	LxXOR },
+{ "SHLA",  	LxSHLA },
+{ "SHLL",	LxSHLL },
+{ "SHRA",  	LxSHRA },
+{ "SHRL", 	LxSHRL },
+{ "JMP",  	LxJMP },
+{ "JZ",		LxJZ },
+{ "JC",   	LxJC },
+{ "JM",		LxJM },
+{ "CALL",  	LxCALL },
+{ "JNZ",	LxJNZ},
+{ "JNC",    LxJNC },
+{ "JNM", 	LxJNM },
+{ "IN",     LxIN },
+{ "OUT", 	LxOUT },
+{ "PUSH",  	LxPUSH },
+{ "PUSHF",	LxPUSHF },
+{ "POP", 	LxPOP },
+{ "POPF", 	LxPOPF },
+{ "EI",		LxEI },
+{ "DI",		LxDI },
+{ "RET",	LxRET },
+{ "RETI",	LxRETI },
+{ "HALT",	LxHALT },
+{ "EQU",	LxEQU },
+{ "ORG",	LxORG },
+{ "DS",		LxDS },
+{ "DC",		LxDC },
+
+{ "G0",		LxG0 },
+{ "G1",		LxG1 },
+{ "G2",		LxG2 },
+{ "SP",		LxSP }
 };
 
-/*********** 予約語トークン番号を探す関数 **********/
+/*********** 予約語のトークン番号を探す関数 **********/
 int searchRsvWord(char[] word){
-  for(int i=0; i<LxRSV_NUM+LxREG_NUM; i=i+1) {
-    if(strCmp(word,rsvword[i].token) == 0){
-      return rsvword[i].rsvword_id;                // 見つかった（予約語）
+    int i;                                          // 添字用
+
+    for(i = 0; i < LxRSV_NUM; i = i+1){             // 予約語の数まで
+        if(strCmp(word,rsvword[i].token) == 0){     // 予約語表に引数の綴りと一致するものが存在すれば
+            token_id = rsvword[i].rsvword_id;       // トークン番号をその予約語番号に設定
+            return token_id;                        // トークン番号を返す
+        }
     }
-  }
-  return LxNAM;                                    // 見つからない（ラベル）
+
+    return token_id;                                // トークン番号を返す
 }
 
-// 次の文字を読む
-boolean getCh() {
-  if(feof(fp)) {                                 // EOF なら
-    eof=true;                                    //   フラグを立てて
-    return false;                                //   false を返す
-  ch = nextch;                                   // 次の文字に進む
-  nextch = toUpper(fgetc(fp));                   // 次の文字を読む
-  return true;                                   // 読めたら true を返す
+/******** 次の文字を大文字にして取ってくる関数 *********/
+char getChatToUpper() {
+    ch = toUpper(nextch);               // 次の文字を現在の文字にする
+    if(feof(fp)) {                      // 次の入力がEOFなら
+        nextch = EOF;                   // nextchにEOFの目印を
+    } else {                            // そうでなければ
+        nextch = fgetc(fp);             // nextchに次の文字を読み込む
+
+        if(nextch==EOF)                 // nextchにEOFが読み込まれていたら
+            error("input has '\x7f'");  // 入力にEOFをがあるエラーを出力
+    }
+
+    return ch;                          // 現在の文字を返す
 }
 
-// 空白を読み飛ばす
-boolean skipSpaces() {
-  while(ch!='\n' && isSpace(ch)) {               // 改行以外の空白をスキップ
-    if (!getCh()) return false;                  // EOFなら false で終了
-  }
-  return true;                                   // 読めたら true を返す
+/******** 次の文字をそのまま取ってくる関数 *********/
+char getChat() {
+    ch = nextch;                        // 次の文字を現在の文字にする
+    if(feof(fp)) {                      // 次の入力がEOFなら
+        nextch = EOF;                   // nextchにEOFの目印を
+    } else {                            // そうでなければ
+        nextch = fgetc(fp);             // nextchに次の文字を読み込む
+
+        if(nextch==EOF)                 // nextchにEOFが読み込まれていたら
+            error("input has '\x7f'");  // 入力にEOFをがあるエラーを出力
+    }
+
+    return ch;                          // 現在の文字を返す
 }
 
-// 行末まで読み飛ばす
-boolean void skipToEOL() {
-  while(ch!= \n') {                              // 改行以外はスキップ
-    if (!getCh()) return false;                  // EOFなら false で終了
-  }
-  return true;                                   // 読めたら true を返す
+/********** 改行か文字がくるまで空白を読み飛ばす関数 *************/
+void skipSpaces() {
+    while(nextch != '\n' && isSpace(nextch)){   // 次の文字が改行以外かつ空白なら
+        getChatToUpper();                                // 1文字読み飛ばす
+    }
 }
 
-// 8進数字
-boolean isOdigit(char ch) {
-  return ord('0')<=ord(ch) && ord(ch)<=ord('7'); // '0'〜'7'が8進数
+/*************** 行末まで読み飛ばす関数 *******************/
+public void skipToNewLineOrEOF() {
+    while(nextch != '\n' && nextch != EOF){     // 次の文字が改行かEOFが来るまで
+        getChatToUpper();                                // 1文字読み飛ばす
+    }
 }
 
-// 16進文字から数値に変換
+/*********** C++タイプのコメントを読み飛ばす関数 ***********/
+void skipCppCom() {
+    skipToNewLineOrEOF();                       // 改行またはEOFまで読み飛ばす
+}
+
+/************** コメント、空白を読み飛ばす **************/
+void skipAllSpaces() {
+    while(true) {
+        skipSpaces();                           // 改行以外の空白を飛ばす
+        if(ch == '/' && nextch == '/') {        // "//"ならコメント開始
+            skipCppCom();                       // コメントを読み飛ばす
+        } else if(nextch == '\n') {             // 次の文字が改行なら
+            break;                              // スキップ終了
+        } else{                                 // コメント、改行以外なら
+            break;                              // スキップ終了
+        }
+    }
+}
+
+/**********************  16進文字の1文字を16進数値に変換して値を返す ******************/
 int hex(char ch) {
-  if (isDigit(ch)) return ord(ch)-ord('0');      // '0'〜'9'の場合
-  ch = toUpper(ch);                              // 英字は大文字に統一
-  return ord(ch)-ord('A')+10;                    // 'A'〜'F'の場合
+    int value;                                      // 値を格納する用
+
+    if (isDigit(ch)) {                              // '0'〜'9'の場合
+        return ord(ch) - ord('0');                  // 引数のASCIIコードの値からASCIIコード'0'を引いて値を返す
+    }
+
+    ch = toUpper(ch);                               // 英字は大文字に統一
+    value = ord(ch);                                // 引数のASCIIコードの値を格納
+    if (ord('A') <= value && value <= ord('F')) {   // 引数が'A'〜'F'の場合
+        return ord(ch) - ord('A') + 10;             // 引数のASCIIコードの値からASCIIコード'A'を引いて、引きすぎている10を足して返す
+    } else {                                        // 16進文字列に使えない文字なら
+      error2("Bad hex character",str);              // エラー
+      return -1;
+  }
+  return -1;                                        // 異常終了した場合の値
 }
 
-//  16進数を読む
-boolean getHex() {
-  int val=0;
-  do {
-    val=val*16+=hex(ch);
-    if (!getCh()) return false;                  // EOF なら false で返る
-  } while (getCh() && isXdigit(ch));             // 16進文字の間，繰り返す
-  return true;
+/*******************  16進文字列を16進数値に変換して返す ******************/
+int getHex() {
+    int v = 0;                                      // 初期値は0
+    int i = 0;                                      // 添字用
+    int len = strLen(str);                          // 文字列の長さ用
+
+        // 16進文字列の長さチェック
+    if(len == 3 || len == 4){                       // 16進文字列の長さが4か3なら
+                                                    // 正常なので何もしない
+    } else if(len <= 2){                            // 文字列が短すぎるなら
+        error2("Hex number is too short",str);      // エラー
+    } else if(len >= 5){                            // 文字列が長すぎるなら
+        error2("Hex number is too long",str);       // エラー
+    }
+
+        // どの文字から解析するかを決定する
+    if(len == 4){                                   // 16進が最初の<数字>の部分を含むなら
+        i = 1;
+    }
+
+  while (i < len-1) {                               // 16進数の'H'の前まで
+    v = v*16 + hex(str[i]);                         // 値を計算
+    i = i+1;                                        // 次の文字を指す添字へ
+  }
+  return v;                                         // 16進数の値を返す
 }
 
-/****************** 10進数を読んで値を返す ********************/
+/****************** 10進文字列を10進数値にして値を返す ********************/
 int getDec() {
-    int val = 0;                                   // 初期値は 0
+    int val = 0;                                                // 初期値は 0
     int i;
-    int len = strLen(str);                           // strの長さを求める
+    int len = strLen(str);                                      // strの長さを求める
 
-    for(i = 0; isDigit(str[i]) == true && i < len; i = i+1){
-        val = val*10 + ord(str[i]) - ord('0');             // 値を計算
+    for(i = 0; isDigit(str[i]) == true && i < len; i = i+1){    // 文字が10進文字かつ文字列の長さ未満なら
+        val = val*10 + ord(str[i]) - ord('0');                  // 値を計算
     }
-  return val;                                                                      // 10進数の値を返す
+  return val;						                            // 10進数の値を返す
 }
 
-/******************* 数値を読み込む ***********************/
+/******************* 文字列の数値を整数型に変換して値を返す ***********************/
 public int getDigit() {
-    int val = 0;
-    int len = strLen(str);
-    
+    int val = 0;                // 初期値は 0
+    int len = strLen(str);      // strの長さを求める
+
     if(str[len - 1] == 'H'){
-            val = getHex();                             // 16進数の読み込み
-    } else{                                             // それ以外は10進のはず
-        val = getDec();                                 // 10進数を読み込む
+            val = getHex();     // 16進数の読み込み
+    } else{                     // それ以外は10進のはず
+        val = getDec();         // 10進数を読み込む
     }
-  
-    return val;                                         // val=値
+
+    return val;                 // val=値
 }
 
 
 /************* 文字列を読んでstrに設定する ************/
-void getString(){
-  str[0] = ch;            /* strに頭文字を記憶*/
-  int i;                  /* strの添字用変数を宣言 */
-  if　(token_id==LxCOM){      /* コメントの場合は */
-    for (i=1; nextch!='\n'; i=i+1) {   /* nextchが改行以外なら*/
-      getCh();            /* 次の文字を取ってくる */
-      str[i] = ch;        /* chをstrに記憶 */
+void getStringToUpper(){
+    str[0] = ch;                    // str[0]に頭文字を記憶
+    int i;                          // 添字用
+
+    if(token_id == LxCOM){                                      // コメントなら
+         for(i = 1; nextch != '\n' && nextch != EOF; i = i+1){  // 次の文字が改行以外なら
+            getChatToUpper();                                            // 次の文字を取ってくる
+            str[i] = ch;                                        // chをstrに記憶
+        }
+    } else if(token_id == LxSTR){                                               // 文字列なら
+        for(i = 1; nextch != '"' && nextch != '\n' && nextch != '\0'; i = i+1){ // ダブルクウォート,改行,文字列終端文字が来るまで
+            getChatToUpper();                                                            // 次の文字へ
+            str[i] = ch;                                                        // strに文字を設定
+        }
+    } else{                                                                             // それ以外なら
+        for(i = 1; isAlnum(nextch) == true || nextch == '#' || nextch == '_'; i = i+1){ // 次の文字が英字もしくは数字なら       !!! (アンダーバーいる!?!?!?!?)
+            getChatToUpper();                                                                    // 次の文字を取ってくる
+            str[i] = ch;                                                                // strに文字を設定
+        }
     }
-  } else {                     /* そうでない場合は */
-    for (i=1; isAlnum(nextch)==true || nextch=='_'; i=i+1) {
-      getCh();            /* 次の文字を取ってくる */
-      str[i] = ch;        /* chをstrに記憶 */
-    }
-  }
-  str[i] = '\0';
+
+    str[i] = '\0';          // 文字列を完成させる
+
 }
 
-/************* 文字列を取ってきてstrに格納する関数 ***********/
+/************* 文字列をそのまま読んでstrに設定する ************/
+void getString(){
+    str[0] = ch;            // str[0]に頭文字を記憶
+    int i;                  // 添字用
+
+    if(token_id == LxCOM){                                      // コメントの場合は
+         for(i = 1; nextch != '\n' && nextch != EOF; i = i+1){  // nextchが改行以外なら
+            getChat();                                            // 次の文字を取ってくる
+            str[i] = ch;                                        // chをstrに記憶
+        }
+    } else if(token_id == LxSTR){                                               // 文字列なら
+        for(i = 1; nextch != '"' && nextch != '\n' && nextch != '\0'; i = i+1){ // ダブルクウォート,改行,文字列終端文字以外なら
+            getChat();                                                            // 1文字進める
+            str[i] = ch;                                                        // strに文字を設定
+        }
+    } else{                                                                             // それ以外なら
+        for(i = 1; isAlnum(nextch) == true || nextch == '#' || nextch == '_'; i = i+1){ // 次の文字が英字もしくは数字なら   !!! (アンダーバーいる!?!?!?!??!)
+            getChat();                                                                    // 1文字進める
+            str[i] = ch;                                                                // strに文字を設定
+        }
+    }
+
+    str[i] = '\0';      // 文字列を完成させる
+
+}
+
+/************* 命令か名前かを判別する関数 ***********/
 int getWord(){
-  getString();                                   // str に文字列を取ってくる
-  token_id=searchRsvWord(str);                   // トークンを読む
-  return token_id;
+    getStringToUpper();                                        // strに文字列を設定する
+
+    token_id = searchRsvWord(str);                      // 予約語表でトークンを検索
+
+    if(0 <= token_id && token_id < LxOP_NUM){           // トークン番号が命令なら
+        return token_id;                                // トークン番号を返す
+    } else if(LxG0 <= token_id && token_id <= LxSP){    // トークン番号がレジスタなら
+        return token_id;                                // トークン番号を返す
+    } else {                                            // トークン番号が予約語以外なら
+        return LxNAM;                                   // ラベルであることを返す
+    }
+
+    return token_id;
 }
 
 /********* ラベルの有無を返す **********/
 public boolean getLabel(){
-    //printf("start getLabel()\n");
-    if( ch == '\0'){    /* まだ一度も文字を取ってきていない場合は */
-        getCh();        /* chにはnextchの改行をnextchには文字の先頭を取ってくる */
+    if( ch == '\0'){                            // まだ一度も文字を取ってきていない場合は
+        getChatToUpper();                                // chにはnextchの改行をnextchには文字の先頭を取ってくる
     }
 
-    if(ch == '\n' && nextch == ' '){        /* 行頭が空白なら */
-        label = false;
-        return label;                       /* ラベルなしなのでfalse */
-    } else if(ch == '\n' && isAlpha(nextch)){  /* 行頭がアルファベットなら */
-        label = true;
-        return label;                        /* ラベルがあるのでtrue */
-    } else{                                 /* それ以外なら */
-        ;                                   /* エラー */
+    if(ch == '\n' && nextch == ' '){            // 行頭が空白なら
+        label_flag = false;                     // ラベルがないのでfalse
+        return label_flag;                      // ラベルフラグを返す
+    } else if(ch == '\n' && isAlpha(nextch)){   // 行頭がアルファベットなら
+        label_flag = true;                      // ラベルなのでtrue
+        return label_flag;                      // ラベルフラグを返す
+    } else{                                     // それ以外なら
+        error2("Can't write that word at start of line",getLxStr());    // エラー
     }
 
     return false;
 }
 
 /********* 次のトークンを読んでトークン番号を返す関数 **********/
-public int getToken() {
-  int tok=LxERR;
-  getCh();                               // 一文字読む
+public int getToken(){
+    token_id = -1;                                      // トークン番号を初期化
 
-  if (ch=='\n') {                        // 行頭は特別な処理が必要
-    if (nextch==' ' || nextch=='\t') {   // 行頭のスペースは
-      tok=LxSPC;                         //   返す必要がある（ラベルなしの意味）
+    if(ch == '\0'){                                     // まだ一度も文字を取ってきていない場合は
+        getChatToUpper();                                        // ch にはnextchの改行をnextchに文字の行頭を取ってくる
+    }
 
+    getChatToUpper();                                            // 次の文字へ
+    if(ch == ' ' || ch == '\t'){                        // 空白かタブなら
+        token_id = LxSPC;                               // トークン番号を空白に設定
+    }
 
-  } else if(ch=='"'){           /* 文字列であるなら */
-    getCh();                    /* 最初のダブルクウォートを飛ばす */
-    getString();                /* strに文字列を格納 */
-    getCh();                    /* 終わりのダブルクウォートを飛ばす */
-    token_id=LxSTR;           /* トークン番号(文字列)を設定 */
-  } else if(ch=='\''){          /* 文字定数であるなら */
-    getCh();                    /* 最初のシングルクウォートを飛ばす */
-    getString();                /* strに文字を格納 */
-    getCh();                    /* 終わりのシングルクウォートを飛ばす */
-    token_id = LxNUM;           /* トークン番号(数値)を設定 */
-  } else if(ch == '\n'){          /* 改行であるなら */
-    token_id = LxEOL;           /* トークン番号(改行)を返す */
-    return LxEOL;               /* 改行だけはスペースを飛ばさないまま返す */
-  } else if(ch == EOF){           /* EOFなら */
-    token_id = LxEOF;           /* トークン番号(EOF)を設定 */
-  } else if(ch == '('){           /* 左括弧なら */
-    token_id = LxLBR;
-  } else if(ch == ')'){           /* 右括弧なら */
-    token_id = LxRBR;
-  } else if(ch == ','){           /* カンマなら */
-    token_id = LxCMM;           /* トークン番号(カンマ)を設定 */
-  } else if(ch == ';'){           /* セミコロンなら */
-    token_id = LxCOM;           /* トークン番号(セミコロン)を設定 */
-    skipToEOL();
-  } else if(ch == '+'){           /* プラスなら */
-    token_id = LxPLS;           /* トークン番号(プラス)を設定 */
-  } else if(ch == '-'){           /* マイナスなら */
-    token_id = LxMNS;           /* トークン番号(マイナス)を設定 */
-  } else if(ch == '*'){           /* 乗算なら */
-    token_id = LxMUL;           /* トークン番号(乗算)を設定 */
-  } else if(ch == '/'){           /* 除算なら */
-    token_id = LxDIV;           /* トークン番号(除算)を設定 */
-  } else if(ch == '#'){           /* イミディエイトなら */
-    token_id = LxIMM;           /* トークン番号(イミディエイト)を設定 */
-  } else if(isAlpha(ch)){         /* chがアルファベットなら */
-    token_id = getWord();       /* トークン番号(予約語かラベル)を返す */
-  } else if(isDigit(ch)){         /* 数値であるなら */
-    getString();
-    token_id = LxNUM;         /* トークン番号(数値)を設定 */
-  } else{                         /* エラーなら */
-    token_id = -1;              // とりあえず終了するために代用
-  }
-  skipSpaces();
-  return token_id;                /* トークン番号を返す */
+    else if(ch == '"'){                                 // 文字列であるなら
+        token_id = LxSTR;                               // トークン番号を文字列に設定
+        getChat();                                        // 最初のダブルクウォートを飛ばしてそのままの文字を取ってくる
+        if(ch == '\"'){                                 // ダブルクォートの連続なら
+            error2("nothing between double quotes",str);// エラー
+        }
+        getString();                                    // そのままの文字列を取ってくる
+        if(nextch != '"') {                             // 文字列がダブルクォートで終わっていない場合
+            error2("Can't find double quote",str);      // エラー
+        }
+        getChatToUpper();                                        // 終わりのダブルクウォートを飛ばす
+    }
+
+    else if(ch == '\''){                                // 文字定数であるなら
+        str[0] = ch;                                    // 最初のシングルクウォートを格納
+        str[1] = getChat();                               // 次の文字を格納 (ここには文字定数がはいるはず)
+        str[2] = nextch;                                // さらに次の文字を格納 (ここにはシングルクォートがはいるはず)
+        str[3] = '\0';                                  // 文字列を完成させる
+        if(str[2] != '\''){                             // シングルクォートで終わってないなら
+            getString();                                // 文字列をstrに取ってくる
+            error2("Character constant is wrong",str);  // エラー
+        }
+        getChatToUpper();                                        // 終わりのシングルクウォートを飛ばす
+        token_id = LxNUM;                               // トークン番号を数値に設定
+    }
+
+    else if(ch == '\n'){                                // 改行なら
+        token_id = LxEOL;                               // トークン番号(改行)を返す
+        line = line + 1;                                // 行を一つ進める
+        return LxEOL;                                   // トークン番号を改行に設定
+    }
+
+    else if(ch == EOF){                                 // EOFなら
+        token_id = LxEOF;                               // トークン番号をEOFに設定
+    }
+
+    else if(ch == '('){                                 // 左括弧なら
+        token_id = LxLBR;                               // トークン番号を左括弧に設定
+    }
+
+    else if(ch == ')'){                                 // 右括弧なら
+        token_id = LxRBR;                               // トークン番号を右括弧に設定
+    }
+
+    else if(ch == ','){                                 // カンマなら
+        token_id = LxCMM;                               // トークン番号をカンマに設定
+    }
+
+    else if(ch == ';'){                                 // セミコロンなら
+        token_id = LxCOM;                               // トークン番号をコメントに設定
+        getString();                                    // コメントの文字列をstrに格納
+    }
+
+    else if(ch == '+'){                                 // プラスなら
+        token_id = LxPLS;                               // トークン番号をプラスに設定
+    }
+
+    else if(ch == '-'){                                 // マイナスなら
+        token_id = LxMNS;                               // トークン番号をマイナスに設定
+    }
+
+    else if(ch == '*'){                                 // 乗算なら
+        token_id = LxMUL;                               // トークン番号を乗算に設定
+    }
+
+    else if(ch == '/'){                                 // 除算なら
+        token_id = LxDIV;                               // トークン番号を除算に設定
+    }
+
+    else if(ch == '#'){                                 // イミディエイトなら
+        token_id = LxIMM;                               // トークン番号をイミディエイトに設定
+    }
+
+    else if(isAlpha(ch)){                               // アルファベットなら
+        token_id = getWord();                           // strに文字列を格納し,トークン番号を予約語かラベルに設定
+    }
+
+    else if(isDigit(ch)){                               // 数値であるなら
+        getStringToUpper();                                    // 数値をstrに格納
+        token_id = LxNUM;                               // トークン番号を数値に設定
+    }
+
+    else{                                               // それ以外(エラー)なら
+        getStringToUpper();                                    // エラーの原因の文字列をstrに格納
+        error2("Unknown token",str);                    // エラー
+    }
+
+    skipSpaces();                                       // スペールを飛ばす
+    return token_id;                                    // トークン番号を返す
 }
 
-/******* strを取ってくる関数 *********/
+/******* Lexicalのstrを取り出す関数 *********/
 public char[] getLxStr(){
-    return str;
+    return str;             // strを返す
 }
 
 /************** Lexicalのファイルポインタを設定 ***************/
 public void setLxFp(FILE file){
-    fp = file;
+    fp = file;              // ファイルポインタを設定
 }
 
-/************** トークン番号を取ってくる *******************/
+/************* Lexicalの現在行を取ってくる ******************/
+public int getLine(){
+    return line;            // 現在行を返す
+}
+
+/************** Lexicalのトークン番号を取ってくる *******************/
 public int getTokenID(){
-    return token_id;
+    return token_id;        // 現在のトークン番号を返す
 }
 
 /******** Lexicalの初期化関数 *******/
 public void initLexical() {
-    ch = '\0';                          /* 現在の文字を初期化 */
-    nextch = '\n';                      /* 次の文字の初期化 */
-    token_id = -1;                      /* トークン番号の初期化 */
-    str[0] = '\0';                         /* strの初期化 */
+    ch = '\0';                          // 現在の文字を初期化
+    nextch = '\n';                      // 次の文字の初期化
+    line = 1;                           // 現在行の初期化
+    token_id = -1;                      // トークン番号の初期化
+    str[0] = '\0';                      // strの初期化
 }
 
-/* テスト用 */
+/******* デバッグ用 *******/
 
+/*** 現在の文字を取り出す ***/
 public char gch(){
     return ch;
 }
 
+/*** 次の文字を取り出す ***/
 public char gnextch(){
     return nextch;
 }
+
+/************************/

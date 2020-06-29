@@ -1,0 +1,26 @@
+struct cursor{
+  int x;
+  int y;
+};
+
+public int current;
+public int rows;
+public cursor c;
+public int top;
+
+public void screenInit();
+
+public void clear();
+public void clearFromCursor();
+public void printBufferInfo();
+public void moveCursor();
+public void moveToEndOfLine();
+public void displayAll();
+public void displayLine();
+public void displayLineFromCursor();
+public void displayAllFromCursor();
+
+public void moveLeft();
+public void moveRight();
+public void moveDown();
+public void moveUp();

@@ -1,53 +1,58 @@
 #ifndef LEXICAL_H
 
+// EOFの文字コードを設定
+#define EOF '\x7f'      //ASCII, UTF-8でDEL文字
+
 // 予約語のトークン番号
-#define LxNO        0       // NO
-#define LxLD        1       // LD
-#define LxST        2       // ST
+#define LxNO        0       //NO
+#define LxLD        1       //LD
+#define LxST        2       //ST
 
-#define LxADD       3       // ADD
-#define LxSUB       4       // SUB
-#define LxCMP       5       // CMP
-#define LxAND       6       // AND
-#define LxOR        7       // OR
-#define LxXOR       8       // XOR
+#define LxADD       3      //ADD
+#define LxSUB       4      //SUB
+#define LxCMP       5      //CMP
+#define LxAND       6      //AND
+#define LxOR        7      //OR
+#define LxXOR       8      //XOR
 
-#define LxSHLA      9       // SHLA
-#define LxSHLL      10      // SHLL
-#define LxSHRA      11      // SHRA
-#define LxSHRL      12      // SHRL
-#define LxJMP       13      // JMP
-#define LxJZ        14      // JZ
-#define LxJC        15      // JC
-#define LxJM        16      // JM
-#define LxJNZ       17      // JNZ
-#define LxJNC       18      // JNC
-#define LxJNM       19      // JNM
-#define LxCALL      20      // CALL
+#define LxSHLA      9      //SHLA
+#define LxSHLL      10      //SHLL
+#define LxSHRA      11      //SHRA
+#define LxSHRL      12      //SHRL3
+#define LxJMP       13      //JMP
+#define LxJZ        14      //JZ
+#define LxJC        15      //JC
+#define LxJM        16      //JM
+#define LxJNZ       17      //JNZ
+#define LxJNC       18      //JNC
+#define LxJNM       19      //JNM
+#define LxCALL      20      //CALL
 
-#define LxPUSH      21      // PUSH
-#define LxPUSHF     22      // PUSHF
-#define LxPOP       23      // POP
-#define LxPOPF      24      // POPF
+#define LxPUSH      21      //PUSH
+#define LxPUSHF     22      //PUSHF
+#define LxPOP       23      //POP
+#define LxPOPF      24      //POPF
 
-#define LxIN        25      // IN
-#define LxOUT       26      // OUT
-#define LxEI        27      // EI
-#define LxDI        28      // DI
-#define LxRET       29      // RET
-#define LxRETI      30      // RETI
-#define LxHALT      31      // HALT
+#define LxIN        25      //IN
+#define LxOUT       26      //OUT
+#define LxEI        27      //EI
+#define LxDI        28      //DI
+#define LxRET       29      //RET
+#define LxRETI      30      //RETI
+#define LxHALT      31      //HALT
 
-#define LxEQU       32      // EQU
-#define LxORG       33      // ORG
-#define LxDS        34      // DS
-#define LxDC        35      // DC
+#define LxEQU       32      //EQU
+#define LxORG       33      //ORG
+#define LxDS        34      //DS
+#define LxDC        35      //DC
+
 
 //レジスタのトークン番号
-#define LxG0        36      // G0
-#define LxG1        37      // G1
-#define LxG2        38      // G2
-#define LxSP        39      // SP
+#define LxG0        36     //G0
+#define LxG1        37     //G1
+#define LxG2        38     //G2
+#define LxSP        39     //SP
+
 
 //トークンタイプを表すトークン番号
 #define LxSPC       100     // Space
@@ -69,7 +74,8 @@
 #define LxERR       116     // Error
 
 #define LENGTH 80           // Line Length
-#define LxRSV_NUM   36      // Number of Reserved Words
+#define LxRSV_NUM   40      // Number of Reserved Words
+#define LxOP_NUM    36      // Number of Operations
 #define LxREG_NUM   4       // Number of Registers
 
 // 予約語の一覧表
@@ -78,16 +84,18 @@ struct RsvWord {
   int  rsvword_id;                    /* トークン値の組 */
 };
 
-public char getCh();
+char getCh();
 public int getDigit();
 public int getToken();
 public int getTokenID();
 public void skipToNewLineOrEOF();
 public boolean getLabel();
 public char[] getLxStr();
+public int getLine();
 
 public void initLexical();
 public void setLxFp(FILE file);
+
 
 /* テスト用 */
 public char gch();
