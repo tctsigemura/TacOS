@@ -37,7 +37,7 @@ public void pass1(FILE sourcefp){
         printf("pass1start\n");
     #endif
     token_id = getToken();                  /* 最初のトークンを取ってくる */
-    
+
     while(token_id != LxEOF && token_id != LxERR){    /* ファイルの終わりまで */
 
         #ifdef UNIX
@@ -49,12 +49,12 @@ public void pass1(FILE sourcefp){
             while(token_id == LxEOL){           /* 改行なら */
                 token_id = getToken();          /* 次のトークンを取ってくる */
             }
-        
+
             if(0 <= token_id  && token_id < LxOP_NUM){
                 str = getLxStr();
                 error2("Operation can't become label : ",str);
-            } 
-            
+            }
+
             else if(token_id == LxNAM){          /* 行の先頭が空白以外なら */
                 str = getLxStr();           /* Lexicalのstrを取ってくる */
                 if(isAlpha(str[0])){         /* ラベルに適した文字なら */
@@ -64,22 +64,22 @@ public void pass1(FILE sourcefp){
                     } else {
                         error2("This label is defined twice",getLxStr());
                     }
-                } 
-                
+                }
+
                 else {
                     error2("Label must start with alphabet",str);
                 }
-            } 
+            }
 
             else if(token_id == LxSPC) {        // スペースなら
                 token_id = getToken();          // 次のトークンを取ってくる
             }
-            
+
             else if(token_id == LxCOM){
                 skipToNewLineOrEOF();           // 改行もしくはEOFの手前まで進む
                 token_id = getToken();          // 改行もしくはEOFを取ってくる
-            } 
-            
+            }
+
             else if(token_id == LxEOF){   /* ファイルの終わりなら */
                 break;                      /* pass1のループを抜ける */
             }
@@ -94,7 +94,7 @@ public void pass1(FILE sourcefp){
         }
 
         /******************************* ラベル部分終わり**************************************/
-        
+
 
         /*********************************** 命令欄 ****************************************/
         if(token_id != LxEOF && token_id != LxEOL){
@@ -128,7 +128,7 @@ public void pass1(FILE sourcefp){
         }
         /********************************** 命令欄部分終わり *********************************/
 
-              
+
        /******************************** オペランド欄部分 ****************************************/
         while(token_id != LxEOL && token_id != LxEOF && token_id != LxERR){    /* 改行またはファイルの終わりまで */
              #ifdef UNIX
@@ -140,7 +140,7 @@ public void pass1(FILE sourcefp){
                 skipToNewLineOrEOF();       // 改行もしくはEOFの手前まで進める
                 token_id = getToken();      // 改行もしくはEOFを取ってくる
             }
-        
+
             else if(token_id == LxEQU){       /* EQU命令なら */
                 token_id = getToken();                     /* <式>の部分を取ってくる */
                 address = eqAnalyzer();         /* <式>の解析結果を代入 */
@@ -154,7 +154,7 @@ public void pass1(FILE sourcefp){
                     printf("pass1 EQU token_id = %d\n",token_id);
                 #endif
             }
-        
+
             else if(token_id == LxORG){
                 int org_adr;
                 token_id = getToken();                     /* <式>の部分を取ってくる */
@@ -166,8 +166,8 @@ public void pass1(FILE sourcefp){
                 else{
                     error2("Bad ORG operation",getLxStr());
                 }
-            } 
-        
+            }
+
             else if(token_id == LxDC){        /* DC命令なら */
                 while(token_id != LxEOL && token_id != LxCOM && token_id != LxEOF){
                     token_id = getToken();          /* 次のトークンを取ってくる */
@@ -181,12 +181,12 @@ public void pass1(FILE sourcefp){
                         pca = pca + 1;
                     }
                 }
-            
+
                 if(token_id == LxCOM){          /* コメントで終わったなら */
                     skipToNewLineOrEOF();       /* 次の行へ行く */
                 }
-            } 
-        
+            }
+
             else if(token_id == LxDS){
                 while(token_id != LxEOL && token_id != LxCOM){
                     token_id = getToken();          /* 次のトークンを取ってくる */
@@ -196,20 +196,20 @@ public void pass1(FILE sourcefp){
                         pca = pca + 1;
                     }
                 }
-            } 
-        
+            }
+
             else if(token_id == LxEOL){
-            } 
-        
+            }
+
             else if(token_id == LxEOF){
-            } 
-        
+            }
+
             else if(0 <= token_id  && token_id < LxOP_NUM){
                 pca = pca + searchSize(token_id);
                 skipToNewLineOrEOF();
                 token_id = getToken();
-            } 
-        
+            }
+
             else{
                 error("pass1 bad instruction!!bad instruction!!bad instruction!!bad instruction!!bad instruction!!bad instruction!!bad instruction!!");
             }
