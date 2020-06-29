@@ -4,7 +4,7 @@
 
 #UNIXならallにTasm7を追加する
 
-all: Tasm7.exe Tasm7.v
+all: Tasm7.exe # Tasm7 Tasm7.v
 
 # UNIX, Mac の a.out へ変換
 Tasm7: Tasm7.cmm Assemble.hmm Error.cmm Error.hmm SymTbl.cmm SymTbl.hmm Lexical.cmm Lexical.hmm Pass1.cmm Pass1.hmm OperationTbl.cmm OperationTbl.hmm Util.cmm Util.hmm Pass2.cmm Pass2.hmm Editor.cmm Editor.hmm
