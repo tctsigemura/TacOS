@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2018 by
+ * Copyright (C) 2011 - 2020 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * fs/fatSys.cmm : FAT16 ファイルシステムのシステムコール処理部分
  *
+ * 2020.07.11 : ".." を使ってルートディレクトリへ進めるように srchDir() を修正
  * 2019.11.25 : ファイル名 ".", ".." を正しく扱えるように getFname() を修正
  * 2019.11.15 : stat システムコールを実装
  * 2018.12.03 : ディレクトリエントリの削除に関するバグを修正
@@ -179,8 +180,12 @@ boolean srchDir(char[] name) {
     if ((r=readDirEnt(curEnt))==1    &&         // 有効なエントリで
         (curEnt.attr & 0x0a)==0      &&         //   通常ファイルかディレクトリ
                                                 //   system,volumeLabel,vfat以外
-        cmpFname(curEnt.name, name)==0)         //     ファイル名が一致するなら
-      return true;                              //       ファイルが見つかった
+        cmpFname(curEnt.name, name)==0) {       //   ファイル名が一致するなら
+      if (curEnt.clst==0x0000) {                //     ROOTDIRのことが0x0000と
+        curEnt.clst=ROOTDIR;                    //       記録されているので
+      }                                         //         変換する
+      return true;                              //     ファイルが見つかった
+    }
   } while (r!=0 && nextDirEnt(curEnt, false));  // 有効なエントリが続く間
   return false;                                 // 見つからなかった
 }
