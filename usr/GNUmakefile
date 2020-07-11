@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2016 - 2019 by
+# Copyright (C) 2016 - 2020 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -19,6 +19,7 @@
 #
 # Makefile : usr ディレクトリ用の Makefile
 #
+# 2020.06.29         : tasm7 を追加
 # 2019.11.14         : envtest env pwd printenv を追加
 # 2019.03.13         : in out を追加
 # 2018.11.24         : ar cp fsize mv を追加
@@ -31,7 +32,7 @@ MAKEFLAGS=--no-print-directory
 
 # サブディレクトリ
 SUBDIRS:=ar cat cp dump echo edit fsize hello in ls mkdir mv out rm rmdir \
-	shell touch ss sr spitest readtest head envtest env pwd printenv realpath
+	shell touch ss sr spitest head env pwd printenv tasm7 sedit
 # port
 
 all :

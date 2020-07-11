@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2016 by
+ * Copyright (C) 2019-2020 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -35,7 +35,7 @@ public int main(int argc, char[][] argv) {
   char[] name = argv[1];
 
   if (name == null) {                               // 引数がなければ
-    for (int i = 0; environ[i] != null; i = i+1)    //   すべての環境変数を
+    for (int i=0; environ[i]!=null; i=i+1)          //   すべての環境変数を
       printf("%s\n", environ[i]);                   //     出力して
     return 0;                                       //   終了
   }
