@@ -209,13 +209,17 @@ boolean srchPath(char[] path, int n) {
     if (p>=n) break;                            //   パス解析完了
 
     // 階層を進む
-    if ((curEnt.attr&0x10)!=0x10) return false;// 普通ファイルの中には進めない
-    curEnt.dirClst = curEnt.clst;              // 次の階層の DIR FILE を設定
-    curEnt.dirEnt  = 0;                        // エントリ番号を初期化
+    if ((curEnt.attr&0x10)!=0x10) return false; // 普通ファイルの中には進めない
+    curEnt.dirClst = curEnt.clst;               // 次の階層の DIR FILE を設定
+    curEnt.dirEnt  = 0;                         // エントリ番号を初期化
 
     // ディレクトリファイル内でファイル名を探索する
     p = getFname(path, p, n, fname);            // パスからファイル名を取り出す
-    if (!srchDir(fname)) return false;          // ファイルが見つからない
+    if (curEnt.dirClst==ROOTDIR &&             
+        (cmpFname(".           ", fname)==0 ||  // ルートディレクトリの
+         cmpFname("..          ", fname)==0)) { //   "." と ".." は
+      continue;                                 //     無視する
+    } else if (!srchDir(fname)) return false;   // ファイルが見つからない
   }
   return true;                                  // ファイルが見つかった
 }
