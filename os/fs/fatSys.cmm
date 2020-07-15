@@ -181,7 +181,8 @@ boolean srchDir(char[] name) {
         (curEnt.attr & 0x0a)==0      &&         //   通常ファイルかディレクトリ
                                                 //   system,volumeLabel,vfat以外
         cmpFname(curEnt.name, name)==0) {       //   ファイル名が一致するなら
-      if (curEnt.clst==0x0000) {                //     ROOTDIRのことが0x0000と
+      if ((curEnt.attr & 0x10)!=0 &&            //     ディレクトリなら
+          curEnt.clst==0x0000) {                //     ROOTDIRのことが0x0000と
         curEnt.clst=ROOTDIR;                    //       記録されているので
       }                                         //         変換する
       return true;                              //     ファイルが見つかった

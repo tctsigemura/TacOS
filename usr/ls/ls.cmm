@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2016 by
+ * Copyright (C) 2016-2020 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,20 +22,50 @@
 /*
  * ls/ls.cmm : ls プログラム
  *
+ * 2020.07.15 : 単独ファイルの表示を可能に
  * 2016.03.07 : 新規作成
  *
  * $Id$
  *
  */
 
+#include <crt0.hmm>
+#include <sys/fs.hmm>
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <syslib.hmm>
+#include <string.hmm>
+#include <ctype.hmm>
 
-Dir dir = {"            ", 0, 0, 0, 0 };        // ディレクトリの読出しバッファ
+// 32ビット整数
 int[] fLen = array(2);
 
+// ファイル名の8または3文字を表示する
+int printFname(char[] fname, int l, int n) {
+  char c;
+  for (int i=0; i<n; i=i+1) {
+     c = fname[l];
+     if (c!='.' && c!='\0') {
+       printf("%c", toUpper(c));
+       l = l + 1;
+     } else {
+       printf(" ");
+     }
+  }
+  if (c=='.') l = l + 1;
+  return l;
+}
+
+// ファイルを一つ表示する
+void printLine(char[] fname, int attr, int clst, int[] fLen) {
+  int l = printFname(fname, 0, 8);
+  printf(".");
+  printFname(fname, l, 3);
+  printf(" 0x%02x %4d %9ld\n", attr, clst, fLen);
+}
+
 // ディレクトリの一覧を表示する
+Dir dir = {"            ", 0, 0, 0, 0 };        // ディレクトリの読出しバッファ
 int printDir(char[] fname) {
   int fd = open(fname, O_RDONLY);               // ディレクトリを開く
   if (fd<0) {
@@ -43,25 +73,37 @@ int printDir(char[] fname) {
     return 1;
   }
 
-  printf("FileNameExt Attr Clst FileLength\n");
+  printf("FileName.Ext Attr Clst FileLength\n");
   while (readDir(fd, dir)>0) {                  // ファイルが続く間
     fLen[0]=dir.lenH;
     fLen[1]=dir.lenL;
-    printf("%11s 0x%02x %4d %9ld\n",            //   ファイルの一覧を出力
-            dir.name, dir.attr, dir.clst,fLen);
+    printLine(dir.name, dir.attr, dir.clst, fLen);
   }
   close(fd);
   return 0;
 }
 
+Stat sta =  {0,0,0,0};
 public int main(int argc, char[][] argv) {
   int err = 0;
   if  (argc==1) {                               // 特に指定がなければ
     err = printDir(".");                        //   カレントディレクトリ
   } else {
     for (int i=1; i<argc; i=i+1) {
-      if (argc>2) printf("%s:\n", argv[i]);     // 複数ファイルの場合は名前表示
-      err = err | printDir(argv[i]);
+      if (stat(argv[i], sta)<0) {               // パスが示すものを調べる
+        perror(argv[i]);
+        err = 1;
+      } else if ((sta.attr&0x10)!=0) {          // ディレクトリなら
+        if (argc>2) printf("%s:\n", argv[i]);   //   ディレクトリ名表示
+        err = err | printDir(argv[i]);          //   ディレクトリ内部表示
+      } else {                                  // ファイルなら
+        char[] s = argv[i];
+        int l = strRchr(s, '/');
+        if (l>=0) s = _addrAdd(s, l+1);
+        fLen[0] = sta.lenH;
+        fLen[1] = sta.lenL;
+        printLine(s, sta.attr, sta.clst, fLen);
+      }
     }
   }
   return err;
