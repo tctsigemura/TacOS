@@ -72,14 +72,14 @@ _yield
         st      sp,0,g1         ; [G1+0] は PCB の sp フィールド
         ;
         ;------- [curProc の magic フィールド]をチェック ---------
-        ld      g0,30,g1        ; [G1+30] は PCB の magic フィールド
+        ld      g0,36,g1        ; [G1+36] は PCB の magic フィールド
         cmp     g0,#0xabcd      ; P_MAGIC と比較、一致しなければ
         jnz     .stkOverFlow    ; カーネルスタックがオーバーフローしている
 
 _dispatch
         ;-------- 次に実行するプロセスの G13(SP)を復元 ----------
         ld      g0,_readyQueue  ; 実行可能列の番兵のアドレス
-        ld      g0,28,g0        ; [G0+28] は PCB の next フィールド(先頭の PCB)
+        ld      g0,34,g0        ; [G0+34] は PCB の next フィールド(先頭の PCB)
         st      g0,_curProc     ; 現在のプロセス(curProc)に設定する
         ld      sp,0,g0         ; PCB から SP を取り出す
         ;
@@ -88,6 +88,34 @@ _dispatch
         out     g1,0xf4         ; Base レジスタに格納
         ld      g1,18,g0        ; PCB から memLen を取り出す
         out     g1,0xf6         ; Limit レジスタに格納
+        ;
+        ;----------------- シグナルの配送 -----------------
+        ld      g1,#0x11        ; (((SIGINT|SIGTERM)
+        and     g1,28,g0        ;   & PCB.sigMask
+        or      g1,#0x08        ;   | SIGKILL)
+        and     g1,26,g0        ;  & PCB.signals) が
+        jnz     .sigTerm        ;  0 でなければ 強制終了
+        ld      g1,#0x06        ; ((SIGABRT|SIGQUIT)
+        and     g1,28,g0        ;  & PCB.sigMask
+        and     g1,26,g0        ;  & PCB.signals) が
+        jnz     .sigCore        ;  0 でなければ 強制終了 (コアダンプ)
+        ld      g1,#0x40        ; ((SIGTSTP
+        and     g1,28,g0        ;   & PCB.sigMask
+        or      g1,#0x20        ;   | SIGSTOP)
+        and     g1,26,g0        ;  & PCB.signals) が
+        jnz     .sigStop        ;  0 でなければ 中断
+        ld      g1,#0x26        ; PCB.signals が
+        cmp     g1,#0           ;  0 なら
+        jz      .sigNone        ;   .sigNone へ
+        ld      g1,0,sp         ; usp から
+        sub     g1,#4           ;  4 を
+        st      g1,0,sp         ;  引く
+        ld      g2,15,sp        ; PC を
+        st      g2,2,g1         ;  [usp-2] に入れる
+        st      g1,26,g0        ; signals を [usp-0] に入れる
+        ld      g1,30,g0        ; sigHandler を
+        st      g3,30,sp        ;  sp[15] (PC) に入れる
+.sigNone
         ;
         ;-------- G13(SP)以外の CPU レジスタを復元 -----------
         pop     usp             ; ユーザモードスタックポインタ(G14)を復元
@@ -114,5 +142,14 @@ _dispatch
         ld      g0,#.L1         ; "kernel:stack overflow" を
         push    g0              ;  スタックに積む
         call    _panic          ; panic("kernel:stack overflow(sp=%04x)")
+
+; シグナルによる強制終了
+.sigTerm
+
+; シグナルによる強制終了 (コアダンプ)
+.sigCore
+
+; シグナルによる中断
+.sigStop
 
 .L1     string  "kernel:stack overflow(sp=%04x)"

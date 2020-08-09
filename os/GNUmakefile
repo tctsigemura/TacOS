@@ -38,7 +38,7 @@
 MAKEFLAGS=--no-print-directory
 
 # make 対象のサブディレクトリ crt0 が含まれる util を最初にすること！！
-SUBDIRS:=util kernel fs sio tty mm pm
+SUBDIRS:=util kernel fs sio tty mm pm sig
 
 # OBJS に SUBDIRS で生成された各 mod.o ファイルをディレクトリパス付きで代入
 OBJS=$(foreach dir, $(SUBDIRS), $(dir)/mod.o )
