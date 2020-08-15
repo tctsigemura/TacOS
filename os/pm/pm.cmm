@@ -22,6 +22,7 @@
 /*
  * pm/pm.cmm : プロセスマネージャ(PM)の本体、プロセスの生成と管理を行う
  *
+ * 2020.08.15 : sleep システムコールを kernel に移動（削除）
  * 2019.12.29 : メモリ保護に対応
  * 2019.11.18 : errno.hmm をインクルードするように変更
  * 2019.01.27 : I/O特権モード追加
@@ -339,12 +340,4 @@ public int wait(int[] sta) {
     free(child);                                    //   PCB 領域を解放する
   }
   return r;                                         // 終了したプロセスの PID
-}
-
-// タイマーを起動しブロックする
-public int sleep(int ms) {                          // 指定時間(ms)
-  if (ms<0) return EINVAL;                          // 負の時間はまずい
-  curProc.evtCnt = ms;                              // タイマーを起動し
-  if (ms>0) semP(curProc.evtSem);                   // プロセスをブロック
-  return 0;
 }
