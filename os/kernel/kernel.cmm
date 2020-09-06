@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2019 by
+ * Copyright (C) 2011 - 2020 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2020.08.15 : 組み込み版に対応
  * 2020.08.15 : sleep システムコールを pm から移動（追加）
  * 2019.12.27 : メモリ保護を追加
  * 2019.11.18 : errno.hmm をインクルードするように変更
@@ -101,15 +102,17 @@
 #include <sio.hmm>
 #include <util.hmm>
 #include <mm.hmm>
-#include <pm.hmm>
 #include <fs.hmm>
 #include <tty.hmm>
-#include <errno.hmm>
 #include "dispatcher.hmm"
-#include "init.hmm"
 #include "trap.hmm"
 #include "kernel.hmm"
+
+#ifndef EMBEDDED
+#include <pm.hmm>
 #include "syscall.hmm"
+#include "init.hmm"
+#endif
 
 //-----------------------------------------------------------------------------
 // カーネルデータ
@@ -251,7 +254,9 @@ void semInit() {
 // プロセス管理
 //-----------------------------------------------------------------------------
 PCB[] procTbl=array(PRC_MAX);                       // プロセスの一覧表
+#ifndef EMBEDDED
 PCB initProc = null;                                // INIT の PCB
+#endif
 
 // 呼び出したプロセスの PID を返す
 public int getPid() {
@@ -263,8 +268,10 @@ int lastPid = -1;                                   // 現在の最新 PID
 
 int nextPid() {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
-  boolean flg = true;                               // PID 重複チェック用フラグ
   int pid = lastPid;                                // PID 候補
+
+#ifndef EMBEDDED
+  boolean flg = true;                               // PID 重複チェック用フラグ
 
   while (flg) {                                     //
     pid = pid + 1;                                  // 新しい PID 候補
@@ -277,7 +284,9 @@ int nextPid() {
         break;
       }
     }
-  }                                                 // 割込禁止のうちに
+  }
+#endif
+                                                    // 割込禁止のうちに
   lastPid = pid;                                    //   決定した PID を書込む
   setPri(r);                                        // 割り込み状態を復元する
   return pid;
@@ -338,8 +347,10 @@ public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
   pcb.evtSem   = newSem(0);                         // タイマー用のセマフォ
   pcb.memBase  = null;                              // メモリアドレス(pmが設定)
   pcb.memLen   = 0;                                 // メモリサイズ(pmが設定)
+#ifndef EMBEDDED
   pcb.parent   = null;                              // 親プロセスへのポインタ
   pcb.exitStat = -1;                                // プロセスの終了ステータス
+#endif
   if (fds!=null) {                                  // オープンファイル一覧が
     for (int i=0; i<P_FILE_MAX; i=i+1)              //   あるなら
       fds[i]   = -1;                                //     初期化する
@@ -350,6 +361,7 @@ public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
   pcb.magic    = P_MAGIC;                           // マジック番号
 }
 
+#ifndef EMBEDDED
 // 現在のプロセスの子プロセスの PCB を返す(割込み禁止で呼出す)
 //   ZOMBIE の子プロセスがあれば優先的に選択しそれの PCB を返す
 //   子プロセスが全く存在しない場合は null を返す
@@ -410,6 +422,7 @@ public void zmbProc() {
   yield();                                          // CPUを解放する
   panic("zmbProc");                                 // ゾンビが生き返った
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // プロセス関連初期化 : readyQueue の初期化、カーネルプロセスの初期化
@@ -418,12 +431,14 @@ public void zmbProc() {
 #define MakePCB(name, stkSiz) char[] name=array((sizeof(PCB)+(stkSiz)+1)&~1)
 MakePCB(mmMem, P_KERN_STKSIZ);                      // MM  のPCBとスタック領域
 MakePCB(fsMem, P_KERN_STKSIZ);                      // FS  のPCBとスタック領域
-MakePCB(pmMem, P_KERN_STKSIZ);                      // PM  のPCBとスタック領域
-MakePCB(initMem, P_KERN_STKSIZ);                    // INITのPCBとスタック領域
 MakePCB(idleMem, P_KERN_STKSIZ);                    // IDLEのPCBとスタック領域
 MakePCB(sentnel, 0);                                // readyQueue の番兵領域
 
+#ifndef EMBEDDED
+MakePCB(initMem, P_KERN_STKSIZ);                    // INITのPCBとスタック領域
+MakePCB(pmMem, P_KERN_STKSIZ);                      // PM  のPCBとスタック領域
 int[] pmFds = array(P_FILE_MAX);                    // FDS 領域(PM 以外は不要)
+#endif
 
 // アイドルプロセス
 void idle() {                                       // アイドルループ
@@ -442,17 +457,21 @@ void procInit() {
   // 各カーネルプロセスのカーネルスタックと PCB を初期化する
   newProc(addrof(mmMain),0,0,EI|KERN,_AtoA(mmMem),null); // MM
   newProc(addrof(fsMain),1,0,EI|KERN,_AtoA(fsMem),null); // FS
-  newProc(addrof(pmMain),2,0,EI|KERN,_AtoA(pmMem),pmFds);// PM
-  initProc = _AtoA(initMem);                        // INIT の PCB を記録
-  newProc(addrof(initMain),4,0,EI|KERN,initProc,null); // INIT
   newProc(addrof(idle),P_LOW_PRI+1,0,EI|KERN,_AtoA(idleMem),null); // IDLE
+#ifndef EMBEDDED
+  newProc(addrof(pmMain),2,0,EI|KERN,_AtoA(pmMem),pmFds);// PM
+  initProc = _AtoA(initMem);                           // INIT の PCB を記録
+  newProc(addrof(initMain),4,0,EI|KERN,initProc,null); // INIT
+#endif
 
   // 各カーネルプロセスを実行可能にする(readyQueue に登録する)
   schProc(_AtoA(mmMem));                            // MM
   schProc(_AtoA(fsMem));                            // FS
+  schProc(_AtoA(idleMem));                          // IDLE
+#ifndef EMBEDDED
   schProc(_AtoA(pmMem));                            // PM
   schProc(initProc);                                // INIT
-  schProc(_AtoA(idleMem));                          // IDLE
+#endif
 
 #ifdef DEBUG
   PCB g=readyQueue;                                 // デバッグ出力
@@ -608,8 +627,12 @@ void lnkInit() {
 // 例外がユーザモードで発生したならユーザプロセスを終了させる
 // カーネルモードで発生したならカーネルのバグなので panic()
 void exception(int errno, char[] msg) {
+#ifndef EMBEDDED
   if (isUser()) exit(errno);
   else          panic(msg);
+#else
+  panic(msg);
+#endif
 }
 
 // メモリ保護違反
@@ -639,7 +662,11 @@ void excpInit() {                                   // ベクタにハンドラ�
   VECTOR[12] = addrof(zeroDiv);
   VECTOR[13] = addrof(privVio);
   VECTOR[14] = addrof(illInst);
+#ifndef EMBEDDED
   VECTOR[15] = addrof(svCall);                      // svCall は trap.s に定義
+#else
+  VECTOR[15] = addrof(illInst);                     // 組み込み版ではSVCは使用禁止
+#endif
 }
 
 //----------------------------------------------------------------------------

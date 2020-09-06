@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2011-2019 by
+# Copyright (C) 2011-2020 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -19,6 +19,7 @@
 #
 # GNUmakefile
 #
+# 2020.08.15         : 組み込み版に対応
 # 2019.06.13         : VGA, PS2を削除
 # 2018.11.12         : SIO版の作業開始
 # 2015.08.31         : c-- コンパイラの -K オプションに対応(重村)
@@ -32,13 +33,18 @@
 # デバッグ
 #DEBUG=DEBUG=1
 
-# SIOがコンソール
+# 組み込み版
+#EMBEDDED=EMBEDDED=1
 
 #　ディレクトリを移動する際のログを出力しない
 MAKEFLAGS=--no-print-directory
 
 # make 対象のサブディレクトリ crt0 が含まれる util を最初にすること！！
+ifndef EMBEDDED
 SUBDIRS:=util kernel fs sio tty mm pm
+else
+SUBDIRS:=util kernel fs sio tty mm app
+endif
 
 # OBJS に SUBDIRS で生成された各 mod.o ファイルをディレクトリパス付きで代入
 OBJS=$(foreach dir, $(SUBDIRS), $(dir)/mod.o )
@@ -54,7 +60,7 @@ all : clean kernel.bin
 # (4) kernel.o を 0x0000 番地にロードした kernel.bin を生成
 # (5) メモリマップを kernel.map に格納
 kernel.bin :
-	$(foreach dir,$(SUBDIRS),${MAKE} ${DEBUG} --directory=$(dir);)
+	$(foreach dir,$(SUBDIRS),${MAKE} ${DEBUG} ${EMBEDDED} --directory=$(dir);)
 	ld-- kernel.o ${OBJS} > kernel.sym
 	size-- kernel.o
 	objbin-- 0x0000 kernel.bin kernel.o | sort --key=1 > kernel.map

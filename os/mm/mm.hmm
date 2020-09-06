@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2018 by
+ * Copyright (C) 2011 - 2020 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  *  mm/mm.hmm : mm.cmm の外部インタフェース
  *
+ * 2020.08.17 : コメントの改訂
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2015.09.04 : memInit() を削除(重村)
  * 2014.08.22 : 村田開発開始
@@ -41,7 +42,7 @@ public void mmMain();
 /*----------------------------------------------------------------------------
  *   名前   : malloc
  *　 戻り値 : void[] (失敗なら null)
- *　 引数   : int s 確保したいメモリの大きさ
+ *　 引数   : int s  確保したいメモリの大きさ（バイト単位）
  *   解説   : メモリを確保する
  */
 public void[] malloc(int s);
@@ -49,7 +50,7 @@ public void[] malloc(int s);
 /*----------------------------------------------------------------------------
  *   名前   : free
  *　 戻り値 : なし
- *　 引数   : void[] mem 解放したいメモリへのポインタ
+ *　 引数   : void[] mem  解放したいメモリへのポインタ
  *   解説   : メモリを解放する
  */
 public void free(void[] mem);

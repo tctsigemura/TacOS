@@ -81,7 +81,7 @@ struct PCB {              // PCB を表す構造体
   // プロセスのアドレス空間(text, data, bss, ...)
   char[] memBase;         // プロセスのメモリ領域のアドレス
   int memLen;             // プロセスのメモリ領域の長さ
-    
+
   // プロセスの親子関係の情報
   PCB parent;             // 親プロセスへのポインタ
   int exitStat;           // プロセスの終了ステータス

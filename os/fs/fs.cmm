@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2019 by
+ * Copyright (C) 2011 - 2020 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * fs/fs.cmm : FAT16 ファイルシステム(FS)サーバの本体、ファイルを管理する
  *
+ * 2020.08.16 : stat で void[] ではなく Stat 構造体を使用するように変更
  * 2019.12.27 : システムコールの引数を論理アドレスに変更
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2015.12.17 : openDir と readDir を削除
@@ -159,7 +160,7 @@ public int seek(int fd, int ptrh, int ptrl) {
 }
 
 // stat システムコール
-public int stat(char[] path, void[] stat) {
+public int stat(char[] path, Stat stat) {
  int r = sndrec(fsLink, STAT, _AtoI(path), _AtoI(stat), 0);
  return r;
 }

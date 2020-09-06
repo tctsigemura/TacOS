@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2011 - 2015 by
+# Copyright (C) 2011 - 2020 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -21,10 +21,15 @@
 #
 # kernel/GNUmakefile : kernel の Makefile
 #
+# 2020.08.15 : 組み込み版に対応
 # 2015.09.02 : ディレクトリ名を kernel に変更(重村)
 # 2014.06.02 : base-kaernel 専用の GNUmakefile として独立
 #
 
-OBJS= kernel.o dispatcher.o init.o trap.o
+OBJS= kernel.o dispatcher.o
+
+ifndef EMBEDDED
+OBJS+= init.o trap.o
+endif
 
 include ../Makefile.rul
