@@ -21,12 +21,13 @@
 #
 # kernel/GNUmakefile : kernel の Makefile
 #
+# 2020.09.06 : サーバプロセスの初期化を regProc.cmm に分離
 # 2020.08.15 : 組み込み版に対応
 # 2015.09.02 : ディレクトリ名を kernel に変更(重村)
 # 2014.06.02 : base-kaernel 専用の GNUmakefile として独立
 #
 
-OBJS= kernel.o dispatcher.o
+OBJS= kernel.o dispatcher.o regProc.o
 
 ifndef EMBEDDED
 OBJS+= init.o trap.o

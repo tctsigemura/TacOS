@@ -22,6 +22,9 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2020.09.06 : exit， wait の内部処理を pm へ移動（削除）
+                delProc，iSemV を public に (pm が使用)
+ * 2020.09.06 : サーバプロセスの初期化を regProc.cmm に分離
  * 2020.08.15 : 組み込み版に対応
  * 2020.08.15 : sleep システムコールを pm から移動（追加）
  * 2019.12.27 : メモリ保護を追加
@@ -99,24 +102,21 @@
 // プロセス間通信(IPC)をリンクで実現
 
 #include <errno.hmm>
-#include <sio.hmm>
 #include <util.hmm>
-#include <mm.hmm>
-#include <fs.hmm>
 #include <tty.hmm>
 #include "dispatcher.hmm"
 #include "trap.hmm"
+#include "regProc.hmm"
 #include "kernel.hmm"
 
 #ifndef EMBEDDED
-#include <pm.hmm>
-#include "syscall.hmm"
-#include "init.hmm"
+#include <pm.hmm>                                   // exit が必要
 #endif
 
 //-----------------------------------------------------------------------------
 // カーネルデータ
 //-----------------------------------------------------------------------------
+public PCB[] procTbl=array(PRC_MAX);                // プロセスの一覧表
 public PCB curProc=null;                            // 実行中プロセス
 public PCB readyQueue=null;                         // 実行可能列
 
@@ -132,7 +132,7 @@ void insProc(PCB p1, PCB p2) {
 }
 
 // プロセスキュー(実行可能列やセマフォの待ち行列)で p を削除する
-void delProc(PCB p) {
+public void delProc(PCB p) {
   p.prev.next=p.next;
   p.next.prev=p.prev;
 }
@@ -201,7 +201,7 @@ public void semP(int sd) {
 // ディスパッチを発生しないセマフォのV操作
 // (V 操作をしたあとまだ仕事があるとき使用する)
 // (kernel 内部専用、割込み禁止で呼出す)
-boolean iSemV(int sd) {
+public boolean iSemV(int sd) {
   if (sd<0 || SEM_MAX<=sd || !semInUse[sd]) {       // 不正なセマフォ番号
     panic("iSemV(%d)", sd);
   }
@@ -253,11 +253,6 @@ void semInit() {
 //-----------------------------------------------------------------------------
 // プロセス管理
 //-----------------------------------------------------------------------------
-PCB[] procTbl=array(PRC_MAX);                       // プロセスの一覧表
-#ifndef EMBEDDED
-PCB initProc = null;                                // INIT の PCB
-#endif
-
 // 呼び出したプロセスの PID を返す
 public int getPid() {
   return curProc.pid;
@@ -361,84 +356,12 @@ public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
   pcb.magic    = P_MAGIC;                           // マジック番号
 }
 
-#ifndef EMBEDDED
-// 現在のプロセスの子プロセスの PCB を返す(割込み禁止で呼出す)
-//   ZOMBIE の子プロセスがあれば優先的に選択しそれの PCB を返す
-//   子プロセスが全く存在しない場合は null を返す
-PCB srchChild() {
-  PCB child = null;                                 // 子プロセスなし
-  for(int i=0; i<PRC_MAX; i=i+1) {                  // 全てのプロセスについて
-    PCB p = procTbl[i];                             //   子プロセスかチェック
-    if(p!=null && p.parent==curProc) {              //     子プロセスを発見
-      child = p;                                    //       子プロセスあり
-      if(p.stat==P_ZOMBIE)                          //       ゾンビ(exit 済)なら
-        break;                                      //         これで決定
-    }
-  }
-  return child;
-}
-
-// 終了した子プロセスを見つけ procTbl[] から抹消した後で PCB を返す
-//   子プロセスが存在しない場合は null を返す
-//   自身が wait システムコールの処理から呼出す
-public PCB waitChild() {
-  int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
-  PCB p = srchChild();                              // 子プロセスを探す
-  if (p!=null && p.stat!=P_ZOMBIE) {                // 子プロセスあるが
-    curProc.evtCnt = -1;                            //   ゾンビではない
-    semP(curProc.evtSem);                           //  子プロセス待ち状態
-    p = srchChild();                                //  子プロセスを探す
-    if (p==null || p.stat!=P_ZOMBIE)                //  ゾンビな子が居ないのに
-      panic("waitChild");                           //    起こされたら OS にバグ
-  }
-  if (p!=null)                                      // 子プロセスが見つかった
-    procTbl[p.idx] = null;                          // エントリを削除する
-  setPri(r);                                        // 割り込み状態を復元する
-  return p;
-}
-
-// 現在のプロセスをゾンビにする(カレントプロセスが exit の後半で呼出す)
-public void zmbProc() {
-  int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
-
-  // もしタイマーが稼働中なら止める
-  // if (curProc.evtCnt>0) ...  将来 alarm を実装すると必要になる？
-
-  // 子プロセスの親を INIT に変更する
-  for (int i=0; i<PRC_MAX; i=i+1) {
-    PCB p = procTbl[i];                             // 全プロセスについて
-    if (p!=null && p.parent==curProc)               //   自分の子プロセスなら
-      p.parent = initProc;                          //     親を INIT に変更する
-  }
-
-  // もし親プロセスが先に wait していたら起こす
-  if (curProc.parent.evtCnt == -1)                  // 親が wait していたら
-    iSemV(curProc.parent.evtSem);                   //   V 操作で起こす
-
-  // 自身の PCB を後片付けしプロセスを終了
-  freeSem(curProc.evtSem);                          // セマフォを返却し
-  delProc(curProc);                                 // 実行可能列から外す
-  curProc.stat = P_ZOMBIE;                          // ゾンビに変更
-  yield();                                          // CPUを解放する
-  panic("zmbProc");                                 // ゾンビが生き返った
-}
-#endif
-
 //-----------------------------------------------------------------------------
 // プロセス関連初期化 : readyQueue の初期化、カーネルプロセスの初期化
 //-----------------------------------------------------------------------------
 // カーネルプロセスの PCB とスタック領域を定義
-#define MakePCB(name, stkSiz) char[] name=array((sizeof(PCB)+(stkSiz)+1)&~1)
-MakePCB(mmMem, P_KERN_STKSIZ);                      // MM  のPCBとスタック領域
-MakePCB(fsMem, P_KERN_STKSIZ);                      // FS  のPCBとスタック領域
-MakePCB(idleMem, P_KERN_STKSIZ);                    // IDLEのPCBとスタック領域
-MakePCB(sentnel, 0);                                // readyQueue の番兵領域
-
-#ifndef EMBEDDED
-MakePCB(initMem, P_KERN_STKSIZ);                    // INITのPCBとスタック領域
-MakePCB(pmMem, P_KERN_STKSIZ);                      // PM  のPCBとスタック領域
-int[] pmFds = array(P_FILE_MAX);                    // FDS 領域(PM 以外は不要)
-#endif
+char[] sentnel = array(sizeof(PCB));                // redyQueue の番兵領域
+char[] idleMem = array(sizeof(PCB)+P_KERN_STKSIZ);  // IDLE の PCBとスタック領域
 
 // アイドルプロセス
 void idle() {                                       // アイドルループ
@@ -454,33 +377,11 @@ void procInit() {
   readyQueue.pid=-1;                                // 番兵はプロセスではない
   readyQueue.nice=readyQueue.enice=P_LOW_PRI+2;     // 通常未使用の低優先度
 
-  // 各カーネルプロセスのカーネルスタックと PCB を初期化する
-  newProc(addrof(mmMain),0,0,EI|KERN,_AtoA(mmMem),null); // MM
-  newProc(addrof(fsMain),1,0,EI|KERN,_AtoA(fsMem),null); // FS
-  newProc(addrof(idle),P_LOW_PRI+1,0,EI|KERN,_AtoA(idleMem),null); // IDLE
-#ifndef EMBEDDED
-  newProc(addrof(pmMain),2,0,EI|KERN,_AtoA(pmMem),pmFds);// PM
-  initProc = _AtoA(initMem);                           // INIT の PCB を記録
-  newProc(addrof(initMain),4,0,EI|KERN,initProc,null); // INIT
-#endif
+  newProc(addrof(idle),P_LOW_PRI+1,0,EI|KERN,       // IDLE プロセスを登録する
+          _AtoA(idleMem),null);
+  schProc(_AtoA(idleMem));
 
-  // 各カーネルプロセスを実行可能にする(readyQueue に登録する)
-  schProc(_AtoA(mmMem));                            // MM
-  schProc(_AtoA(fsMem));                            // FS
-  schProc(_AtoA(idleMem));                          // IDLE
-#ifndef EMBEDDED
-  schProc(_AtoA(pmMem));                            // PM
-  schProc(initProc);                                // INIT
-#endif
-
-#ifdef DEBUG
-  PCB g=readyQueue;                                 // デバッグ出力
-  printF("  sntnl\n");
-  printF("  %d[%d]  ->",g.pid,g.enice);
-  for(PCB d=g.next; d!=g; d=d.next)
-     printF("  %d[%d]  ->",d.pid,d.enice);
-  printF("\n");
-#endif
+  regProc();                                        // サーバプロセスを登録する
 }
 
 //----------------------------------------------------------------------------
@@ -690,96 +591,3 @@ public void main() {
   dispatch();                                       // プロセス実行開始
   panic("main");                                    // ここは実行されないはず
 }
-
-//----------------------------------------------------------------------------
-// 以下はデバッグ用ルーチン
-//----------------------------------------------------------------------------
-#ifdef DEBUG
-public boolean dbg = false;                         // デバッグ用
-
-public void debug(boolean flag) {
-  dbg = flag;
-}
-
-// デバッグ出力 : readyQueue, 各 LINK の各セマフォの PCB 待行列を印刷
-public void printq() {
-  printF("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-  printF("readyQueue\n");
-  PCB g=readyQueue;
-  printF("  sntnl\n");
-  printF("  %d[%d]  ->",g.pid,g.enice);
-  for (PCB d=g.next; d!=g; d=d.next)
-    printF("  %d[%d]  ->",d.pid,d.enice);
-  printF("\n");
-
-  g=semTbl[linkTbl[mmLink].s1].queue;
-  printF(" MM   s1:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[mmLink].s2].queue;
-  printF("      s2:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[mmLink].s3].queue;
-  printF("      s3:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[fsLink].s1].queue;
-  printF(" FS   s1:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[fsLink].s2].queue;
-  printF("      s2:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[fsLink].s3].queue;
-  printF("      s3:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[pmLink].s1].queue;
-  printF(" PM   s1:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-
-  g=semTbl[linkTbl[pmLink].s2].queue;
-  printF("      s2:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-  g=semTbl[linkTbl[pmLink].s3].queue;
-  printF("      s3:%d  ->",g.pid);
-  for (PCB d=g.next; d!=g; d=d.next)
-     printF("  %d  ->",d.pid);
-  printF("\n");
-  printF("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
-}
-
-// プロセステーブルを印刷
-public void printtbl() {
-  int max=0;
-  printF("+++++++++++++++ procTbl ++++++++++++++\n");
-  for (int i=0; i<PRC_MAX; i=i+1) {
-    if (procTbl[i] != null) {
-      printF(" %d ,",procTbl[i].pid);
-      max = max +1;
-    }
-    else
-      printF("   ,");
-  }
-  printF("\nprocNum = %d\n",max);
-  printF("+++++++++++++++++++++++++++++++++++++\n");
-}
-#endif

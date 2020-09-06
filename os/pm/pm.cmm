@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2019 by
+ * Copyright (C) 2011 - 2020 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * pm/pm.cmm : プロセスマネージャ(PM)の本体、プロセスの生成と管理を行う
  *
+ * 2020.09.06 : zmbProc， waitChild を kernel から移動（追加）
  * 2020.08.15 : sleep システムコールを kernel に移動（削除）
  * 2019.12.29 : メモリ保護に対応
  * 2019.11.18 : errno.hmm をインクルードするように変更
@@ -64,6 +65,7 @@
 #include <errno.hmm>
 #include <util.hmm>
 #include <kernel.hmm>
+#include <dispatcher.hmm>
 #include <syscall.hmm>
 #include <mm.hmm>
 #include <fs.hmm>
@@ -238,19 +240,6 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
     return r;
   }
 
-#ifdef DEBUG
-printF("********************************\n");
-printF("    name=%s\n",path);
-printF("    %04x-%04x      procSiz=%d\n",pText,pEnd,pEnd-pText);
-printF("    textBase=%04x  textSiz=%d\n",pText,textSiz);
-printF("    dataBase=%04x  dataSiz=%d\n",pData,dataSiz);
-printF("    bssBase =%04x  bssSiz =%d\n",pBss,bssSiz);
-printF("    stkBase =%04x  stkSiz =%d\n",pBss+bssSiz,stkSiz);
-printF("                   relSiz =%d\n",relSiz);
-printF("********************************\n");
-pause();
-#endif
-
   r = readTextData();                              // テキストとデータを読む
   closeByte();                                     // ファイルをクローズ
 
@@ -315,9 +304,57 @@ public void pmMain() {
 //   原則 PM のグローバル変数にアクセスしてはならない
 //-----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
+// exec システムコールはサーバプロセスに処理させる
+//-----------------------------------------------------------------------------
 public int exec(char[] path, char[][] argv, char[][] envp) {
   int r=sndrec(pmLink,EXEC, _AtoI(path), _AtoI(argv), _AtoI(envp));
   return r;                                         // 新しい子の PID を返す
+}
+
+//-----------------------------------------------------------------------------
+// exit システムコールはユーザプロセスが自ら処理する（ユーザプロセスのコンテキストで実行）
+//-----------------------------------------------------------------------------
+// 現在のプロセスの子プロセスの PCB を返す(割込み禁止で呼出す)
+//   ZOMBIE の子プロセスがあれば優先的に選択しそれの PCB を返す
+//   子プロセスが全く存在しない場合は null を返す
+PCB srchChild() {
+  PCB child = null;                                 // 子プロセスなし
+  for(int i=0; i<PRC_MAX; i=i+1) {                  // 全てのプロセスについて
+    PCB p = procTbl[i];                             //   子プロセスかチェック
+    if(p!=null && p.parent==curProc) {              //     子プロセスを発見
+      child = p;                                    //       子プロセスあり
+      if(p.stat==P_ZOMBIE)                          //       ゾンビ(exit 済)なら
+        break;                                      //         これで決定
+    }
+  }
+  return child;
+}
+
+// 現在のプロセスをゾンビにする(カレントプロセスが exit の後半で呼出す)
+void zmbProc() {
+  int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
+
+  // もしタイマーが稼働中なら止める
+  // if (curProc.evtCnt>0) ...  将来 alarm を実装すると必要になる？
+
+  // 子プロセスの親を INIT に変更する
+  for (int i=0; i<PRC_MAX; i=i+1) {
+    PCB p = procTbl[i];                             // 全プロセスについて
+    if (p!=null && p.parent==curProc)               //   自分の子プロセスなら
+      p.parent = initProc;                          //     親を INIT に変更する
+  }
+
+  // もし親プロセスが先に wait していたら起こす
+  if (curProc.parent.evtCnt == -1)                  // 親が wait していたら
+    iSemV(curProc.parent.evtSem);                   //   V 操作で起こす
+
+  // 自身の PCB を後片付けしプロセスを終了
+  freeSem(curProc.evtSem);                          // セマフォを返却し
+  delProc(curProc);                                 // 実行可能列から外す
+  curProc.stat = P_ZOMBIE;                          // ゾンビに変更
+  yield();                                          // CPUを解放する
+  panic("zmbProc");                                 // ゾンビが生き返った
 }
 
 public void exit(int status) {
@@ -328,6 +365,28 @@ public void exit(int status) {
   curProc.exitStat = status;                        // 終了ステータスを格納
   zmbProc();                                        // 自身をゾンビにする
   //panic("exit");  ここは実行されない
+}
+
+//-----------------------------------------------------------------------------
+// wait システムコールはユーザプロセスが自ら処理する（ユーザプロセスのコンテキストで実行）
+//-----------------------------------------------------------------------------
+// 終了した子プロセスを見つけ procTbl[] から抹消した後で PCB を返す
+//   子プロセスが存在しない場合は null を返す
+//   自身が wait システムコールの処理から呼出す
+PCB waitChild() {
+  int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
+  PCB p = srchChild();                              // 子プロセスを探す
+  if (p!=null && p.stat!=P_ZOMBIE) {                // 子プロセスあるが
+    curProc.evtCnt = -1;                            //   ゾンビではない
+    semP(curProc.evtSem);                           //  子プロセス待ち状態
+    p = srchChild();                                //  子プロセスを探す
+    if (p==null || p.stat!=P_ZOMBIE)                //  ゾンビな子が居ないのに
+      panic("waitChild");                           //    起こされたら OS にバグ
+  }
+  if (p!=null)                                      // 子プロセスが見つかった
+    procTbl[p.idx] = null;                          // エントリを削除する
+  setPri(r);                                        // 割り込み状態を復元する
+  return p;
 }
 
 public int wait(int[] sta) {
