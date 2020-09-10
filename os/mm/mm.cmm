@@ -22,6 +22,7 @@
 /*
  * mm/mm.cmm : メモリマネージャー(MM)、メモリの管理を行う
  *
+ * 2020.08.23 : crt0.hmm のインクルードを取り止め
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.18 : MBLOCK を MemBlk に改名
  * 2016.01.12 : MBlock、MBSize を MBLOCK、MBSIZE に変更
@@ -44,7 +45,6 @@
  *
  */
 
-#include <crt0.hmm>
 #include <util.hmm>
 #include <kernel.hmm>
 #include <syscall.hmm>

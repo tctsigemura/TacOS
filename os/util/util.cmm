@@ -102,6 +102,17 @@ public char[] strCpy(char[] dst, char[] src) {
   return dst;                                       // コピー先を返す
 }
 
+// strRchr : 文字列 s 中において、文字 c が最後に出現する位置を返す
+// 返り値  : 文字 c が最後に出現した位置(<0:出現しなかった)
+// 引数 s  : 探索対象文字列
+//      c  : 探索する文字
+public int strRchr(char[] s, char c){
+  int r = -1;                                   // 最後に出現する c の位置
+  for (int i=0; s[i]!='\0'; i=i+1)              // s の最初から最後まで
+    if (s[i]==c) r=i;                           //   最後の c の位置を記録する
+  return r;
+}
+
 // --------------------------- リングバッファ関係 ------------------------
 // 次の添字を求める
 int nextIdx(RingBuf buf, int idx) {
@@ -135,7 +146,7 @@ public char getBuf(RingBuf buf) {
   return  c;                                        // 文字を返す
 }
 
-// リングバッファから 1 文字削除
+// リングバッファから最後に追加した 1 文字を削除
 public boolean unputBuf(RingBuf buf) {
   if (buf.cnt==0) return false;                     // 削除できないならfalse
   buf.head = prevIdx(buf, buf.head);                // head を戻す

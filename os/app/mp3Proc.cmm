@@ -1,0 +1,103 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2020 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * mp3Proc.cmm : MP3 デコーダのドライバ
+ *
+ * 2020.08.30 : 新規作成
+ *
+ * $Id$
+ *
+ */
+#include <kernel.hmm>
+#include <fs.hmm>
+#include <util.hmm>
+#include "mp3Proc.hmm"
+#include "spi.hmm"
+#define BUFSIZ 512                          // MP3 ファイル用のバッファ
+
+// メッセージ
+#define STOP  1                             // 再生停止要求メッセージ
+#define START 2                             // 再生開始要求メッセージ
+
+// レスポンス
+#define OK  0
+#define ERR 1
+
+// ＊＊＊＊　重要！！　クライアントプロセスは一つだけの前提　＊＊＊＊
+int link;                                   // メッセージ通信用のリンク
+boolean syncFlag = false;                   // クライアントが同期待ちである
+
+//-----------------------------------------------------------------------------
+// クライアントプロセスが呼び出す
+//-----------------------------------------------------------------------------
+
+// 音楽再生停止
+public void stop() {
+  syncFlag = true;                          // データ転送プロセスをコマンド待にする
+  sndrec(link, STOP, 0, 0, 0);              // 同期要求メッセージ
+}
+
+// 音楽再生
+public boolean play(char[] path) {
+  syncFlag = true;                          // データ転送プロセスをコマンド待にする
+  int r = sndrec(link, START,
+                  _AtoI(path), 0, 0);       // 再生開始メッセージ
+  return r==OK;                             // 成功なら true を返す
+}
+
+//-----------------------------------------------------------------------------
+// 音楽データ転送用のプロセス
+//-----------------------------------------------------------------------------
+// MP3 データ用のバッファ
+char[] buf = array(BUFSIZ);
+
+// 音楽データをデコーダに送る
+void trans(char[] path) {
+  int fd = open(path, READ_MODE);           // ファイルをオープン
+  if (fd<0) {                               // オープンできない
+    send(link, ERR);                        //   クライアントにエラーを通知
+    return;                                 //   コマンド待に戻る
+  }
+  send(link, OK);                           // クライアントに成功を通知
+  int len;
+  while ((len=read(fd, buf, BUFSIZ))>0) {   // データをファイルから読み
+    spiWriteMp3Dat(buf, len);               //   MP3デコーダにデータを送る
+    if (syncFlag) break;                    //   クライアントが待っている
+  }
+  spiFlushMp3();                            // デコーダLSIのバッファをクリアし
+  close(fd);                                // ファイルをクローズ
+}
+
+// mp3Main は，プロセスのメインルーチンとしてカーネルに登録しておく．
+// ここからプロセスの実行が始まる
+public void mp3Main() {
+  link = newLink();                         // クライアント待受用のリンク
+  for (;;) {
+    Link l=receive(link);                   // クライアントから受信待ち
+    syncFlag = false;                       // クライアント停止中にフラグ操作
+    if (l.op==STOP) {
+      send(link, OK);                       // クライアントを再開する
+    } else if (l.op==START) {
+      trans(_ItoA(l.prm1));                 // ファイルからデータ転送
+    }
+  }
+}

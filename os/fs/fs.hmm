@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2018 by
+ * Copyright (C) 2011 - 2020 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -16,12 +16,8 @@
  * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
  * る損害に関しても，その責任を負わない．
  *
- *
- */
-
-/*
- * fs/fs.hmm : fs.cmm の外部インタフェース
- *
+ * 2020.08.16 : stat で void[] ではなく Stat 構造体を使用するように変更
+ * 2020.08.15 : read システムコールのコメント訂正
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2015.12.17 : openDir と readDir を削除
  * 2015.11.20 : open システムコールの引数を変更
@@ -42,6 +38,7 @@
  *
  */
 
+#include <sys/fs.hmm>                           // Stat 構造体宣言
 #include "fsDef.hmm"                            // 全体に共通の定義
 
 public int fsLink;                              // FS へのリンク番号
@@ -50,7 +47,7 @@ public void fsMain();                           // サーバのメインルー�
 /*----------------------------------------------------------------------------
  *   名前   : creat
  *　 戻り値 : int(正常なら0、失敗なら<0)
- *   引数   : char[] path 作成するファイルのパス
+ *   引数   : char[]  path 作成するファイルのパス
  *   解説   : ファイルを新規作成する
  */
 public int creat(char[] path);
@@ -59,7 +56,7 @@ public int creat(char[] path);
 /*----------------------------------------------------------------------------
  *   名前   : remove
  *　 戻り値 : int (正常なら0、失敗なら<0)
- *   引数   : char[] path 削除するファイルのパス
+ *   引数   : char[] path  削除するファイルのパス
  *   解説   : ファイルを削除する
  */
 public int remove(char[] path);
@@ -68,7 +65,7 @@ public int remove(char[] path);
 /*----------------------------------------------------------------------------
  *  名前   : mkDir
  *　戻り値 : int (正常なら0、失敗なら<0)
- *　引数   : char[] path　作成するディレクトリのパス
+ *　引数   : char[] path  作成するディレクトリのパス
  *  解説   : ディレクトリを作成する
  */
 public int mkDir(char[] path);
@@ -77,7 +74,7 @@ public int mkDir(char[] path);
 /*----------------------------------------------------------------------------
  *   名前   : rmDir
  *　 戻り値 : int(正常なら0、失敗なら<0)
- *　 引数   : char[] path　削除するディレクトリのパス
+ *　 引数   : char[] path  削除するディレクトリのパス
  *   解説   : ディレクトリを削除する
  */
 public int rmDir(char[] path);
@@ -86,8 +83,8 @@ public int rmDir(char[] path);
 /*----------------------------------------------------------------------------
  *   名前   : open
  *   戻り値 : int (ファイル番号(>=0)、-1=エラー)
- *   引数   : char[] path ファイルへのパス
- *            int mode オープンモード(READ_MODE/WRITE_MODE/APPEND_MODE)
+ *   引数   : char[] path  ファイルへのパス
+ *            int mode     オープンモード(READ_MODE/WRITE_MODE/APPEND_MODE)
  *   解説   : ファイルをオープンし、ファイル番号を返す
  */
 public int open(char[] path, int mode);
@@ -96,7 +93,7 @@ public int open(char[] path, int mode);
 /*----------------------------------------------------------------------------
  *   名前   : close
  *   戻り値 : int (0=正常、-1=エラー)
- *   引数   : int fd オープン済みファイル番号
+ *   引数   : int fd  オープン済みファイル番号
  *   解説   : ファイル/ディレクトリをクローズする
  */
 public int close(int fd);
@@ -105,11 +102,10 @@ public int close(int fd);
 /*----------------------------------------------------------------------------
  *   名前   : read
  *   戻り値 : int (読み込んだバイト数(>0)、0=EOF、-1=エラー)
- *   引数   : int fd オープン済みファイル番号
- *            void[] buf データを読み込むバッファ
- *            int len バッファサイズ(バイト単位)
+ *   引数   : int fd      オープン済みファイル番号
+ *            void[] buf  データを読み込むバッファ
+ *            int len     バッファサイズ(バイト単位)
  *   解説   : ファイルからデータを読み込む
- *            # 512バイト単位のリードしかサポートしていない
  */
 public int read(int fd, void[] buf, int len);
 
@@ -117,9 +113,9 @@ public int read(int fd, void[] buf, int len);
 /*----------------------------------------------------------------------------
  *   名前   : write
  *   戻り値 : int (書き込んだバイト数(>=0)、<0=エラー)
- *   引数   : int fd オープン済みファイル番号
- *            void[] buf 書き込むデータ
- *            int len データサイズ(バイト単位)
+ *   引数   : int fd      オープン済みファイル番号
+ *            void[] buf  書き込むデータ
+ *            int len     データサイズ(バイト単位)
  *   解説   : ファイルへからデータを書き込む
  */
 public int write(int fd, void[] buf, int len);
@@ -138,7 +134,7 @@ public int seek(int fd, int ptrh, int ptrl);
  *   名前   : stat
  *　 戻り値 : int (正常なら0、失敗なら<0)
  *　 引数   : int path　ファイルへのパス
- *            void[] stat  ファイルの情報を格納する構造体 Stat
+ *            Stat stat  ファイルの情報を格納する構造体
  *   解説   : ファイルの情報を取得する
  */
-public int stat(char[] path, void[] stat);
+public int stat(char[] path, Stat stat);

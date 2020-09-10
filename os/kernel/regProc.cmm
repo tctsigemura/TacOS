@@ -1,0 +1,101 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2020 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * kernel/regProc.cmm : カーネルプロセスを登録する
+ *
+ * 2020.09.06 : 新規作成
+ *
+ */
+
+#include <util.hmm>
+#include <mm.hmm>
+#include <fs.hmm>
+#include "kernel.hmm"
+
+#ifndef EMBEDDED
+#include <pm.hmm>
+#include <init.hmm>
+#else
+#include <shellProc.hmm>
+#include <mp3Proc.hmm>
+#include <spi.hmm>
+#endif
+
+// ----------------------------------------------------------------------------
+// カーネルプロセスの PCB とスタック領域を定義
+// ----------------------------------------------------------------------------
+#define MakePCB(name) char[] name=array((sizeof(PCB)+P_KERN_STKSIZ+1)&~1)
+
+// 両方のカーネルに共通
+MakePCB(fsMem);                                     // FS のPCBとスタック領域
+MakePCB(mmMem);                                     // MM のPCBとスタック領域
+
+#ifndef EMBEDDED
+// 汎用カーネルの場合  
+MakePCB(initMem);                                   // INITのPCBとスタック領域
+MakePCB(pmMem);                                     // PM のPCBとスタック領域
+int[] pmFds = array(P_FILE_MAX);                    // FDS領域(FSのユーザだけ）
+#else
+// 組み込みカーネルの場合
+MakePCB(shellMem);                                  // APPのPCBとスタック領域
+MakePCB(mp3Mem);                                    // APPのPCBとスタック領域
+int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
+int[] mp3Fds = array(P_FILE_MAX);                   // FDS領域(FSのユーザだけ）
+#endif
+
+// ----------------------------------------------------------------------------
+// カーネルプロセスを初期化して実行可能にする
+// ----------------------------------------------------------------------------
+public void regProc()  {
+  // FS サーバプロセスを初期化して実行可能にする
+  newProc(addrof(mmMain),0,0,EI|KERN,_AtoA(mmMem),null);
+  schProc(_AtoA(mmMem));
+
+  // MM サーバプロセスを初期化して実行可能にする
+  newProc(addrof(fsMain),1,0,EI|KERN,_AtoA(fsMem),null);
+  schProc(_AtoA(fsMem));
+
+#ifndef EMBEDDED
+  // 汎用カーネルの場合
+  // INIT サーバプロセスを初期化して実行可能にする
+  initProc = _AtoA(initMem);                        // INIT の PCB を記録
+  newProc(addrof(initMain),4,0,EI|KERN,initProc,null);
+  schProc(_AtoA(initProc));
+
+  // PM サーバプロセスを初期化して実行可能にする
+  newProc(addrof(pmMain),2,0,EI|KERN,_AtoA(pmMem),pmFds);
+  schProc(_AtoA(pmMem));
+#else
+  // 組み込みカーネルの場合　（優先順位によって性能が変わる．優先順位慎重に決めること）
+  // MP3 プレーヤのメインプロセス
+  newProc(addrof(shellMain),2,0,EI|KERN,_AtoA(shellMem),shellFds);
+  schProc(_AtoA(shellMem));
+
+  // MP3 データ転送プロセス
+  newProc(addrof(mp3Main),3,0,EI|KERN,_AtoA(mp3Mem),mp3Fds);
+  schProc(_AtoA(mp3Mem));
+
+  // SPIドライバの初期化
+  spiInit();
+
+#endif
+}

@@ -22,6 +22,7 @@
 /*
  * fs/fatSys.cmm : FAT16 ファイルシステムのシステムコール処理部分
  *
+ * 2020.08.15 : strRchr() を使用するように変更
  * 2020.07.11 : ".." を使ってルートディレクトリへ進めるように srchDir() を修正
  * 2019.11.25 : ファイル名 ".", ".." を正しく扱えるように getFname() を修正
  * 2019.11.15 : stat システムコールを実装
@@ -107,17 +108,6 @@ boolean validName(char[] s) {
   for (int i=0; s[i]!='\0'; i=i+1)              // ファイル名の最初から最後まで
     if (!isUseableAsName(s[i])) return false;   //   使えない文字を使用している
   return true;
-}
-
-// lastIdx : 文字列 s 中において、文字 c が最後に出現する位置を返す
-// 返り値  : 文字 c が最後に出現した位置(<0:出現しなかった)
-// 引数 s  : 探索対象文字列
-//      c  : 探索する文字
-int lastIdx(char[] s, char c){
-  int r = -1;                                   // 最後に出現する c の位置
-  for (int i=0; s[i]!='\0'; i=i+1)              // s の最初から最後まで
-    if (s[i]==c) r=i;                           //   最後の c の位置を記録する
-  return r;
 }
 
 // getFStr    : n 文字以内のファイル名を str に取り出す
@@ -376,7 +366,7 @@ public int sysWrite(PCB pcb, int idx, char[] buf, int len) {
 
 // 新しいファイル/ディレクトリを登録できるディレクトリエントリを作る
 int mkDirEnt(char[] path) {
-  int lastSla = lastIdx(path, '/');             // path 中で最後の '/' 位置
+  int lastSla = strRchr(path, '/');             // path 中で最後の '/' 位置
 
   // dirName が適切かチェックする
   if (!srchPath(path, lastSla) ||               // dirName が存在しないか

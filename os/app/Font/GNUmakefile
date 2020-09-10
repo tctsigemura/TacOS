@@ -2,7 +2,7 @@
 # TacOS Source Code
 #    Tokuyama kousen Educational Computer 16 bit Version
 #
-# Copyright (C) 2011 - 2020 by
+# Copyright (C) 2019 - 2020 by
 #                      Dept. of Computer Science and Electronic Engineering,
 #                      Tokuyama College of Technology, JAPAN
 #
@@ -17,25 +17,18 @@
 # る損害に関しても，その責任を負わない．
 #
 #
-# Makefile : TacOS
+# GNUmakefile : ユーザプログラム用の Makefile
 #
-# 2020.09.06         : kernel0.bin も uSD に保存する
-# 2019.04.14         : コンパイル済みの kernel.bin と *.exe を uSD に保存する
-# 2016.01.07         : 初期バージョン
+# 2020.08.23         : font.cmm を作る
 #
 # $Id$
 #
-MAKEFLAGS=--no-print-directory
 
-# サブディレクトリ
-SUBDIRS:=os usr
+all : ../font.cmm
 
-all :
-	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir); )
-	mv os/kernel.bin uSD
-	mv os/kernel0.bin uSD
-	mv usr/*/*.exe uSD/bin
+../font.cmm : font8x8.c font8x8_basic.h
+	cc -o font8x8 font8x8.c
+	./font8x8 > ../font.cmm
 
 clean :
-	$(foreach dir, $(SUBDIRS), $(MAKE) --directory=$(dir) clean; )
-	rm -f *~
+	rm font8x8
