@@ -40,9 +40,10 @@ endif
 CMFLAGS+=-I/usr/local/cmmInclude
 CMFLAGS+=-K -nostdinc -I../kernel -I../util -I../fs -I../mm -I../tty -I../sio
 
-# 汎用版にだけpmがある
 ifndef EMBEDDED
-CMFLAGS+=-I../pm
+CMFLAGS+=-I../pm                # 汎用版にだけpmがある
+else
+CMFLAGS+=-I../app               # 組込版にはappがある(ttyも標準では使用しない．．．)
 endif
 
 # make するソースのサフィックス（拡張子） の一覧

@@ -103,13 +103,13 @@
 
 #include <errno.hmm>
 #include <util.hmm>
-#include <tty.hmm>
 #include "dispatcher.hmm"
 #include "trap.hmm"
 #include "regProc.hmm"
 #include "kernel.hmm"
 
 #ifndef EMBEDDED
+#include <tty.hmm>
 #include <pm.hmm>                                   // exit が必要
 #endif
 
@@ -264,8 +264,6 @@ int lastPid = -1;                                   // 現在の最新 PID
 int nextPid() {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   int pid = lastPid;                                // PID 候補
-
-#ifndef EMBEDDED
   boolean flg = true;                               // PID 重複チェック用フラグ
 
   while (flg) {                                     //
@@ -280,7 +278,6 @@ int nextPid() {
       }
     }
   }
-#endif
                                                     // 割込禁止のうちに
   lastPid = pid;                                    //   決定した PID を書込む
   setPri(r);                                        // 割り込み状態を復元する
@@ -580,7 +577,9 @@ public void main() {
   tmrInit();                                        // タイマー(ベクタ,ハード)
   semInit();                                        // セマフォ(semTbl)初期化
   lnkInit();                                        // リンク(lnkTbl)初期化
+#ifndef EMBEDDED
   ttyInit();                                        // TTY初期化
+#endif
   procInit();                                       // プロセス(procTbl)初期化
   out(0xf2, 0x0001);                                // MMU を有効にする
 

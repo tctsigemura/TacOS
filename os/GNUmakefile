@@ -39,7 +39,7 @@ MAKEFLAGS=--no-print-directory
 
 # make 対象のサブディレクトリ crt0 が含まれる util を最初にすること！！
 GENSUBDIRS:=util kernel fs sio tty mm pm     # 汎用カーネル
-EMBSUBDIRS:=util kernel fs sio tty mm app    # 組み込みカーネル
+EMBSUBDIRS:=util kernel fs mm app            # 組み込みカーネル
 
 # OBJS に SUBDIRS で生成された各 mod.o ファイルをディレクトリパス付きで代入
 GENOBJS=$(foreach dir, $(GENSUBDIRS), $(dir)/mod.o )

@@ -34,6 +34,10 @@
 #ifndef EMBEDDED
 #include <pm.hmm>
 #include <init.hmm>
+#else
+#include <shellProc.hmm>
+#include <mp3Proc.hmm>
+#include <spi.hmm>
 #endif
 
 // ----------------------------------------------------------------------------
@@ -42,17 +46,20 @@
 #define MakePCB(name) char[] name=array((sizeof(PCB)+P_KERN_STKSIZ+1)&~1)
 
 // 両方のカーネルに共通
-MakePCB(fsMem);                                     // FS  のPCBとスタック領域
-MakePCB(mmMem);                                     // MM  のPCBとスタック領域
+MakePCB(fsMem);                                     // FS のPCBとスタック領域
+MakePCB(mmMem);                                     // MM のPCBとスタック領域
 
 #ifndef EMBEDDED
 // 汎用カーネルの場合  
 MakePCB(initMem);                                   // INITのPCBとスタック領域
-MakePCB(pmMem);                                     // PM  のPCBとスタック領域
-int[] pmFds = array(P_FILE_MAX);                    // FDS 領域(PM 以外は不要)
+MakePCB(pmMem);                                     // PM のPCBとスタック領域
+int[] pmFds = array(P_FILE_MAX);                    // FDS領域(FSのユーザだけ）
 #else
 // 組み込みカーネルの場合
-
+MakePCB(shellMem);                                  // APPのPCBとスタック領域
+MakePCB(mp3Mem);                                    // APPのPCBとスタック領域
+int[] shellFds = array(P_FILE_MAX);                 // FDS領域(FSのユーザだけ）
+int[] mp3Fds = array(P_FILE_MAX);                   // FDS領域(FSのユーザだけ）
 #endif
 
 // ----------------------------------------------------------------------------
@@ -78,7 +85,17 @@ public void regProc()  {
   newProc(addrof(pmMain),2,0,EI|KERN,_AtoA(pmMem),pmFds);
   schProc(_AtoA(pmMem));
 #else
-  // 組み込みカーネルの場合
+  // 組み込みカーネルの場合　（優先順位によって性能が変わる．優先順位慎重に決めること）
+  // MP3 プレーヤのメインプロセス
+  newProc(addrof(shellMain),2,0,EI|KERN,_AtoA(shellMem),shellFds);
+  schProc(_AtoA(shellMem));
+
+  // MP3 データ転送プロセス
+  newProc(addrof(mp3Main),3,0,EI|KERN,_AtoA(mp3Mem),mp3Fds);
+  schProc(_AtoA(mp3Mem));
+
+  // SPIドライバの初期化
+  spiInit();
 
 #endif
 }

@@ -451,7 +451,7 @@ public boolean unputBuf(RingBuf buf);
  *   名前    : dbgPutStr
  *   戻り値  : なし
  *   引数    : char[] str
- *   解説    : メッセージをシリアル出力に書き出す
+ *   解説    : メッセージをシリアル出力に書き出す（Bluetoothではない）
  *             ttyWrite と異なり OS の管理外で動作する
  *             デバッグ目的以外で使用してはならない
  */
@@ -468,5 +468,15 @@ public void dbgPutStr(char[] str);            // ちょっとした動作確認�
 public void panic(char[] msg, ...);
 
 #ifdef DEBUG
-public int printF(char[] fmt, ...);
+/*-----------------------------------------------------------------------------
+ *   名前    : printF
+ *   解説    : デバッグ用の簡易 printf
+ *             シリアル出力に書き出す（Bluetoothではない）
+ *             %d, %o, %x, %c, %s, %% を使用できる．
+ *             ttyWrite と異なり OS の管理外で動作する
+ *             デバッグ目的以外で使用してはならない
+ *             デバッグモードにするためには os ホルダの
+ *              GNUmakefile で DEBUG を有効にする
+ */
+ public int printF(char[] fmt, ...);
 #endif
