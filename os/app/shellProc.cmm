@@ -28,13 +28,12 @@
  *
  */
 #include <kernel.hmm>
-#include <fs.hmm>
 #include <util.hmm>
-#include <tty.hmm>
-#include "shellProc.hmm"
 #include "lcd.hmm"
 #include "mp3Proc.hmm"
 #include "spi.hmm"
+#include "mp3Files.hmm"
+#include "shellProc.hmm"
 
 //-----------------------------------------------------------------------------
 // スイッチの読み取り
@@ -52,24 +51,47 @@ int sw0 = 0x00;                                     // 前回の状態(デバウ
 int sw1 = 0x00;                                     // 前回の状態(デバウンス後)
 
 int readSw() {
-    int sw = ~in(0x18) & SWS;                       // スイッチを読み正論理に変換
-    int swd = sw & sw0;                             // デバウンス
-    int sw2 = (sw1 ^ swd) & swd;                    // 今回，新たに押されたSW
-    sw0 = sw;
-    sw1 = swd;
-    return sw2;
+  int sw = ~in(0x18) & SWS;                         // スイッチを読み正論理に変換
+  int swd = sw & sw0;                               // デバウンス
+  int sw2 = (sw1 ^ swd) & swd;                      // 今回，新たに押されたSW
+  sw0 = sw;
+  sw1 = swd;
+  return sw2;
 }
 
+int swToNum(int sw) {
+  int num = -1;
+  if ((sw & SW6)!=0) {                              // 6 番のスイッチが押された
+    num = 6;
+  } else if ((sw & SW5)!=0) {                       // 5 番のスイッチが押された
+    num = 5;
+  } else if ((sw & SW4)!=0) {                       // 4 番のスイッチが押された
+    num = 4;
+  } else if ((sw & SW3)!=0) {                       // 3 番のスイッチが押された
+    num = 3;
+  } else if ((sw & SW2)!=0) {                       // 2 番のスイッチが押された
+    num = 2;
+  } else if ((sw & SW1)!=0) {                       // 1 番のスイッチが押された
+    num = 1;
+  }
+  return num;
+}
+      
+//-----------------------------------------------------------------------------
+// 画面表示
+//-----------------------------------------------------------------------------
 void demoScreen() {
   cls();                                            // LCDをクリアする
   locateXY(0,0); putStr("MP3 Player demo");
-
-  locateXY(0,2); putStr("  1: 16kbps Mono");
-  locateXY(0,3); putStr("  2: 32kbps");
-  locateXY(0,4); putStr("  3: 64kbps");
-  locateXY(0,5); putStr("  4: 128kbps");
-  locateXY(0,6); putStr("  5: 192kbps");
-  locateXY(0,7); putStr("  6: stop");
+  for (int i=1; i<=5; i=i+1) {                      // スイッチ1〜5に付いて
+    locateXY(2,i+1);
+    putCh(chr(ord('0')+i));                         // スイッチの番号
+    putStr(":");
+    char[] fname = mp3FilesGetName(i);              // 対応するファイル名
+    if (fname!=null) putStr(fname);
+  }
+  locateXY(2,7);
+  putStr("6:stop");                                 // 6番のスイッチ
 }
 
 void asta(int y) {
@@ -85,35 +107,21 @@ void asta(int y) {
 public void shellMain() {
   spiResetLcd();                                    // sleepを使用するので
   spiResetMp3();                                    //   プロセスが実行する
-
-  char[] path1 = "/MP3/WEL16KM.MP3";                // 16kbps モノラル
-  char[] path2 = "/MP3/WEL32K.MP3";                 // 32kbps
-  char[] path3 = "/MP3/WEL64K.MP3";                 // 64kbps
-  char[] path4 = "/MP3/WEL128K.MP3";                // 128kbps
-  char[] path5 = "/MP3/WEL192K.MP3";                // 192kbps
-
-  demoScreen();
+  mp3FilesInit();                                   // ファイル一覧を作る
+  demoScreen();                                     // 画面を初期化
   for (;;) {
     int sw = readSw();
-    if ((sw & SW6)!=0) {                            // 6 番のスイッチが押された
+    int num = swToNum(sw);
+    if (num==6) {                                   // 6 番のスイッチが押された
       dbgPutStr("stop\n");
-      demoScreen();
+      demoScreen();                                 // 画面を初期化
       stop();
-    } else if ((sw & SW5)!=0) {                     // 5 番のスイッチが押された
-      asta(5);
-      play(path5);
-    } else if ((sw & SW4)!=0) {                     // 4 番のスイッチが押された
-      asta(4);
-      play(path4);
-    } else if ((sw & SW3)!=0) {                     // 3 番のスイッチが押された
-      asta(3);
-      play(path3);
-    } else if ((sw & SW2)!=0) {                     // 2 番のスイッチが押された
-      asta(2);
-      play(path2);
-    } else if ((sw & SW1)!=0) {                     // 1 番のスイッチが押された
-      asta(1);
-      play(path1);
+    } else if (num>0 && mp3FilesGetName(num)!=null) { // ファイルと対応するボタン
+      demoScreen();                                 // 画面を初期化
+      asta(num);                                    // 再生中の曲に印を表示
+      play(mp3FilesGetPath(num));                   // 再生開始
+      dbgPutStr(mp3FilesGetPath(num));
+      dbgPutStr("\n");
     }
     sleep(10);                                      // 10ms に一度
   }
