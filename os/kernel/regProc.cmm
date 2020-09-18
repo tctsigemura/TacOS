@@ -66,11 +66,11 @@ int[] mp3Fds = array(P_FILE_MAX);                   // FDS領域(FSのユーザ�
 // カーネルプロセスを初期化して実行可能にする
 // ----------------------------------------------------------------------------
 public void regProc()  {
-  // FS サーバプロセスを初期化して実行可能にする
+  // MM サーバプロセスを初期化して実行可能にする
   newProc(addrof(mmMain),0,0,EI|KERN,_AtoA(mmMem),null);
   schProc(_AtoA(mmMem));
 
-  // MM サーバプロセスを初期化して実行可能にする
+  // FS サーバプロセスを初期化して実行可能にする
   newProc(addrof(fsMain),1,0,EI|KERN,_AtoA(fsMem),null);
   schProc(_AtoA(fsMem));
 
@@ -85,7 +85,8 @@ public void regProc()  {
   newProc(addrof(pmMain),2,0,EI|KERN,_AtoA(pmMem),pmFds);
   schProc(_AtoA(pmMem));
 #else
-  // 組み込みカーネルの場合　（優先順位によって性能が変わる．優先順位慎重に決めること）
+  // 組み込みカーネルの場合
+  // （優先順位によって性能が変わる．優先順位は慎重に決めること）
   // MP3 プレーヤのメインプロセス
   newProc(addrof(shellMain),2,0,EI|KERN,_AtoA(shellMem),shellFds);
   schProc(_AtoA(shellMem));
@@ -94,7 +95,7 @@ public void regProc()  {
   newProc(addrof(mp3Main),3,0,EI|KERN,_AtoA(mp3Mem),mp3Fds);
   schProc(_AtoA(mp3Mem));
 
-  // SPIドライバの初期化
+  // SPIドライバの初期化（プロセス起動前にすべきことをやる）
   spiInit();
 
 #endif
