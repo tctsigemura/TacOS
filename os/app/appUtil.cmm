@@ -1,0 +1,111 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2020 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+/*
+ * appUtil.cmm : API を補う関数
+ *
+ * 2020.09.15 : 新規作成
+ *
+ * $Id$
+ *
+ */
+#include <fs.hmm>
+#include <util.hmm>
+#include "appUtil.hmm"
+
+//-----------------------------------------------------------------------------
+// ディレクトリを読む
+//-----------------------------------------------------------------------------
+// 読み出しバッファ
+char[] buf = array(32);
+
+// ディレクトリの読出しバッファ
+Dir dir = {"             ", 0, 0, 0, 0 };
+
+// ファイル名のコピー
+int cpName(int i, int j, int n) {
+  for (; i<n; i=i+1) {
+      char c = buf[i];
+      if (c==' ') break;
+      dir.name[j] = buf[i];
+      j = j + 1;
+  }
+  return j;
+}
+
+// ディレクトリから１エントリー読み出す（EOF では null を返す）
+//   fd  : オープン済みのディレクトリファイル
+//   ext : 拡張子（nullの場合は拡張子は関係ない）
+public Dir readDir(int fd, char[] ext) {
+  while (read(fd, buf, 32)==32) {              // EOF まで
+    char flag = buf[0];                        //   エントリの先頭１バイト
+    int  attr = ord(buf[11]);                  //   属性
+    if (flag=='\x00') return null;             //   この先に有効エントリは無い
+    if (flag!='\xe5' &&                        //   有効なエントリでかつ，
+        (attr & 0x0a)==0 && (ext==null ||      //   通常ファイルかディレクトリ
+        strNcmp(_addrAdd(buf,8),ext,3)==0)) {  //   かつ，拡張子が一致
+      int j = cpName(0, 0, 8);                 //     ファイル名をコピー
+      dir.name[j] = '.';                       //     '.' 追加
+      j = cpName(8, j+1, 11);                  //     拡張子をコピー
+      dir.name[j]='\0';                        //     ファイル名を完成させる
+      if (flag=='\x05') {                      //     先頭バイトの0x05は
+        dir.name[0]='\xe5';                    //       SJISの0xe5にする
+      }
+      dir.attr = attr;                         //     属性
+      dir.clst = wordLE(buf, 26);              //     先頭クラスタ番号
+      dir.lenH = wordLE(buf, 30);              //     ファイルサイズ上位16bit
+      dir.lenL = wordLE(buf, 28);              //     ファイルサイズ下位16bit
+      return dir;
+    }
+  }
+  return null;
+}
+
+//-----------------------------------------------------------------------------
+// 文字列操作
+//-----------------------------------------------------------------------------
+// 文字列結合
+public char[] strCat(char[] dst, char[] src) {
+  int i = 0;
+  while (dst[i]!='\0')                              // 文字列の最後を探す
+    i = i + 1;
+  for (int j=i; (dst[j]=src[j-i])!='\0'; j=j+1) {   // src を dst に追加
+    ;
+  }
+  return dst;
+}
+
+// 文字列比較
+public int strCmp(char[] s1, char[] s2) {
+  int i;
+  for (i=0; s1[i]==s2[i]; i=i+1)
+    if (s1[i]=='\0') return 0;
+  return ord(s1[i])-ord(s2[i]);
+}
+
+// 文字数制限付きの文字列比較
+public int strNcmp(char[] s1, char[] s2, int n) {
+  int i;
+  for (i=0; i<n && s1[i]==s2[i]; i=i+1)
+    if (s1[i]=='\0') return 0;
+  if (i>=n) return 0;
+  return ord(s1[i])-ord(s2[i]);
+}
