@@ -1,0 +1,22 @@
+#include <crt0.hmm>
+#include <string.hmm>
+#include "utils.hmm"
+
+
+// シリアルポートへの出力
+public void putSIO(int port, char c) {
+  while((_in(port+2) & 0x80)==0)
+    ;
+  _out(port, ord(c));
+}
+
+public boolean isBinFile(char[] filename) {
+  int flength = strLen(filename);              // ファイル名の長さを格納
+  if (filename[flength - 4] == '.' &&
+      filename[flength - 3] == 'b' &&        //
+      filename[flength - 2] == 'i' &&        //
+      filename[flength - 1] == 'n' ){
+        return true;
+      }
+  return false;
+}
