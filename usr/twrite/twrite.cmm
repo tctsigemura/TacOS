@@ -1,0 +1,120 @@
+#include "utils.hmm"
+#include <syslib.hmm>
+#include <stdlib.hmm>
+#include <crt0.hmm>
+#include <stdio.hmm>
+
+// TeC にコンソール操作でプログラムを書き込む
+#define DSW   0x32                            // I/Oアドレス(データスイッチ)
+
+#define FNC   0x34                            // I/Oアドレス(機能スイッチ)
+#define SETA  0x08
+#define WRITE 0x01
+
+#define CTL   0x36                            // I/Oアドレス(制御)
+#define TWENA 0x80
+#define RESET 0x04
+#define LEFT  0x02
+#define RIGHT 0x01
+
+// TWRITEの通信を検知する
+int twMode;                                   // 0:未検知,1,2:ヘッダ,3:本体受信
+char[] twBuf=array(256);                      // 受信バッファ
+int twPtr;                                    // 受信バッファ内のポインタ
+int twCnt;                                    // プログラムの長さ
+int twAdr;                                    // プログラムのロードアドレス
+int twMat;                                    // 前回のFSMの状態
+                                              // （途中までマッチした文字数）
+
+void pushFncSw(int sw) {                      // 機能スイッチを押す
+  _out(FNC, sw);                               // スイッチを操作する
+  sleep(60);                                  // 60ms 待つ
+  _out(FNC, 0);                                // スイッチをもとに戻す
+  sleep(60);                                 // 60ms 待つ
+}
+
+void pushCtlSw(int sw) {                      // 制御スイッチを操作する
+  _out(CTL, TWENA|sw);                         // スイッチを操作する
+  sleep(60);                                 // 60ms 待つ
+  _out(CTL, TWENA);                            // スイッチをもとに戻す
+  sleep(60);                                // 60ms 待つ
+}
+
+void twConsole(int addr, int cnt, char[] buf) {
+  pushCtlSw(RESET);                           // RESET スイッチを押す
+  for (int i=0; i<5; i=i+1) {                 // 5回右矢印スイッチを押す
+    pushCtlSw(RIGHT);                         // （MMの位置になるはず）
+  }
+  _out(DSW, addr);                             // アドレスをセットし
+  pushFncSw(SETA);                            // SETA スイッチを押す
+  for (int i=0; i<cnt; i=i+1) {               // プログラム全体について
+    _out(DSW, ord(buf[i]));                    //   データをセットし
+    pushFncSw(WRITE);                         //   WRITE スイッチを押す
+  }
+  pushCtlSw(LEFT);                            // （PCの位置になるはず）
+  _out(DSW, addr);                             // アドレスをセットし
+  pushFncSw(WRITE);                           //   WRITE スイッチを押す
+  _out(CTL, 0);                                // コンソール機能を手動に戻す
+}
+
+void twWrite(char c) {
+  if (twMode==1) {                            // ヘッダからアドレスを読み取る
+    twAdr = ord(c);
+    twMode = 2;
+  } else if (twMode==2) {
+    twCnt = ord(c);                           // ヘッダから長さを読み取る
+    twPtr = 0;
+    twMode = 3;
+  } else if (twMode==3) {                     // プログラム本体の受信
+    twBuf[twPtr] = c;
+    twPtr = twPtr + 1;
+    if (twPtr>=twCnt) {                       //   プログラムを最後まで受信した
+      twConsole(twAdr, twCnt, twBuf);         //     TeCのコンソールから書込む
+    }
+  }
+}
+
+// ファイルの内容を処理
+void writeBinToTeC(char[] filename) {
+  FILE fp;
+  char ch;
+  fp = fopen(filename, "r"); // ファイルを開く
+  int count = 0;
+  if (fp != null) {
+    while(!feof(fp)) {
+        count = count + 1;
+        printf("\r\x1b[2Kprocessing %d byte", count);
+        ch = fgetc(fp);
+        twWrite(ch);
+    }
+  }
+  fclose(fp);
+}
+
+public int main(int argc, char[][] argv){
+
+  int mode = _in(0x1e);
+  if (mode != 0) {  // TeCモード以外
+    fprintf(stderr, "Usage: %s can only use in TeC mode\n", argv[0]);
+    return 1;
+  }
+
+  if(argc != 2){
+    fprintf(stderr, "Usage: %s <filename> \n", argv[0]);
+    return 1;
+  }
+
+  char[] filename = argv[1];
+
+  if (!isBinFile(filename)){
+    fprintf(stderr, "Usage: %s is not .bin file \n", argv[1]);
+    return 1;
+  }
+
+  twMode = 1;
+  printf("write start...\r\n");
+  writeBinToTeC(filename);
+  printf("\r\ncomplete!\r\n");
+
+  return 0;
+}

@@ -1,0 +1,4 @@
+#define putTeC(c) putSIO(0x0c, c)             // TeC への出力
+
+public void putSIO(int port, char c);         // シリアルポートへの出力
+public boolean isBinFile(char[] filename);
