@@ -27,17 +27,17 @@ int twMat;                                    // 前回のFSMの状態
                                               // （途中までマッチした文字数）
 
 void pushFncSw(int sw) {                      // 機能スイッチを押す
-  _out(FNC, sw);                               // スイッチを操作する
+  _out(FNC, sw);                              // スイッチを操作する
   sleep(60);                                  // 60ms 待つ
-  _out(FNC, 0);                                // スイッチをもとに戻す
-  sleep(60);                                 // 60ms 待つ
+  _out(FNC, 0);                               // スイッチをもとに戻す
+  sleep(60);                                  // 60ms 待つ
 }
 
 void pushCtlSw(int sw) {                      // 制御スイッチを操作する
-  _out(CTL, TWENA|sw);                         // スイッチを操作する
-  sleep(60);                                 // 60ms 待つ
-  _out(CTL, TWENA);                            // スイッチをもとに戻す
-  sleep(60);                                // 60ms 待つ
+  _out(CTL, TWENA|sw);                        // スイッチを操作する
+  sleep(60);                                  // 60ms 待つ
+  _out(CTL, TWENA);                           // スイッチをもとに戻す
+  sleep(60);                                  // 60ms 待つ
 }
 
 void twConsole(int addr, int cnt, char[] buf) {
@@ -45,16 +45,16 @@ void twConsole(int addr, int cnt, char[] buf) {
   for (int i=0; i<5; i=i+1) {                 // 5回右矢印スイッチを押す
     pushCtlSw(RIGHT);                         // （MMの位置になるはず）
   }
-  _out(DSW, addr);                             // アドレスをセットし
+  _out(DSW, addr);                            // アドレスをセットし
   pushFncSw(SETA);                            // SETA スイッチを押す
   for (int i=0; i<cnt; i=i+1) {               // プログラム全体について
-    _out(DSW, ord(buf[i]));                    //   データをセットし
-    pushFncSw(WRITE);                         //   WRITE スイッチを押す
+    _out(DSW, ord(buf[i]));                   // データをセットし
+    pushFncSw(WRITE);                         // WRITE スイッチを押す
   }
-  pushCtlSw(LEFT);                            // （PCの位置になるはず）
-  _out(DSW, addr);                             // アドレスをセットし
-  pushFncSw(WRITE);                           //   WRITE スイッチを押す
-  _out(CTL, 0);                                // コンソール機能を手動に戻す
+  pushCtlSw(LEFT);                            // (PCの位置になるはず）
+  _out(DSW, addr);                            // アドレスをセットし
+  pushFncSw(WRITE);                           // WRITE スイッチを押す
+  _out(CTL, 0);                               // コンソール機能を手動に戻す
 }
 
 void twWrite(char c) {
@@ -68,8 +68,8 @@ void twWrite(char c) {
   } else if (twMode==3) {                     // プログラム本体の受信
     twBuf[twPtr] = c;
     twPtr = twPtr + 1;
-    if (twPtr>=twCnt) {                       //   プログラムを最後まで受信した
-      twConsole(twAdr, twCnt, twBuf);         //     TeCのコンソールから書込む
+    if (twPtr>=twCnt) {                       // プログラムを最後まで受信した
+      twConsole(twAdr, twCnt, twBuf);         // TeCのコンソールから書込む
     }
   }
 }
@@ -84,8 +84,8 @@ void writeBinToTeC(char[] filename) {
     while(!feof(fp)) {
         count = count + 1;
         printf("\r\x1b[2Kprocessing %d byte", count);
-        ch = fgetc(fp);
-        twWrite(ch);
+        ch = fgetc(fp);     // 1 byte づつ読む
+        twWrite(ch);        // TeCに書き込む
     }
   }
   fclose(fp);
@@ -99,6 +99,7 @@ public int main(int argc, char[][] argv){
     return 1;
   }
 
+  // オプションなし
   if(argc != 2){
     fprintf(stderr, "Usage: %s <filename> \n", argv[0]);
     return 1;
@@ -106,6 +107,7 @@ public int main(int argc, char[][] argv){
 
   char[] filename = argv[1];
 
+  // 拡張子は bin のみ
   if (!isBinFile(filename)){
     fprintf(stderr, "Usage: %s is not .bin file \n", argv[1]);
     return 1;
