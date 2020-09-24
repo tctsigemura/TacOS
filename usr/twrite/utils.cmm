@@ -10,11 +10,12 @@ public void putSIO(int port, char c) {
   _out(port, ord(c));
 }
 
+// 拡張子が bin であるか判定
 public boolean isBinFile(char[] filename) {
-  int flength = strLen(filename);              // ファイル名の長さを格納
+  int flength = strLen(filename);       // ファイル名の長さを格納
   if (filename[flength - 4] == '.' &&
-      filename[flength - 3] == 'b' &&        //
-      filename[flength - 2] == 'i' &&        //
+      filename[flength - 3] == 'b' &&
+      filename[flength - 2] == 'i' &&
       filename[flength - 1] == 'n' ){
         return true;
       }
