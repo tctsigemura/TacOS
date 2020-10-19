@@ -1,8 +1,8 @@
-#include "utils.hmm"
 #include <syslib.hmm>
 #include <stdlib.hmm>
 #include <crt0.hmm>
 #include <stdio.hmm>
+#include <string.hmm>
 
 // TeC にコンソール操作でプログラムを書き込む
 #define DSW   0x32                            // I/Oアドレス(データスイッチ)
@@ -17,14 +17,7 @@
 #define LEFT  0x02
 #define RIGHT 0x01
 
-// TWRITEの通信を検知する
-int twMode;                                   // 0:未検知,1,2:ヘッダ,3:本体受信
 char[] twBuf=array(256);                      // 受信バッファ
-int twPtr;                                    // 受信バッファ内のポインタ
-int twCnt;                                    // プログラムの長さ
-int twAdr;                                    // プログラムのロードアドレス
-int twMat;                                    // 前回のFSMの状態
-                                              // （途中までマッチした文字数）
 
 void pushFncSw(int sw) {                      // 機能スイッチを押す
   _out(FNC, sw);                              // スイッチを操作する
@@ -42,12 +35,12 @@ void pushCtlSw(int sw) {                      // 制御スイッチを操作す�
 
 void twConsole(int addr, int cnt, char[] buf) {
   pushCtlSw(RESET);                           // RESET スイッチを押す
-  for (int i=0; i<5; i=i+1) {                 // 5回右矢印スイッチを押す
+  for (int i = 0; i < 5; i=i+1) {                 // 5回右矢印スイッチを押す
     pushCtlSw(RIGHT);                         // （MMの位置になるはず）
   }
   _out(DSW, addr);                            // アドレスをセットし
   pushFncSw(SETA);                            // SETA スイッチを押す
-  for (int i=0; i<cnt; i=i+1) {               // プログラム全体について
+  for (int i = 0; i < cnt; i=i+1) {               // プログラム全体について
     _out(DSW, ord(buf[i]));                   // データをセットし
     pushFncSw(WRITE);                         // WRITE スイッチを押す
   }
@@ -57,38 +50,40 @@ void twConsole(int addr, int cnt, char[] buf) {
   _out(CTL, 0);                               // コンソール機能を手動に戻す
 }
 
-void twWrite(char c) {
-  if (twMode==1) {                            // ヘッダからアドレスを読み取る
-    twAdr = ord(c);
-    twMode = 2;
-  } else if (twMode==2) {
-    twCnt = ord(c);                           // ヘッダから長さを読み取る
-    twPtr = 0;
-    twMode = 3;
-  } else if (twMode==3) {                     // プログラム本体の受信
-    twBuf[twPtr] = c;
-    twPtr = twPtr + 1;
-    if (twPtr>=twCnt) {                       // プログラムを最後まで受信した
-      twConsole(twAdr, twCnt, twBuf);         // TeCのコンソールから書込む
-    }
+// 拡張子が bin であるか判定
+boolean isBinFile(char[] filename) {
+  int flength = strLen(filename);       // ファイル名の長さを格納
+  return (filename[flength - 4] == '.' &&
+          filename[flength - 3] == 'b' &&
+          filename[flength - 2] == 'i' &&
+          filename[flength - 1] == 'n');
+}
+
+int fread(char[] buf, int cnt, FILE fp) {
+  int i = 0;
+  while (i < cnt && !feof(fp)) {
+    buf[i] = fgetc(fp);
+    i = i + 1;
   }
+  return i;
 }
 
 // ファイルの内容を処理
 void writeBinToTeC(char[] filename) {
-  FILE fp;
-  char ch;
-  fp = fopen(filename, "r"); // ファイルを開く
-  int count = 0;
+  FILE fp = fopen(filename, "r"); // ファイルを開く
   if (fp != null) {
-    while(!feof(fp)) {
-        count = count + 1;
-        printf("\r\x1b[2Kprocessing %d byte", count);
-        ch = fgetc(fp);     // 1 byte づつ読む
-        twWrite(ch);        // TeCに書き込む
+    int twAdr = ord(fgetc(fp));
+    int twCnt = ord(fgetc(fp));
+    if (feof(fp) || fread(twBuf, twCnt, fp) != twCnt) {
+      fprintf(stderr, "file format error\n");
+      exit(1);
     }
+    twConsole(twAdr, twCnt, twBuf);
+    fclose(fp);
+  } else {
+    perror(filename);
+    exit(1);
   }
-  fclose(fp);
 }
 
 public int main(int argc, char[][] argv){
@@ -113,7 +108,6 @@ public int main(int argc, char[][] argv){
     return 1;
   }
 
-  twMode = 1;
   printf("write start...\r\n");
   writeBinToTeC(filename);
   printf("\r\ncomplete!\r\n");
