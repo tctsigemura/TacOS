@@ -1,0 +1,2 @@
+public void updateRecentPlayList(int fileNumber);
+public void updateMostPlayList(int fileNumber);

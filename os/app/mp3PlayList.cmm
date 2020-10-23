@@ -1,0 +1,54 @@
+#include <fs.hmm>
+#include <util.hmm>
+#include "appUtil.hmm"
+#include "mp3PlayList.hmm"
+
+int[] recent = array(100);
+int[] most = array(100);
+int[] mostCount = array(100);
+
+public void updateRecentPlayList(int fileNumber){
+  int newNumber = 0;
+  int i = 0;
+
+  for (; i < 100; i=i+1){
+    if(recent[i] == null){
+      newNumber = 0;
+      break;
+    } else if (recent[i] == fileNumber){
+      newNumber = i;
+      break;
+    }
+  }
+
+  for (; newNumber < i; i=i-1){
+    recent[i-1] = recent[i];
+  }
+  recent[newNumber] = fileNumber;
+}
+
+public void updateMostPlayList(int fileNumber){
+  if (mostCount[fileNumber] == null) {
+    mostCount[fileNumber] = 1;
+  } else {
+    mostCount[fileNumber] = mostCount[fileNumber] + 1;
+  }
+
+  int newNumber = 0;
+  int i = 0;
+
+  for (; i < 100; i=i+1){
+    if (most[i] == null){
+      newNumber = i;
+      break;
+    } else if (mostCount[most[i]] < mostCount[fileNumber]){
+      newNumber = i;
+      break;
+    }
+  }
+
+  for (; newNumber < i; i=i-1){
+    most[i-1] = most[i];
+  }
+  most[newNumber] = fileNumber;
+}
