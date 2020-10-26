@@ -35,12 +35,12 @@ void pushCtlSw(int sw) {                      // 制御スイッチを操作す�
 
 void twConsole(int addr, int cnt, char[] buf) {
   pushCtlSw(RESET);                           // RESET スイッチを押す
-  for (int i = 0; i < 5; i=i+1) {                 // 5回右矢印スイッチを押す
+  for (int i = 0; i < 5; i=i+1) {             // 5回右矢印スイッチを押す
     pushCtlSw(RIGHT);                         // （MMの位置になるはず）
   }
   _out(DSW, addr);                            // アドレスをセットし
   pushFncSw(SETA);                            // SETA スイッチを押す
-  for (int i = 0; i < cnt; i=i+1) {               // プログラム全体について
+  for (int i = 0; i < cnt; i=i+1) {           // プログラム全体について
     _out(DSW, ord(buf[i]));                   // データをセットし
     pushFncSw(WRITE);                         // WRITE スイッチを押す
   }
@@ -53,7 +53,8 @@ void twConsole(int addr, int cnt, char[] buf) {
 // 拡張子が bin であるか判定
 boolean isBinFile(char[] filename) {
   int flength = strLen(filename);       // ファイル名の長さを格納
-  return (filename[flength - 4] == '.' &&
+  return (flength > 4 &&
+          filename[flength - 4] == '.' &&
           filename[flength - 3] == 'b' &&
           filename[flength - 2] == 'i' &&
           filename[flength - 1] == 'n');
@@ -108,9 +109,9 @@ public int main(int argc, char[][] argv){
     return 1;
   }
 
-  printf("write start...\r\n");
+  printf("write start...\n");
   writeBinToTeC(filename);
-  printf("\r\ncomplete!\r\n");
+  printf("\ncomplete!\n");
 
   return 0;
 }
