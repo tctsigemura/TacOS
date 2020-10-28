@@ -40,7 +40,13 @@ char[][] fnames = array(5, 13);                     // 12345678.123
 int numFile;                                        // ファイルの個数
 
 char[] mp3Dir = "/MP3";
-char[] path = array(18);                            // /MP3/12345678.123
+//char[] path = array(18);                          // /MP3/12345678.123
+
+struct tags {
+    char *name;
+    int size;
+    char *art_name; 
+}
 
 char[] fnameToPath(char[] fname) {
   strCpy(path, mp3Dir);
