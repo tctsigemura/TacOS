@@ -31,3 +31,4 @@
 public void mp3FilesInit();               // 初期化（ファイル一覧を作る）
 public char[] mp3FilesGetName(int n);     // n 番目ファイル名を返す
 public char[] mp3FilesGetPath(int n);     // n 番目パス名を返す
+public int getMp3BitRate(char[] mp3Path);
