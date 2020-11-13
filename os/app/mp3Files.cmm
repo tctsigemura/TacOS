@@ -57,6 +57,10 @@ Stat stat;
 char[] buf = array(32);
 int[] rates = {1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 1}:
 
+public int getFileNum(){
+  return numFile;
+}
+
 public int getMp3BitRate(char[] mp3Path){
   int fd = open(path, READ_MODE);           // ファイルをオープン
   if (fd < 0) {                               // オープンできない
@@ -102,9 +106,6 @@ public char[][] getAllMp3Files(){
 }
 
 // n 番目パス名を返す（1<=n && n<=100）
-public char[] mp3FilesGetPath(int n) {
-  if (1<=n && n<=numFile) {
-    return fnameToPath(fnames[n-1]);
-  }
-  return null;
+public char[] getPathFromFileName(char[] fileName) {
+  return fnameToPath(fileName);
 }
