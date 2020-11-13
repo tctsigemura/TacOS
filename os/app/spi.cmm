@@ -196,4 +196,5 @@ public void spiVolumeControl(int volume){ //volumeは0から5
   else if(volume==3){ volhex=0x34; } //音量2:-52dB
   else if(volume==4){ volhex=0x1a; } //音量1:-26dB
   else if(volume==5){ volhex=0x00; } //音量0:0dB
-  spiWriteMp3Reg(0x0b,volhex) //volume変数の値に音量調整
+  spiWriteMp3Reg(0x0b,volhex); //volume変数の値に音量調整
+}
