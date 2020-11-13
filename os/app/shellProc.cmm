@@ -33,6 +33,7 @@
 #include "mp3Proc.hmm"
 #include "spi.hmm"
 #include "mp3Files.hmm"
+#include "mp3PlayList.hmm"
 #include "shellProc.hmm"
 
 //-----------------------------------------------------------------------------
@@ -126,6 +127,8 @@ char[] getPlayingMusicPath(int n){
   } else {
     return getPathFromFileName(getMostMp3Name(n));
   }
+
+  return null;
 }
 
 //-----------------------------------------------------------------------------
@@ -167,7 +170,7 @@ public void shellMain() {
         //曲リストを移動（lcd変更）
       } else if (num == 3) {
         //ページ進め
-        if (listPage < getFileNum/7){
+        if (listPage < getFileNum()/7){
           listPage = listPage + 1;
         }
         //リスト参照
@@ -202,7 +205,7 @@ public void shellMain() {
           play_shuffle_num = (play_shuffle_num + 1) % 2;
         } else if (screen_play_num == 3) {
           if (play_volume_num < 5) {
-            play_volume_num = play_volume_num + 1
+            play_volume_num = play_volume_num + 1;
             spiVolumeControl(play_volume_num);
           }
         }
@@ -217,7 +220,7 @@ public void shellMain() {
           play_shuffle_num = (play_shuffle_num + 1) % 2;
         } else if (screen_play_num == 3) {
           if (play_volume_num > 0) {
-            play_volume_num = play_volume_num - 1
+            play_volume_num = play_volume_num - 1;
             spiVolumeControl(play_volume_num);
           }
         }

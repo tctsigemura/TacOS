@@ -28,11 +28,11 @@
  *
  */
 #include <fs.hmm>
+
 #include <util.hmm>
 #include "appUtil.hmm"
 #include "mp3Files.hmm"
-#include <sys/fs.hmm>
-#include <syslib.hmm>
+
 
 //-----------------------------------------------------------------------------
 // MP3ファイルの一覧（ただし，最大５個）
@@ -51,11 +51,11 @@ char[] fnameToPath(char[] fname) {
   return path;
 }
 
-Stat stat;
+Stat mp3Stat = {0, 0, 0, 0};
 
 // 読み出しバッファ
 char[] buf = array(32);
-int[] rates = {1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 1}:
+int[] rates = {1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 1};
 
 public int getFileNum(){
   return numFile;
@@ -64,8 +64,7 @@ public int getFileNum(){
 public int getMp3BitRate(char[] mp3Path){
   int fd = open(path, READ_MODE);           // ファイルをオープン
   if (fd < 0) {                               // オープンできない
-    spanic("panic:can't open MP3 File");
-    return;                                 //   コマンド待に戻る
+    panic("panic:can't open MP3 File");
   }
   if (read(fd, buf, 32) == -1) {
     return 1;
@@ -73,8 +72,8 @@ public int getMp3BitRate(char[] mp3Path){
   int bitRate = ord(buf[2]) & 0x0f;
   close(fd);
                                // ファイルをクローズ
-  stat(mp3Path, stat);
-  return stat.lenL / (rates[bitRate] * 1000);
+  stat(mp3Path, mp3Stat);
+  return mp3Stat.lenL / (rates[bitRate] * 1000);
 }
 
 // /MP3 ディレクトリからファイルの一覧を作る（初期化）
@@ -85,7 +84,7 @@ public void mp3FilesInit() {
   }
   Dir dir;
   int i = 0;
-  while (i<100 && (dir=readDir(fd, "MP3"))　!=　null) { // 最大100こファイル名を読む
+  while (i<100 && (dir=readDir(fd, "MP3"))!=null) { // 最大100こファイル名を読む
     strCpy(fnames[i], dir.name);
     i = i + 1;
   }
