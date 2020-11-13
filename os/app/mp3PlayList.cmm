@@ -7,8 +7,8 @@
 int[] recent = array(100);
 int[] most = array(100);
 int[] mostCount = array(100);
-char[][] recentPlayList = array(100, 13);
-char[][] mostPlayList = array(100, 13);
+char[][] recentPlayList = array(7, 13);
+char[][] mostPlayList = array(7, 13);
 
 public void initPlayList(){
   for (int i = 0; i < 100; i=i+1) {
@@ -71,7 +71,10 @@ public char[] getRecentMp3Name(int n) {
   return null;
 }
 
-public char[][] getAllRecentMp3Name(){
+public char[][] getSevenRecentMp3Name(int start){
+  for (int i=0; i<7; i=i+1){
+    recentPlayList[i] = getRecentMp3Name(start + 1);
+  }
   return recentPlayList;
 }
 
@@ -83,6 +86,9 @@ public char[] getMostMp3Name(int n) {
   return null;
 }
 
-public char[][] getAllMostMp3Name(){
+public char[][] getAllMostMp3Name(int start){
+  for (int i=0; i<7; i=i+1){
+    mostPlayList[i] = getMostMp3Name(start + 1);
+  }
   return mostPlayList;
 }
