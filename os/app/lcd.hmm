@@ -22,6 +22,7 @@
 /*
  * lcd.hmm : 液晶ディスプレイのドライバ
  *
+ * 2020.11.13 : lcdInit作成
  * 2020.08.23 : 新規作成
  *
  */
@@ -30,4 +31,5 @@ public void locateXY(int x, int y);        // カーソル位置
 public void putCh(char c);                 // カーソル位置に１文字表示
 public void putStr(char[] str);            // カーソル位置に文字列表示
 public void putDec(int val, int width);    // カーソル位置に10進数表示
+public void lcdInit(int scene_num, char[] titles, int scene_num); // シーン切り替え時LCD描画
 public void cls();                         // 画面のクリア
