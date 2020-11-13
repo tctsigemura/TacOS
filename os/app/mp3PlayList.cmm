@@ -2,33 +2,43 @@
 #include <util.hmm>
 #include "appUtil.hmm"
 #include "mp3PlayList.hmm"
+#include "mp3Files.hmm"
 
 int[] recent = array(100);
 int[] most = array(100);
 int[] mostCount = array(100);
+char[][] recentPlayList = array(100, 13);
+char[][] mostPlayList = array(100, 13);
+
+public void initPlayList(){
+  for (int i = 0; i < 100; i=i+1) {
+    recent[i] = -1;
+    most[i] = -1;
+  }
+}
 
 public void updateRecentPlayList(int fileNumber){
   int newNumber = 0;
   int i = 0;
 
   for (; i < 100; i=i+1){
-    if(recent[i] == null){
-      newNumber = 0;
+    if(recent[i] == -1){
       break;
     } else if (recent[i] == fileNumber){
-      newNumber = i;
       break;
     }
   }
 
-  for (; newNumber < i; i=i-1){
-    recent[i-1] = recent[i];
+  for (; 0 < i; i=i-1){
+    recent[i] = recent[i-1];
+    recentPlayList[i] = recentPlayList[i-1];
   }
-  recent[newNumber] = fileNumber;
+  recent[0] = fileNumber;
+  recentPlayList[0] = mp3FilesGetName(fileNumber);
 }
 
 public void updateMostPlayList(int fileNumber){
-  if (mostCount[fileNumber] == null) {
+  if (mostCount[fileNumber] == 0) {
     mostCount[fileNumber] = 1;
   } else {
     mostCount[fileNumber] = mostCount[fileNumber] + 1;
@@ -38,17 +48,41 @@ public void updateMostPlayList(int fileNumber){
   int i = 0;
 
   for (; i < 100; i=i+1){
-    if (most[i] == null){
-      newNumber = i;
+    if (most[i] == -1){
       break;
     } else if (mostCount[most[i]] < mostCount[fileNumber]){
-      newNumber = i;
       break;
     }
   }
 
-  for (; newNumber < i; i=i-1){
-    most[i-1] = most[i];
+  for (; 0 < i; i=i-1){
+    most[i] = most[i-1];
+    mostPlayList[i] = mostPlayList[i-1];
   }
-  most[newNumber] = fileNumber;
+  most[0] = fileNumber;
+  recentPlayList[0] = mp3FilesGetName(fileNumber);
+}
+
+// n 番目ファイル名を返す（1<=n && n<=100）
+public char[] getRecentMp3Name(int n) {
+  if (1<=n && n<=100) {
+    return recentPlayList[n-1];
+  }
+  return null;
+}
+
+public char[][] getAllRecentMp3Name(){
+  return recentPlayList;
+}
+
+// n 番目ファイル名を返す（1<=n && n<=100）
+public char[] getMostMp3Name(int n) {
+  if (1<=n && n<=100) {
+    return mostPlayList[n-1];
+  }
+  return null;
+}
+
+public char[][] getAllMostMp3Name(){
+  return mostPlayList;
 }
