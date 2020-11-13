@@ -31,22 +31,46 @@
 #include <util.hmm>
 #include "appUtil.hmm"
 #include "mp3Files.hmm"
+#include <sys/fs.hmm>
+#include <syslib.hmm>
 
 //-----------------------------------------------------------------------------
 // MP3ファイルの一覧（ただし，最大５個）
 //-----------------------------------------------------------------------------
-// ５つのファイル名
-char[][] fnames = array(5, 13);                     // 12345678.123
-int numFile;                                        // ファイルの個数
+// 100このファイル名
+char[][] fnames = array(100, 13);                     // 12345678.123
+int numFile;                                          // ファイルの個数
 
 char[] mp3Dir = "/MP3";
-char[] path = array(18);                            // /MP3/12345678.123
+char[] path = array(18);                             // /MP3/12345678.123
 
 char[] fnameToPath(char[] fname) {
   strCpy(path, mp3Dir);
   strCat(path, "/");
   strCat(path, fname);
   return path;
+}
+
+Stat stat;
+
+// 読み出しバッファ
+char[] buf = array(32);
+int[] rates = {1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 1}:
+
+public int getMp3BitRate(char[] mp3Path){
+  int fd = open(path, READ_MODE);           // ファイルをオープン
+  if (fd < 0) {                               // オープンできない
+    spanic("panic:can't open MP3 File");
+    return;                                 //   コマンド待に戻る
+  }
+  if (read(fd, buf, 32) == -1) {
+    return 1;
+  }
+  int bitRate = ord(buf[2]) & 0x0f;
+  close(fd);
+                               // ファイルをクローズ
+  stat(mp3Path, stat);
+  return stat.lenL / (rates[bitRate] * 1000);
 }
 
 // /MP3 ディレクトリからファイルの一覧を作る（初期化）
@@ -57,7 +81,7 @@ public void mp3FilesInit() {
   }
   Dir dir;
   int i = 0;
-  while (i<5 && (dir=readDir(fd, "MP3"))!=null) {   // 最大5つファイル名を読む
+  while (i<100 && (dir=readDir(fd, "MP3"))　!=　null) { // 最大100こファイル名を読む
     strCpy(fnames[i], dir.name);
     i = i + 1;
   }
@@ -65,7 +89,7 @@ public void mp3FilesInit() {
   close(fd);
 }
 
-// n 番目ファイル名を返す（1<=n && n<=5）
+// n 番目ファイル名を返す（1<=n && n<=100）
 public char[] mp3FilesGetName(int n) {
   if (1<=n && n<=numFile) {
     return fnames[n-1];
@@ -73,7 +97,11 @@ public char[] mp3FilesGetName(int n) {
   return null;
 }
 
-// n 番目パス名を返す（1<=n && n<=5）
+public char[][] getAllMp3Files(){
+  return fnames;
+}
+
+// n 番目パス名を返す（1<=n && n<=100）
 public char[] mp3FilesGetPath(int n) {
   if (1<=n && n<=numFile) {
     return fnameToPath(fnames[n-1]);
