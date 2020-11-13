@@ -82,13 +82,13 @@ public void putDec(int val, int width) {
   }
 }
 
-char[] initScene = {{'HOME', '*ALL', '-RECENT RANK', '-MOST RANK'},
+char[][] initScene = {{'HOME', '*ALL', '-RECENT RANK', '-MOST RANK'},
                     {'LIST-', '*------'},
                     {'*', ' [+-----------]', ' ', '-REPEATE [TRACK]', ' ', '-SHUFFLE[OFF]', ' ', '-VOLUME[3/5]'}};
 char[] lists = {'ALL', 'RECENT','MOST'};
 
 
-public void lcdInit(int scene_num, char[][] titles, int list_num){
+public void lcdInit(int scene_num, char[] titles, int list_num){
   if (scene_num ==1){
     locate(6,0);
     putStr(lists[list_num]);
