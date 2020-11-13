@@ -187,3 +187,13 @@ public void spiFlushMp3() {
   out(0x18, 0xfc);                     // xDCS='1', clk='0'
   semV(spiSem);
 }
+
+public void spiVolumeControl(int volume){ //volumeは0から5
+  int volhex = 0x00;
+  if(volume==0){ volhex=0xff; } //音量5:-infdB
+  else if(volume==1){ volhex=0x68; } //音量4:-104dB
+  else if(volume==2){ volhex=0x4e; } //音量3:-78dB
+  else if(volume==3){ volhex=0x34; } //音量2:-52dB
+  else if(volume==4){ volhex=0x1a; } //音量1:-26dB
+  else if(volume==5){ volhex=0x00; } //音量0:0dB
+  spiWriteMp3Reg(0x0b,volhex) //volume変数の値に音量調整
