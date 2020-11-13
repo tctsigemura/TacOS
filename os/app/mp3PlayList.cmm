@@ -86,7 +86,7 @@ public char[] getMostMp3Name(int n) {
   return null;
 }
 
-public char[][] getAllMostMp3Name(int start){
+public char[][] getSevenMostMp3Name(int start){
   for (int i=0; i<7; i=i+1){
     mostPlayList[i] = getMostMp3Name(start + i + 1);
   }
