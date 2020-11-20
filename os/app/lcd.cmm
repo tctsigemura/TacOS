@@ -84,7 +84,7 @@ public void putDec(int val, int width) {
 
 char[][] initScene = {{'HOME', '*ALL', '-RECENT RANK', '-MOST RANK'},
                     {'LIST-', '*------'},
-                    {'*', ' [+-----------]', ' ', '-REPEATE [TRACK]', ' ', '-SHUFFLE[OFF]', ' ', '-VOLUME[3/5]'}};
+                    {'*', ' [+-----------]', ' ', '-REPEATE [TRACK]', ' ', '-SHUFFLE[OFF]', ' ', '-VOLUME [3/5]'}};
 char[] lists = {'ALL', 'RECENT','MOST'};
 
 
