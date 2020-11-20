@@ -101,7 +101,7 @@ public char[] mp3FilesGetName(int n) {
   return null;
 }
 
-public char[][] getSevenMp3Files(){
+public char[][] getSevenMp3Files(int start){
   for (int i=0; i<7; i=i+1){
     allMp3Files[i] = mp3FilesGetName(start + i +1);
   }

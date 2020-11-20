@@ -2,6 +2,6 @@ public void initPlayList();
 public void updateRecentPlayList(int fileNumber);
 public void updateMostPlayList(int fileNumber);
 public char[] getRecentMp3Name(int n);
-public char[][] getSevenRecentMp3Name();
+public char[][] getSevenRecentMp3Name(int start);
 public char[] getMostMp3Name(int n);
-public char[][] getSevenMostMp3Name();
+public char[][] getSevenMostMp3Name(int start);
