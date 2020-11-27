@@ -332,10 +332,10 @@ public void shellMain() {
         //画面遷移
       } else if (buttonNumber == 5) {
         //アスタリスクの位置の更新
-        locateXY(2, screen_play_pos[screen_play_num]);
+        locateXY(1, screen_play_pos[screen_play_num]);
         putCh('-');
         screen_play_num = (screen_play_num + 1) % 4;
-        locateXY(2, screen_play_pos[screen_play_num]);
+        locateXY(1, screen_play_pos[screen_play_num]);
         putCh('*');
       } else if (buttonNumber == 6) {
         //fav_musicの再生
