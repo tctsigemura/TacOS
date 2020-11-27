@@ -37,9 +37,9 @@
 //-----------------------------------------------------------------------------
 // MP3ファイルの一覧（ただし，最大５個）
 //-----------------------------------------------------------------------------
-// 100このファイル名
-char[][] fnames = array(100, 13);                     // 12345678.123
-char[][] allMp3Files = array(100, 13);
+// 32このファイル名
+char[][] fnames = array(32, 13);                     // 12345678.123
+char[][] allMp3Files = array(32, 13);
 int numFile;                                          // ファイルの個数
 
 char[] mp3Dir = "/MP3";
@@ -85,7 +85,7 @@ public void mp3FilesInit() {
   }
   Dir dir;
   int i = 0;
-  while (i<100 && (dir=readDir(fd, "MP3"))!=null) { // 最大100こファイル名を読む
+  while (i<32 && (dir=readDir(fd, "MP3"))!=null) { // 最大100こファイル名を読む
     strCpy(fnames[i], dir.name);
     i = i + 1;
   }

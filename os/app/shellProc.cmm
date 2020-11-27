@@ -231,10 +231,10 @@ public void shellMain() {
         lcdInit(screen_mode, null, 0);
         //画面遷移
       } else if (buttonNumber == 5) {
-        locateXY(1, screen_home_num+1);//前回のscreen＿list＿buttonNumberの位置の＊を-に変える
+        locateXY(1, screen_list_num+1);//前回のscreen＿list＿buttonNumberの位置の＊を-に変える
         putCh('-');
         screen_list_num = (screen_list_num + 1) % 7; //screen_list_num更新
-        locateXY(1, screen_home_num+1);//screen＿list＿buttonNumberの位置の-を*に変える
+        locateXY(1, screen_list_num+1);//screen＿list＿buttonNumberの位置の-を*に変える
         putCh('*');
         //アスタリスクの位置の更新
       } else if (buttonNumber == 6) {
