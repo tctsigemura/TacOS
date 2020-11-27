@@ -162,16 +162,11 @@ public void shellMain() {
         //
 
       } else if(buttonNumber == 5){
-        screen_home_num = (screen_home_num + 1) % 3;
         //アスタリスクの位置の更新
-        locateXY(1, screen_home_num+1);
+        locateXY(1, screen_home_num);
         putCh('-');
-        if (screen_home_num !=2){
-          locateXY(1, screen_home_num+2);
-        }
-        else {
-          locateXY(1, screen_home_num-1);
-        }
+        screen_home_num = (screen_home_num + 1) % 3;
+        locateXY(1, screen_home_num);
         putCh('*');
       } else if (buttonNumber == 6){
         //fav_musicの再生
