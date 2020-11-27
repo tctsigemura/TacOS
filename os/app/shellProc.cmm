@@ -163,10 +163,10 @@ public void shellMain() {
 
       } else if(buttonNumber == 5){
         //アスタリスクの位置の更新
-        locateXY(1, screen_home_num);
+        locateXY(1, screen_home_num + 1);
         putCh('-');
         screen_home_num = (screen_home_num + 1) % 3;
-        locateXY(1, screen_home_num);
+        locateXY(1, screen_home_num + 1);
         putCh('*');
       } else if (buttonNumber == 6){
         //fav_musicの再生
@@ -227,6 +227,7 @@ public void shellMain() {
         //曲リストを移動（lcd変更）
       } else if (buttonNumber == 4) {
         screen_mode = 0;
+        screen_home_num = 0;
         lcdInit(screen_mode, null, 0);
         //画面遷移
       } else if (buttonNumber == 5) {

@@ -73,7 +73,11 @@ public char[] getRecentMp3Name(int n) {
 
 public char[][] getSevenRecentMp3Name(int start){
   for (int i=0; i<7; i=i+1){
-    recentPlayList[i] = getRecentMp3Name(start + i + 1);
+    if (getRecentMp3Name(start + i + 1) != null) {
+      recentPlayList[i] = getRecentMp3Name(start + i + 1);
+    } else {
+      recentPlayList[i] = "NONE";
+    }
   }
   return recentPlayList;
 }
@@ -88,7 +92,11 @@ public char[] getMostMp3Name(int n) {
 
 public char[][] getSevenMostMp3Name(int start){
   for (int i=0; i<7; i=i+1){
-    mostPlayList[i] = getMostMp3Name(start + i + 1);
+    if (getMostMp3Name(start + i + 1) != null) {
+      mostPlayList[i] = getMostMp3Name(start + i + 1);
+    } else {
+      mostPlayList[i] = "NONE";
+    }
   }
   return mostPlayList;
 }
