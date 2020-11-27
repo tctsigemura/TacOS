@@ -139,7 +139,7 @@ public void shellMain() {
   spiResetLcd();                                    // sleepを使用するので
   spiResetMp3();                                    //   プロセスが実行する
   mp3FilesInit();                                   // ファイル一覧を作る
-  demoScreen();                                     // 画面を初期化
+  initPlayList();
   lcdInit(screen_mode, null, 0);                  //home画面表示
 
   for (;;) {
@@ -195,6 +195,8 @@ public void shellMain() {
 
         playingMusic[0] = getPlayingMusicPath(listPage * 7 + screen_list_num);
         lcdInit(2, playingMusic, -1);
+        updateRecentPlayList(listPage * 7 + screen_list_num - 1);
+        updateMostPlayList(listPage * 7 + screen_list_num - 1);
         play(playingMusic[0]);
       } else if (num == 2) {
         //ページ戻し
@@ -242,9 +244,6 @@ public void shellMain() {
       } else if (num == 6) {
         //fav_musicの登録
         fav_path = getPlayingMusicPath(listPage * 7 + screen_list_num);
-        playingMusic[0] = fav_path;
-        lcdInit(2, playingMusic, -1);
-        play(playingMusic[0]);
       }
     } else if (screen_mode == 2) {
 
@@ -263,6 +262,8 @@ public void shellMain() {
           playingMusic[0] = getPlayingMusicPath(listPage * 7 + screen_list_num - 1);
           //play(getPlayingMusicPath(listPage * 7 + screen_list_num - 1));
           lcdInit(2, playingMusic, -1);
+          updateRecentPlayList(listPage * 7 + screen_list_num - 1);
+          updateMostPlayList(listPage * 7 + screen_list_num - 1);
           play(playingMusic[0]);
         } else if (screen_play_num == 1) {
           play_repeat_num = (play_repeat_num + 1) % 2;
@@ -296,6 +297,8 @@ public void shellMain() {
           // 次の曲を再生
           playingMusic[0] = getPlayingMusicPath(listPage * 7 + screen_list_num + 1);
           lcdInit(2, playingMusic, -1);
+          updateRecentPlayList(listPage * 7 + screen_list_num - 1);
+          updateMostPlayList(listPage * 7 + screen_list_num - 1);
           play(playingMusic[0]);
         } else if (screen_play_num == 1) {
           play_repeat_num = (play_repeat_num + 1) % 2;
