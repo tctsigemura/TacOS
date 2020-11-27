@@ -260,7 +260,7 @@ public void shellMain() {
         if(screen_play_num == 0) {
           // 前の曲を再生
           playingMusic[0] = getPlayingMusicPath(listPage * 7 + screen_list_num - 1);
-          //play(getPlayingMusicPath(listPage * 7 + screen_list_num - 1));
+          // play(getPlayingMusicPath(listPage * 7 + screen_list_num - 1));
           lcdInit(2, playingMusic, -1);
           updateRecentPlayList(listPage * 7 + screen_list_num - 1);
           updateMostPlayList(listPage * 7 + screen_list_num - 1);
