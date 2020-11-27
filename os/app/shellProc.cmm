@@ -247,8 +247,10 @@ public void shellMain() {
         if (isPlaying){
           stop();
         } else {
-          //play(getPlayingMusicPath(listPage * 7 + screen_list_num));
-          play(playingMusic[0]);
+          updateRecentPlayList(listPage * 7 + screen_list_num);
+          updateMostPlayList(listPage * 7 + screen_list_num);
+          play(getPlayingMusicPath(listPage * 7 + screen_list_num));
+          // play(playingMusic[0]);
         }
         isPlaying = !isPlaying;
       } else if (buttonNumber == 2) {
@@ -292,8 +294,8 @@ public void shellMain() {
           // 次の曲を再生
           playingMusic[0] = getPlayingMusicPath(listPage * 7 + screen_list_num + 1);
           lcdInit(2, playingMusic, -1);
-          updateRecentPlayList(listPage * 7 + screen_list_num - 1);
-          updateMostPlayList(listPage * 7 + screen_list_num - 1);
+          updateRecentPlayList(listPage * 7 + screen_list_num + 1);
+          updateMostPlayList(listPage * 7 + screen_list_num + 1);
           play(playingMusic[0]);
         } else if (screen_play_num == 1) {
           play_repeat_num = (play_repeat_num + 1) % 2;
