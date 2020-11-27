@@ -139,7 +139,7 @@ public void shellMain() {
   spiResetLcd();                                    // sleepを使用するので
   spiResetMp3();                                    //   プロセスが実行する
   mp3FilesInit();                                   // ファイル一覧を作る
-  initPlayList();
+  demoScreen();                                     // 画面を初期化
   lcdInit(screen_mode, null, 0);                  //home画面表示
 
   for (;;) {
@@ -261,10 +261,8 @@ public void shellMain() {
         if(screen_play_num == 0) {
           // 前の曲を再生
           playingMusic[0] = getPlayingMusicPath(listPage * 7 + screen_list_num - 1);
-          // play(getPlayingMusicPath(listPage * 7 + screen_list_num - 1));
+          //play(getPlayingMusicPath(listPage * 7 + screen_list_num - 1));
           lcdInit(2, playingMusic, -1);
-          updateRecentPlayList(listPage * 7 + screen_list_num - 1);
-          updateMostPlayList(listPage * 7 + screen_list_num - 1);
           play(playingMusic[0]);
         } else if (screen_play_num == 1) {
           play_repeat_num = (play_repeat_num + 1) % 2;
