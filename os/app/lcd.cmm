@@ -100,7 +100,7 @@ public void lcdInit(int scene_num, char[][] titles, int list_num){
       }
     }
   }
-}
+
  if (scene_num ==1){
    locateXY(6,0);
    putStr(lists[list_num]);
