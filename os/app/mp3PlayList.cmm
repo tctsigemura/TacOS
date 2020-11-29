@@ -4,14 +4,14 @@
 #include "mp3PlayList.hmm"
 #include "mp3Files.hmm"
 
-int[] recent = array(100);
-int[] most = array(100);
-int[] mostCount = array(100);
+int[] recent = array(32);
+int[] most = array(32);
+int[] mostCount = array(32);
 char[][] recentPlayList = array(7, 13);
 char[][] mostPlayList = array(7, 13);
 
 public void initPlayList(){
-  for (int i = 0; i < 100; i=i+1) {
+  for (int i = 0; i < 32; i=i+1) {
     recent[i] = -1;
     most[i] = -1;
   }
@@ -21,7 +21,7 @@ public void updateRecentPlayList(int fileNumber){
   int newNumber = 0;
   int i = 0;
 
-  for (; i < 100; i=i+1){
+  for (; i < 32; i=i+1){
     if(recent[i] == -1){
       break;
     } else if (recent[i] == fileNumber){
@@ -29,12 +29,14 @@ public void updateRecentPlayList(int fileNumber){
     }
   }
 
-  for (; 0 < i; i=i-1){
-    recent[i] = recent[i-1];
-    recentPlayList[i] = recentPlayList[i-1];
+  if (i != 0){
+    for (; 0 < i; i=i-1){
+      recent[i] = recent[i-1];
+      recentPlayList[i] = recentPlayList[i-1];
+    }
+    recent[0] = fileNumber;
+    recentPlayList[0] = mp3FilesGetName(fileNumber);
   }
-  recent[0] = fileNumber;
-  recentPlayList[0] = mp3FilesGetName(fileNumber);
 }
 
 public void updateMostPlayList(int fileNumber){
@@ -47,7 +49,7 @@ public void updateMostPlayList(int fileNumber){
   int newNumber = 0;
   int i = 0;
 
-  for (; i < 100; i=i+1){
+  for (; i < 32; i=i+1){
     if (most[i] == -1){
       break;
     } else if (mostCount[most[i]] < mostCount[fileNumber]){
@@ -55,17 +57,19 @@ public void updateMostPlayList(int fileNumber){
     }
   }
 
-  for (; 0 < i; i=i-1){
-    most[i] = most[i-1];
-    mostPlayList[i] = mostPlayList[i-1];
+  if (i != 0){
+    for (; 0 < i; i=i-1){
+      most[i] = most[i-1];
+      mostPlayList[i] = mostPlayList[i-1];
+    }
+    most[0] = fileNumber;
+    recentPlayList[0] = mp3FilesGetName(fileNumber);
   }
-  most[0] = fileNumber;
-  recentPlayList[0] = mp3FilesGetName(fileNumber);
 }
 
 // n 番目ファイル名を返す（1<=n && n<=100）
 public char[] getRecentMp3Name(int n) {
-  if (1<=n && n<=100) {
+  if (1<=n && n<=32) {
     return recentPlayList[n-1];
   }
   return null;
@@ -73,14 +77,18 @@ public char[] getRecentMp3Name(int n) {
 
 public char[][] getSevenRecentMp3Name(int start){
   for (int i=0; i<7; i=i+1){
-    recentPlayList[i] = getRecentMp3Name(start + i + 1);
+    if (getRecentMp3Name(start + i + 1) != null) {
+      recentPlayList[i] = getRecentMp3Name(start + i + 1);
+    } else {
+      recentPlayList[i] = "NONE";
+    }
   }
   return recentPlayList;
 }
 
 // n 番目ファイル名を返す（1<=n && n<=100）
 public char[] getMostMp3Name(int n) {
-  if (1<=n && n<=100) {
+  if (1<=n && n<=32) {
     return mostPlayList[n-1];
   }
   return null;
@@ -88,7 +96,11 @@ public char[] getMostMp3Name(int n) {
 
 public char[][] getSevenMostMp3Name(int start){
   for (int i=0; i<7; i=i+1){
-    mostPlayList[i] = getMostMp3Name(start + i + 1);
+    if (getMostMp3Name(start + i + 1) != null) {
+      mostPlayList[i] = getMostMp3Name(start + i + 1);
+    } else {
+      mostPlayList[i] = "NONE";
+    }
   }
   return mostPlayList;
 }
