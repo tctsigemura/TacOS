@@ -102,7 +102,7 @@ void demoScreen() {
     locateXY(2,i+1);
     putCh(chr(ord('0')+i));                         // スイッチの番号
     putStr(":");
-    char[] fname = mp3FilesGetName(i);              // 対応するファイル名
+    char[] fname = getMp3FileName(i);              // 対応するファイル名
     if (fname!=null) putStr(fname);
   }
   locateXY(2,7);
@@ -121,7 +121,7 @@ char[] getPlayingMusicPath(int n){
   }
 
   if (screen_home_num == 0){
-    return getPathFromFileName(mp3FilesGetName(n));
+    return getPathFromFileName(getMp3FileName(n));
   } else if (screen_home_num == 1) {
     return getPathFromFileName(getRecentMp3Name(n));
   } else {
@@ -179,7 +179,7 @@ public void shellMain() {
         //曲再生
         screen_mode = 2;
         if (screen_home_num == 0){
-          playingMusic[0] = mp3FilesGetName(listPage * 7 + screen_list_num);
+          playingMusic[0] = getMp3FileName(listPage * 7 + screen_list_num);
           }
         else if (screen_home_num == 1){
           playingMusic[0] = getRecentMp3Name(listPage * 7 + screen_list_num);
