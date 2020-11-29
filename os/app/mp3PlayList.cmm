@@ -29,12 +29,14 @@ public void updateRecentPlayList(int fileNumber){
     }
   }
 
-  for (; 0 < i; i=i-1){
-    recent[i] = recent[i-1];
-    recentPlayList[i] = recentPlayList[i-1];
+  if (i != 0){
+    for (; 0 < i; i=i-1){
+      recent[i] = recent[i-1];
+      recentPlayList[i] = recentPlayList[i-1];
+    }
+    recent[0] = fileNumber;
+    recentPlayList[0] = mp3FilesGetName(fileNumber);
   }
-  recent[0] = fileNumber;
-  recentPlayList[0] = mp3FilesGetName(fileNumber);
 }
 
 public void updateMostPlayList(int fileNumber){
@@ -55,12 +57,14 @@ public void updateMostPlayList(int fileNumber){
     }
   }
 
-  for (; 0 < i; i=i-1){
-    most[i] = most[i-1];
-    mostPlayList[i] = mostPlayList[i-1];
+  if (i != 0){
+    for (; 0 < i; i=i-1){
+      most[i] = most[i-1];
+      mostPlayList[i] = mostPlayList[i-1];
+    }
+    most[0] = fileNumber;
+    recentPlayList[0] = mp3FilesGetName(fileNumber);
   }
-  most[0] = fileNumber;
-  recentPlayList[0] = mp3FilesGetName(fileNumber);
 }
 
 // n 番目ファイル名を返す（1<=n && n<=100）
