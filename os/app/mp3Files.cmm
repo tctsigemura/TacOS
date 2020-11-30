@@ -55,7 +55,7 @@ char[] fnameToPath(char[] fname) {
 Stat mp3Stat = {0, 0, 0, 0};
 
 // 読み出しバッファ
-char[] tagInfoArray = array(2);
+char[] tagInfoArray = array(3);
 
 int[] mpeg1Rates = {1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 1};
 
@@ -65,44 +65,44 @@ public int getFileNum(){
   return numFile;
 }
 
-
-
 public int getMp3PlayTime(char[] mp3Path){
   int fd = open(path, READ_MODE);             // ファイルをオープン
   if (fd < 0) {                               // オープンできない
     panic("panic:can't open MP3 File");
   }
-  if (seek(fd, 0, 400) == -1){
+  if (seek(fd, 0, 0x400) == -1){  // 決め打ち
     return 1;
   }
-  if (read(fd, tagInfoArray, 2) == -1) {
+
+  if (read(fd, tagInfoArray, 3) == -1) {
     printF("error");
     return 1;
   }
 
   close(fd);
 
-  int mpegVersion = ord(tagInfoArray[0]) & 0x18;
-  int bitRate = ord(tagInfoArray[1]) & 0xf0;
+  int mpegVersion = ord(tagInfoArray[1]) & 0x18;
+  mpegVersion = mpegVersion / 8;
+  int bitRate = ord(tagInfoArray[2]) & 0xf0;
+  bitRate = bitRate / 16;
 
   int bps = 1;
-  if (mpegVersion == 0x00) {
+  if (mpegVersion == 0 || mpegVersion == 2) {
     bps = mpeg2_5Rates[bitRate];
-  } else if (mpegVersion == 0x11){
+  } else if (mpegVersion == 3){
     bps = mpeg1Rates[bitRate];
   }
-
-  #ifdef DEBUG
                                // ファイルをクローズ
   if (stat(mp3Path, mp3Stat) == -1) {
     printF("error");
   }
-    printF("clst: %d", mp3Stat.clst);
-    printF("rate: %d", bps);
-    printF("time: %d", mp3Stat.lenL);
+  #ifdef DEBUG
+    printF("version: %d ", mpegVersion);
+    printF("rate: %d ", bps);
+    printF("time: %d ", (mp3Stat.lenL / 1000) * 8 / bps);
   #endif
 
-  return (mp3Stat.lenL / 1000) / bps;
+  return (mp3Stat.lenL / 1000) * 8 / bps;
 }
 
 // /MP3 ディレクトリからファイルの一覧を作る（初期化）
