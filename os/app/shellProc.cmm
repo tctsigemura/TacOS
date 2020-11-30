@@ -92,29 +92,6 @@ int swToNum(int sw) {
   return buttonNumber;
 }
 
-//-----------------------------------------------------------------------------
-// 画面表示
-//-----------------------------------------------------------------------------
-void demoScreen() {
-  cls();                                            // LCDをクリアする
-  locateXY(0,0); putStr("MP3 Player demo");
-  for (int i=1; i<=5; i=i+1) {                      // スイッチ1〜5に付いて
-    locateXY(2,i+1);
-    putCh(chr(ord('0')+i));                         // スイッチの番号
-    putStr(":");
-    char[] fname = getMp3FileName(i);              // 対応するファイル名
-    if (fname!=null) putStr(fname);
-  }
-  locateXY(2,7);
-  putStr("6:stop");                                 // 6番のスイッチ
-}
-
-void asta(int y) {
-  demoScreen();
-  locateXY(0, y+1);
-  putCh('*');
-}
-
 char[] getPlayingMusicPath(int n){
   if (n < 0) {
     n = 0;
@@ -250,6 +227,7 @@ public void shellMain() {
         } else {
           updateRecentPlayList(listPage * 7 + screen_list_num);
           updateMostPlayList(listPage * 7 + screen_list_num);
+          getMp3BitRate(getPlayingMusicPath(listPage * 7 + screen_list_num));
           play(getPlayingMusicPath(listPage * 7 + screen_list_num));
           // play(playingMusic[0]);
         }
