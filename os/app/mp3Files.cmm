@@ -67,7 +67,7 @@ public int getFileNum(){
 
 
 
-public int getMp3BitRate(char[] mp3Path){
+public int getMp3PlayTime(char[] mp3Path){
   int fd = open(path, READ_MODE);           // ファイルをオープン
   if (fd < 0) {                               // オープンできない
     panic("panic:can't open MP3 File");
