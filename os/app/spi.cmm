@@ -36,6 +36,7 @@
 
 // ハードウェアを排他使用するためのセマホ
 int spiSem;
+int volhex;
 
 // 初期化（プロセス起動前の初期化）
 public void spiInit() {
@@ -189,13 +190,12 @@ public void spiFlushMp3() {
 }
 
 public void spiVolumeControl(int volume){ //volumeは0から5
-  int volhex = 0x00;
-  if(volume==0){ volhex=0xff; } //音量5:-infdB
-  else if(volume==1){ volhex=0x68; } //音量4:-104dB
-  else if(volume==2){ volhex=0x4e; } //音量3:-78dB
-  else if(volume==3){ volhex=0x34; } //音量2:-52dB
-  else if(volume==4){ volhex=0x1a; } //音量1:-26dB
-  else if(volume==5){ volhex=0x00; } //音量0:0dB
+  if(volume==0){ volhex=0xfefe; } //音量5:-infdB
+  else if(volume==1){ volhex=0x6868; } //音量4:-104dB
+  else if(volume==2){ volhex=0x4e4e; } //音量3:-78dB
+  else if(volume==3){ volhex=0x3434; } //音量2:-52dB
+  else if(volume==4){ volhex=0x1a1a; } //音量1:-26dB
+  else if(volume==5){ volhex=0x0000; } //音量0:0dB
   spiWriteMp3Reg(0x0b,volhex); //volume変数の値に音量調整
 }
 
