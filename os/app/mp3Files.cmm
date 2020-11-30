@@ -104,16 +104,16 @@ public void mp3FilesInit() {
 
 // n 番目ファイル名を返す（1<=n && n<=100）
 public char[] getMp3FileName(int n) {
-  if (1<=n && n<=numFile) {
-    return fnames[n-1];
+  if (0<=n && n<=numFile) {
+    return fnames[n];
   }
   return null;
 }
 
 public char[][] getSevenMp3Files(int start){
   for (int i=0; i<7; i=i+1){
-    if (getMp3FileName(start + i +1) != null){
-      allMp3Files[i] = getMp3FileName(start + i +1);
+    if (getMp3FileName(start + i) != null){
+      allMp3Files[i] = getMp3FileName(start + i);
     } else {
       allMp3Files[i] = "NONE";
     }
