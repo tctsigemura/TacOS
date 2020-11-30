@@ -72,8 +72,17 @@ public int getMp3BitRate(char[] mp3Path){
   }
   int bitRate = ord(buf[2]) & 0x0f;
   close(fd);
+
+  #ifdef DEBUG
                                // ファイルをクローズ
-  stat(mp3Path, mp3Stat);
+  if (stat(mp3Path, mp3Stat) == -1) {
+    printF("error");
+  }
+    printF("clst: %d", mp3Stat.clst);
+    printF("rate: %d", (rates[bitRate]));
+    printF("time: %d", mp3Stat.lenL);
+  #endif
+
   return mp3Stat.lenL / (rates[bitRate] * 1000);
 }
 
