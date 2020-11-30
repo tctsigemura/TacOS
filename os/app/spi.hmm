@@ -38,3 +38,4 @@ public void spiWriteMp3Dat(char[] dbuf, int len);
 public void spiResetMp3();
 public void spiFlushMp3();
 public void spiVolumeControl(int volume);
+public int spiGetDecodeTime();

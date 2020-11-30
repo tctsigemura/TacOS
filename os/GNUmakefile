@@ -32,7 +32,7 @@
 # 2011.05.11 : 初期バージョン
 
 # デバッグ
-#DEBUG=DEBUG=1
+DEBUG=DEBUG=1
 
 #　ディレクトリを移動する際のログを出力しない
 MAKEFLAGS=--no-print-directory
@@ -70,7 +70,7 @@ kernel0.bin : clean0
 	size-- kernel0.o
 	objbin-- 0x0000 kernel0.bin kernel0.o | sort --key=1 > kernel0.map
 
-# 
+#
 clean1 :
 	rm -f kernel.bin kernel.map kernel.o kernel.sym *~
 	$(foreach dir,$(GENSUBDIRS),$(MAKE) --directory=$(dir) clean;)

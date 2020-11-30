@@ -55,26 +55,54 @@ char[] fnameToPath(char[] fname) {
 Stat mp3Stat = {0, 0, 0, 0};
 
 // 読み出しバッファ
-char[] buf = array(32);
-int[] rates = {1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 1};
+char[] tagInfoArray = array(2);
+
+int[] mpeg1Rates = {1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 1};
+
+int[] mpeg2_5Rates = {1, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 1};
 
 public int getFileNum(){
   return numFile;
 }
 
-public int getMp3BitRate(char[] mp3Path){
-  int fd = open(path, READ_MODE);           // ファイルをオープン
+
+
+public int getMp3PlayTime(char[] mp3Path){
+  int fd = open(path, READ_MODE);             // ファイルをオープン
   if (fd < 0) {                               // オープンできない
     panic("panic:can't open MP3 File");
   }
-  if (read(fd, buf, 32) == -1) {
+  if (seek(fd, 0, 400) == -1){
     return 1;
   }
-  int bitRate = ord(buf[2]) & 0x0f;
+  if (read(fd, tagInfoArray, 2) == -1) {
+    printF("error");
+    return 1;
+  }
+
   close(fd);
+
+  int mpegVersion = ord(tagInfoArray[0]) & 0x18;
+  int bitRate = ord(tagInfoArray[1]) & 0xf0;
+
+  int bps = 1;
+  if (mpegVersion == 0x00) {
+    bps = mpeg2_5Rates[bitRate];
+  } else if (mpegVersion == 0x11){
+    bps = mpeg1Rates[bitRate];
+  }
+
+  #ifdef DEBUG
                                // ファイルをクローズ
-  stat(mp3Path, mp3Stat);
-  return mp3Stat.lenL / (rates[bitRate] * 1000);
+  if (stat(mp3Path, mp3Stat) == -1) {
+    printF("error");
+  }
+    printF("clst: %d", mp3Stat.clst);
+    printF("rate: %d", bps);
+    printF("time: %d", mp3Stat.lenL);
+  #endif
+
+  return (mp3Stat.lenL / 1000) / bps;
 }
 
 // /MP3 ディレクトリからファイルの一覧を作る（初期化）
@@ -94,17 +122,17 @@ public void mp3FilesInit() {
 }
 
 // n 番目ファイル名を返す（1<=n && n<=100）
-public char[] mp3FilesGetName(int n) {
-  if (1<=n && n<=numFile) {
-    return fnames[n-1];
+public char[] getMp3FileName(int n) {
+  if (0<=n && n<=numFile) {
+    return fnames[n];
   }
   return null;
 }
 
 public char[][] getSevenMp3Files(int start){
   for (int i=0; i<7; i=i+1){
-    if (mp3FilesGetName(start + i +1) != null){
-      allMp3Files[i] = mp3FilesGetName(start + i +1);
+    if (getMp3FileName(start + i) != null){
+      allMp3Files[i] = getMp3FileName(start + i);
     } else {
       allMp3Files[i] = "NONE";
     }
