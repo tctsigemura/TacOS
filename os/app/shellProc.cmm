@@ -359,7 +359,7 @@ public void shellMain() {
       //progressCountが増えた(変わった)時にシークバー更新．
       //if (latestProgressCount != pastProgressCount){
         //if(latestProgressCount != 12){
-          //locate(3+pastProgressCount, 1);
+          //locateXY(3+pastProgressCount, 1);
           //putCh('-');
           //locateXY(3+latestProgressCount, 1);
           //putCh('+');
