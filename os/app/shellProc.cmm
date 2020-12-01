@@ -71,6 +71,7 @@ int isPlaying = 0;
 int playingMusicTime = 0;
 int latestProgressCount = 0;
 int pastProgressCount = 0;
+
 int readSw() {
   int sw = ~in(0x18) & SWS;                         // スイッチを読み正論理に変換
   int swd = sw & sw0;                               // デバウンス
@@ -173,9 +174,11 @@ public void shellMain() {
         lcdInit(2, playingMusic, -1);
         updateRecentPlayList(showingListPage * 7 + listScreenSelectedItem - 1);
         updateMostPlayList(showingListPage * 7 + listScreenSelectedItem - 1);
-        //latestProgressCount = 0;
-        //pastProgressCount = 0;
+        latestProgressCount = 0;
+        pastProgressCount = 0;
         play(playingMusic[0]);
+        sleep(5);   
+        //playingMusicTime = getMp3PlayTime(getPlayingMusicPath(showingListPage * 7 + listScreenSelectedItem));
       } else if (buttonNumber == 2) {
         //ページ戻し
         if (showingListPage > 0) {
@@ -229,12 +232,14 @@ public void shellMain() {
         //playとpauseの切り替え
         if (isPlaying == 0){
           stop();
+          latestProgressCount = 0;
+          pastProgressCount = 0;
         } else {
           updateRecentPlayList(showingListPage * 7 + listScreenSelectedItem);
           updateMostPlayList(showingListPage * 7 + listScreenSelectedItem);
           playingMusicTime = getMp3PlayTime(getPlayingMusicPath(showingListPage * 7 + listScreenSelectedItem));
           play(getPlayingMusicPath(showingListPage * 7 + listScreenSelectedItem));
-          // play(playingMusic[0]);
+          play(playingMusic[0]);
         }
         isPlaying = (isPlaying + 1) % 2;
       } else if (buttonNumber == 2) {
@@ -245,8 +250,8 @@ public void shellMain() {
           updateRecentPlayList(showingListPage * 7 + listScreenSelectedItem);
           updateMostPlayList(showingListPage * 7 + listScreenSelectedItem);
           listScreenSelectedItem = listScreenSelectedItem - 1;
-          //latestProgressCount = 0;
-          //pastProgressCount = 0;
+          latestProgressCount = 0;
+          pastProgressCount = 0;
           play(playingMusic[0]);
         } else if (playingScreenSelectedItem == 1) {
           repeatMode = (repeatMode + 1) % 2;
@@ -283,8 +288,8 @@ public void shellMain() {
           updateRecentPlayList(showingListPage * 7 + listScreenSelectedItem + 1);
           updateMostPlayList(showingListPage * 7 + listScreenSelectedItem + 1);
           listScreenSelectedItem = listScreenSelectedItem + 1;
-          //latestProgressCount = 0;
-          //pastProgressCount = 0;
+          latestProgressCount = 0;
+          pastProgressCount = 0;
           play(playingMusic[0]);
         } else if (playingScreenSelectedItem == 1) {
           repeatMode = (repeatMode + 1) % 2;
@@ -350,22 +355,27 @@ public void shellMain() {
         // シークバーが12分割により1分割ずつの進み具合が求まるはず?
         // TODO 要調節
         if (playingMusicTime != 0){
-          printF("time: %d ", spiGetDecodeTime()*12 / playingMusicTime);
+          //printF("time: %d ", spiGetDecodeTime()*12 / playingMusicTime);
+          printF("time: %d ", playingMusicTime);
         }
       #endif
 
       //表示部作成中
-     // latestProgressCount = spiGetDecodeTime()*12 / playingMusicTime;// 0から11(12?)になるはず
+      if (playingMusicTime != 0){
+        latestProgressCount = spiGetDecodeTime()*12 / playingMusicTime;// 0から11(12?)になるはず
+      } else{
+        latestProgressCount = 0;
+      }
       //progressCountが増えた(変わった)時にシークバー更新．
-      //if (latestProgressCount != pastProgressCount){
-        //if(latestProgressCount != 12){
-          //locate(3+pastProgressCount, 1);
-          //putCh('-');
-          //locateXY(3+latestProgressCount, 1);
-          //putCh('+');
-          //pastProgressCount = latestProgressCount;
-        //}
-      //}
+      if (latestProgressCount != pastProgressCount){
+        if(latestProgressCount != 12){
+          locateXY(3+pastProgressCount, 1);
+          putCh('-');
+          locateXY(3+latestProgressCount, 1);
+          putCh('+');
+          pastProgressCount = latestProgressCount;
+        }
+      }
     }
     sleep(10);                                      // 10ms に一度
   }
