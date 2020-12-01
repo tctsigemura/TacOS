@@ -69,7 +69,9 @@ int shuffleMode = 0;
 int isPlaying = 0;
 
 int playingMusicTime = 0;
-
+int progressCount = 0;
+int latestProgressCount = 0;
+int pastProgressCount = 0;
 int readSw() {
   int sw = ~in(0x18) & SWS;                         // スイッチを読み正論理に変換
   int swd = sw & sw0;                               // デバウンス
@@ -172,6 +174,8 @@ public void shellMain() {
         lcdInit(2, playingMusic, -1);
         updateRecentPlayList(showingListPage * 7 + listScreenSelectedItem - 1);
         updateMostPlayList(showingListPage * 7 + listScreenSelectedItem - 1);
+        //latestProgressCount = 0;
+        //pastProgressCount = 0;
         play(playingMusic[0]);
       } else if (buttonNumber == 2) {
         //ページ戻し
@@ -242,6 +246,8 @@ public void shellMain() {
           updateRecentPlayList(showingListPage * 7 + listScreenSelectedItem);
           updateMostPlayList(showingListPage * 7 + listScreenSelectedItem);
           listScreenSelectedItem = listScreenSelectedItem - 1;
+          //latestProgressCount = 0;
+          //pastProgressCount = 0;
           play(playingMusic[0]);
         } else if (playingScreenSelectedItem == 1) {
           repeatMode = (repeatMode + 1) % 2;
@@ -278,6 +284,8 @@ public void shellMain() {
           updateRecentPlayList(showingListPage * 7 + listScreenSelectedItem + 1);
           updateMostPlayList(showingListPage * 7 + listScreenSelectedItem + 1);
           listScreenSelectedItem = listScreenSelectedItem + 1;
+          //latestProgressCount = 0;
+          //pastProgressCount = 0;
           play(playingMusic[0]);
         } else if (playingScreenSelectedItem == 1) {
           repeatMode = (repeatMode + 1) % 2;
@@ -346,6 +354,19 @@ public void shellMain() {
           printF("time: %d ", spiGetDecodeTime()*12 / playingMusicTime);
         }
       #endif
+
+      //表示部作成中
+     // latestProgressCount = spiGetDecodeTime()*12 / playingMusicTime;// 0から11(12?)になるはず
+      //progressCountが増えた(変わった)時にシークバー更新．
+      //if (latestProgressCount != pastProgressCount){
+        //if(latestProgressCount != 12){
+          //locate(3+pastProgressCount, 1);
+          //putCh('-');
+          //locateXY(3+latestProgressCount, 1);
+          //putCh('+');
+          //pastProgressCount = latestProgressCount;
+        //}
+      //}
     }
     sleep(10);                                      // 10ms に一度
   }
