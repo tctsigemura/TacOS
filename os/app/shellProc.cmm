@@ -69,7 +69,6 @@ int shuffleMode = 0;
 int isPlaying = 0;
 
 int playingMusicTime = 0;
-int progressCount = 0;
 int latestProgressCount = 0;
 int pastProgressCount = 0;
 int readSw() {
