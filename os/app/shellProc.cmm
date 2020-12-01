@@ -177,7 +177,7 @@ public void shellMain() {
         latestProgressCount = 0;
         pastProgressCount = 0;
         play(playingMusic[0]);
-        sleep(5);   
+        sleep(5);
         //playingMusicTime = getMp3PlayTime(getPlayingMusicPath(showingListPage * 7 + listScreenSelectedItem));
       } else if (buttonNumber == 2) {
         //ページ戻し
