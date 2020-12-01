@@ -64,9 +64,9 @@ char[] volume_char = {'0', '1', '2', '3', '4', '5'};
 int showingListPage = 0;
 int screen_list_num_bak = 0;
 
-boolean repeatMode = false;
-boolean shuffleMode = false;
-boolean isPlaying = false;
+int repeatMode = 0;
+int shuffleMode = 0;
+int isPlaying = 0;
 
 int playingMusicTime = 0;
 
@@ -224,7 +224,7 @@ public void shellMain() {
     } else if (showingScreen == 2) {
       if (buttonNumber == 1) {
         //playとpauseの切り替え
-        if (isPlaying){
+        if (isPlaying == 0){
           stop();
         } else {
           updateRecentPlayList(showingListPage * 7 + listScreenSelectedItem);
@@ -233,7 +233,7 @@ public void shellMain() {
           play(getPlayingMusicPath(showingListPage * 7 + listScreenSelectedItem));
           // play(playingMusic[0]);
         }
-        isPlaying = !isPlaying;
+        isPlaying = (isPlaying + 1) % 2;
       } else if (buttonNumber == 2) {
         if(playingScreenSelectedItem == 0) {
           // 前の曲を再生
@@ -244,9 +244,9 @@ public void shellMain() {
           listScreenSelectedItem = listScreenSelectedItem - 1;
           play(playingMusic[0]);
         } else if (playingScreenSelectedItem == 1) {
-          repeatMode = !repeatMode;
-          locateXY(3, 10);
-          if (repeatMode){
+          repeatMode = (repeatMode + 1) % 2;
+          locateXY(10, screen_play_pos[playingScreenSelectedItem]);
+          if (repeatMode == 0){
             putStr("TRACK");
           }
           else {
@@ -254,9 +254,9 @@ public void shellMain() {
           }
           // repeatが変わったことをplayコマンドに送信？（要相談）
         } else if (playingScreenSelectedItem == 2) {
-          shuffleMode = !shuffleMode;
-          locateXY(5, 10);
-          if (shuffleMode){
+          shuffleMode = (shuffleMode + 1) % 2;
+          locateXY(10, screen_play_pos[playingScreenSelectedItem]);
+          if (shuffleMode == 0){
             putStr("ON ");
           }
           else {
@@ -264,7 +264,7 @@ public void shellMain() {
           }
         } else if (playingScreenSelectedItem == 3) {
           if (play_volume_num < 5) {
-            locateXY(7, 10);
+            locateXY(10, screen_play_pos[playingScreenSelectedItem]);
             play_volume_num = play_volume_num + 1;
             putCh(volume_char[play_volume_num]);
             spiVolumeControl(play_volume_num);
@@ -280,9 +280,9 @@ public void shellMain() {
           listScreenSelectedItem = listScreenSelectedItem + 1;
           play(playingMusic[0]);
         } else if (playingScreenSelectedItem == 1) {
-          repeatMode = !repeatMode;
-          locateXY(3, 10);
-          if (!repeatMode){
+          repeatMode = (repeatMode + 1) % 2;
+          locateXY(10, screen_play_pos[playingScreenSelectedItem]);
+          if (repeatMode == 0){
             putStr("TRACK");
           }
           else {
@@ -290,9 +290,9 @@ public void shellMain() {
           }
           // repeatが変わったことをplayコマンドに送信？（要相談）
         } else if (playingScreenSelectedItem == 2) {
-          shuffleMode = !shuffleMode;
-          locateXY(5, 10);
-          if (shuffleMode){
+          shuffleMode = (shuffleMode + 1) % 2;
+          locateXY(10, screen_play_pos[playingScreenSelectedItem]);
+          if (shuffleMode == 0){
             putStr("ON ");
           }
           else {
@@ -300,7 +300,7 @@ public void shellMain() {
           }
         } else if (playingScreenSelectedItem == 3) {
           if (play_volume_num > 0) {
-            locateXY(7, 10);
+            locateXY(10, screen_play_pos[playingScreenSelectedItem]);
             play_volume_num = play_volume_num - 1;
             putCh(volume_char[play_volume_num]);
             spiVolumeControl(play_volume_num);
