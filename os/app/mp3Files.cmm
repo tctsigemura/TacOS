@@ -98,7 +98,7 @@ public int getMp3PlayTime(char[] mp3Path){
   }
   #ifdef DEBUG
     int rshift10 = mp3Stat.lenL >> 10;
-    int lshift6 = mp3.StatH << 6;
+    int lshift6 = mp3Stat.lenH << 6;
     int shift10 = lshift6 | rshift10;
     printF("version: %d ", mpegVersion);
     printF("rate: %d ", bps);
