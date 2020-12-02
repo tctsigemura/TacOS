@@ -202,3 +202,8 @@ public void spiVolumeControl(int volume){ //volumeは0から5
 public int spiGetDecodeTime(){
   return spiReadMp3Reg(0x04);
 }
+
+public void spiResetDecodeTime(){
+  spiWriteMp3Reg(0x04, 0);
+  spiWriteMp3Reg(0x04, 0);
+}

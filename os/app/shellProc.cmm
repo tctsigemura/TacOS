@@ -153,6 +153,7 @@ public void shellMain() {
         //fav_musicの再生
         playingMusic[0] = fav_path;
         lcdInit(2, playingMusic, -1);
+        spiResetDecodeTime();
         play(playingMusic[0]);
       }
     } else if (showingScreen == 1) {
@@ -176,6 +177,7 @@ public void shellMain() {
         updateMostPlayList(showingListPage * 7 + listScreenSelectedItem - 1);
         latestProgressCount = 0;
         pastProgressCount = 0;
+        spiResetDecodeTime();
         play(playingMusic[0]);
         sleep(5);
         //playingMusicTime = getMp3PlayTime(getPlayingMusicPath(showingListPage * 7 + listScreenSelectedItem));
@@ -238,6 +240,7 @@ public void shellMain() {
           updateRecentPlayList(showingListPage * 7 + listScreenSelectedItem);
           updateMostPlayList(showingListPage * 7 + listScreenSelectedItem);
           playingMusicTime = getMp3PlayTime(getPlayingMusicPath(showingListPage * 7 + listScreenSelectedItem));
+          spiResetDecodeTime();
           play(getPlayingMusicPath(showingListPage * 7 + listScreenSelectedItem));
           play(playingMusic[0]);
         }
@@ -290,6 +293,7 @@ public void shellMain() {
           listScreenSelectedItem = listScreenSelectedItem + 1;
           latestProgressCount = 0;
           pastProgressCount = 0;
+          spiResetDecodeTime();
           play(playingMusic[0]);
         } else if (playingScreenSelectedItem == 1) {
           repeatMode = (repeatMode + 1) % 2;
@@ -348,6 +352,7 @@ public void shellMain() {
         //fav_musicの再生
         playingMusic[0] = fav_path;
         lcdInit(2, playingMusic, -1);
+        spiResetDecodeTime();
         play(playingMusic[0]);
       }
       //シークバー表示するところ
