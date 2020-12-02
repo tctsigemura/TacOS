@@ -98,7 +98,7 @@ public void lcdInit(int scene_num, char[][] titles, int list_num){
    for (int i=1;i<8;i=i+1){
         locateXY(2,i);
         putStr(titles[i-1]);
-    }
+   }
    locateXY(6,0);
    putStr(lists[list_num]);
  }

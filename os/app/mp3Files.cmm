@@ -97,12 +97,15 @@ public int getMp3PlayTime(char[] mp3Path){
     printF("error");
   }
   #ifdef DEBUG
+    int rshift10 = mp3Stat.lenL >> 10;
+    int lshift6 = mp3.StatH << 6;
+    int shift10 = lshift6 | rshift10;
     printF("version: %d ", mpegVersion);
     printF("rate: %d ", bps);
-    printF("time: %d ", (mp3Stat.lenL / 1000) * 8 / bps);
+    printF("time: %d ", shift10 * 8 / bps);
   #endif
 
-  return (mp3Stat.lenL / 1000) * 8 / bps;
+  return shift10 * 8 / bps;
 }
 
 // /MP3 ディレクトリからファイルの一覧を作る（初期化）
