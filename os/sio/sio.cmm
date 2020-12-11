@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2018 - 2019 by
+ * Copyright (C) 2018 - 2020 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * sio/sio.cmm : シリアルドライバ
  *
+ * 2020.12.11 : インクルードファイルを syslib.hmm から sys/tty.hmm に変更
  * 2019.11.15 : モード定数をC--へ移動
  * 2019.09.25 : 複数文字の入力をするように変更、cookedモードを追加
  * 2019.03.01 : RN4020との接続情報をIPLから引き継ぐように変更(RN4020-RAM使用)
@@ -33,7 +34,7 @@
  *
  */
 
-#include <syslib.hmm>
+#include <sys/tty.hmm>
 #include <util.hmm>
 #include <kernel.hmm>
 #include "sio.hmm"

@@ -22,6 +22,7 @@
 /*
  * tty/tty.cmm : 端末サーバの本体、キーボード入力の受付とディスプレイ表示をする
  *
+ * 2020.12.11 : インクルードファイルを syslib.hmm から sys/tty.hmm に変更
  * 2019.12.29 : システムコールの引数の論理アドレスと物理アドレスの変換を追加
  * 2019.10.07 : メソッドの名前を con -> tty と変更
  * 2019.10.02 : conWrite() に長さを指定するように変更
@@ -41,7 +42,7 @@
  *
  */
 
-#include <syslib.hmm>
+#include <sys/tty.hmm>
 #include <util.hmm>
 #include <kernel.hmm>
 #include <syscall.hmm>

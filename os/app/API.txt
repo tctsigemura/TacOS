@@ -741,10 +741,10 @@ public int ttyWrite(void[] buf, int len);
  *            int mode 操作のパラメータ
  *   解説   : ttyのモードを操作する．modeはビットの組み合わせになっている．
  */
-#include <syslib.hmm>
 #include <tty.hmm>
-#define TTYCTL_GETMODE 0                      // request : 現在のモードを読む
-#define TTYCTL_SETMODE 1                      // request : モードを変更する
+#define TTYCTL_GETMODE     0                  // request : 現在のモードを読む
+#define TTYCTL_SETMODE     1                  // request : モードを変更する
 #define TTYCTL_MODE_COOKED 1                  // mode : 行編集モード
-#define TTYCTL_MODE_ECHO 2                    // mode : エコーあり
+#define TTYCTL_MODE_ECHO   2                  // mode : エコーあり
+#define TTYCTL_MODE_NBLOCK 4                  // mode : readがブロックしない
 public int ttyCtl(int request, int mode);
