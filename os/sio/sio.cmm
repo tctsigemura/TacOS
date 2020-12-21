@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2018 - 2019 by
+ * Copyright (C) 2018 - 2020 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,8 @@
 /*
  * sio/sio.cmm : シリアルドライバ
  *
+ * 2020.12.11 : read の non-blocking モード追加
+ * 2020.12.11 : インクルードファイルを syslib.hmm から sys/tty.hmm に変更
  * 2019.11.15 : モード定数をC--へ移動
  * 2019.09.25 : 複数文字の入力をするように変更、cookedモードを追加
  * 2019.03.01 : RN4020との接続情報をIPLから引き継ぐように変更(RN4020-RAM使用)
@@ -33,7 +35,7 @@
  *
  */
 
-#include <syslib.hmm>
+#include <sys/tty.hmm>
 #include <util.hmm>
 #include <kernel.hmm>
 #include "sio.hmm"
@@ -57,6 +59,7 @@ int trsSem;                                   // 送信待ち用のセマフォ
 // 入出力の設定
 boolean cooked=true;                          // 前処理をする
 boolean echoBack=true;                        // エコーバックをする
+boolean nBlock=false;                         // readがブロックしない
 
 // SIO 送信割込み処理ルーチン
 interrupt sioTrs() {
@@ -207,6 +210,7 @@ public int getSIO(char[] buf, int len) {
   int count=0;                                // 入力した文字数
   while (count<len) {                         // len は必ず 1 以上
     if (ISEmpty(rcvBuf)) {                    //   バッファが空になったら
+      if (nBlock) break;                      //     NBLOCKなら終了する
       reqLen = len - count;                   //     残り文字数をセットし
       semP(rcvSem);                           //     入力を待つ
     }
@@ -240,6 +244,7 @@ public int getSIOCtl() {
   int ctl = 0;
   if (cooked) ctl = ctl | TTYCTL_MODE_COOKED;
   if (echoBack) ctl = ctl | TTYCTL_MODE_ECHO;
+  if (nBlock) ctl = ctl | TTYCTL_MODE_NBLOCK;
   setPri(r);                                // 割り込み状態を復元
   return ctl;
 }
@@ -249,5 +254,6 @@ public void setSIOCtl(int ctl) {
   int r = setPri(DI|KERN);                  // 割り込み禁止、カーネル
   cooked = (ctl&TTYCTL_MODE_COOKED)!=0;
   echoBack = (ctl&TTYCTL_MODE_ECHO)!=0;
+  nBlock = (ctl&TTYCTL_MODE_NBLOCK)!=0;
   setPri(r);                                // 割り込み状態を復元
 }

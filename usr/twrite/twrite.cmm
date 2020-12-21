@@ -1,0 +1,117 @@
+#include <syslib.hmm>
+#include <stdlib.hmm>
+#include <crt0.hmm>
+#include <stdio.hmm>
+#include <string.hmm>
+
+// TeC にコンソール操作でプログラムを書き込む
+#define DSW   0x32                            // I/Oアドレス(データスイッチ)
+
+#define FNC   0x34                            // I/Oアドレス(機能スイッチ)
+#define SETA  0x08
+#define WRITE 0x01
+
+#define CTL   0x36                            // I/Oアドレス(制御)
+#define TWENA 0x80
+#define RESET 0x04
+#define LEFT  0x02
+#define RIGHT 0x01
+
+char[] twBuf=array(256);                      // 受信バッファ
+
+void pushFncSw(int sw) {                      // 機能スイッチを押す
+  _out(FNC, sw);                              // スイッチを操作する
+  sleep(60);                                  // 60ms 待つ
+  _out(FNC, 0);                               // スイッチをもとに戻す
+  sleep(60);                                  // 60ms 待つ
+}
+
+void pushCtlSw(int sw) {                      // 制御スイッチを操作する
+  _out(CTL, TWENA|sw);                        // スイッチを操作する
+  sleep(60);                                  // 60ms 待つ
+  _out(CTL, TWENA);                           // スイッチをもとに戻す
+  sleep(60);                                  // 60ms 待つ
+}
+
+void twConsole(int addr, int cnt, char[] buf) {
+  pushCtlSw(RESET);                           // RESET スイッチを押す
+  for (int i = 0; i < 5; i=i+1) {             // 5回右矢印スイッチを押す
+    pushCtlSw(RIGHT);                         // （MMの位置になるはず）
+  }
+  _out(DSW, addr);                            // アドレスをセットし
+  pushFncSw(SETA);                            // SETA スイッチを押す
+  for (int i = 0; i < cnt; i=i+1) {           // プログラム全体について
+    _out(DSW, ord(buf[i]));                   // データをセットし
+    pushFncSw(WRITE);                         // WRITE スイッチを押す
+  }
+  pushCtlSw(LEFT);                            // (PCの位置になるはず）
+  _out(DSW, addr);                            // アドレスをセットし
+  pushFncSw(WRITE);                           // WRITE スイッチを押す
+  _out(CTL, 0);                               // コンソール機能を手動に戻す
+}
+
+// 拡張子が bin であるか判定
+boolean isBinFile(char[] filename) {
+  int flength = strLen(filename);       // ファイル名の長さを格納
+  return (flength > 4 &&
+          filename[flength - 4] == '.' &&
+          filename[flength - 3] == 'b' &&
+          filename[flength - 2] == 'i' &&
+          filename[flength - 1] == 'n');
+}
+
+int fread(char[] buf, int cnt, FILE fp) {
+  int i = 0;
+  while (i < cnt && !feof(fp)) {
+    buf[i] = fgetc(fp);
+    i = i + 1;
+  }
+  return i;
+}
+
+// ファイルの内容を処理
+void writeBinToTeC(char[] filename) {
+  FILE fp = fopen(filename, "r"); // ファイルを開く
+  if (fp != null) {
+    int twAdr = ord(fgetc(fp));
+    int twCnt = ord(fgetc(fp));
+    if (feof(fp) || fread(twBuf, twCnt, fp) != twCnt) {
+      fprintf(stderr, "file format error\n");
+      exit(1);
+    }
+    twConsole(twAdr, twCnt, twBuf);
+    fclose(fp);
+  } else {
+    perror(filename);
+    exit(1);
+  }
+}
+
+public int main(int argc, char[][] argv){
+
+  int mode = _in(0x1e);
+  if (mode != 0) {  // TeCモード以外
+    fprintf(stderr, "Usage: %s can only use in TeC mode\n", argv[0]);
+    return 1;
+  }
+
+  // オプションなし
+  if(argc != 2){
+    fprintf(stderr, "Usage: %s <filename> \n", argv[0]);
+    return 1;
+  }
+
+  char[] filename = argv[1];
+
+  // 拡張子は bin のみ
+  if (!isBinFile(filename)){
+    fprintf(stderr, "Usage: %s is not .bin file \n", argv[1]);
+    return 1;
+  }
+
+  printf("write start...\n");
+  writeBinToTeC(filename);
+  printf("\ncomplete!\n");
+
+  return 0;
+}
