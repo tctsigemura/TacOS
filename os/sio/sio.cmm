@@ -49,7 +49,7 @@ RingBuf rcvBuf={"123456789012345678901234567890123456789012345678901234567890123
 RingBuf trsBuf={"12345678901234567890123456789012345678901234567890123456789012345678901234567890",80,0,0,0}; // 送信バッファ
 
 // RN4020
-boolean mldpOn;
+#define mldpOn ((in(0x2e) & 1)!=0)            // RN4020 の接続状況
 
 // 送信関係
 boolean trsIdle=true;                         // トランスミッタがアイドル状態
@@ -185,15 +185,13 @@ interrupt rn4Rcv()  {
   char c = chr(in(RN4_Data));                 // 受信データを入力する
   if (mldpOn) {                               // 接続中なら
     if (sigFsm(errSig, c)) {                  //   切断時によく出るメッセージ？
-      mldpOn = false;                         //     切断中に変更
-      out(0x2e, in(0x2e)&~1);                 //     RN4020-RAMに記録
+      out(0x2e, in(0x2e)&~1);                 //     切断を RN4020-RAMに記録
       return;
     }
     rcvProc(c);                               //   受信処理
   } else {                                    // 切断中なら
     if (sigFsm(mldpSig, c)) {                 //   接続時メッセージ？
-      mldpOn = true;                          //     接続中に変更
-      out(0x2e, in(0x2e)|1);                  //     RN4020-RAMに記録
+      out(0x2e, in(0x2e)|1);                  //     接続を RN4020-RAMに記録
     }
   }
 }
@@ -235,7 +233,6 @@ public void sioInit() {
   out(RN4_Ctrl,0x0040);                       // 受信割込み許可、送信割込み禁止
   trsSem = newSem(0);                         // 送信用セマフォ
   rcvSem = newSem(0);                         // 受信用セマフォ
-  mldpOn = (in(0x2e) & 1)!=0;                 // RN4020-RAMから初期値を決める
 }
 
 // 入出力の設定を取得
