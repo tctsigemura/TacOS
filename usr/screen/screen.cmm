@@ -26,16 +26,19 @@
 #define TEC_DATA 0x0c
 #define TEC_STAT 0x0e
 
-char[] kbdBuf = array(1);            // 入力用
+char[] kbdBuf = array(1);                     // 入力用
 
 public int main() {
   int orgMode = ttyCtl(TTYCTL_GETMODE, 0);    // 普通のモード
-  int rawMode = orgMode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED | TTYCTL_MODE_NBLOCK; // １文字入力（ノンブロック）
+  int rawMode = orgMode &                     // １文字入力（ノンブロック）
+                ~TTYCTL_MODE_ECHO &
+                ~TTYCTL_MODE_COOKED |
+                TTYCTL_MODE_NBLOCK;
 
   boolean isTilde = false;
 
-  stdout.buf = null;  // stdoutのバッファリングを禁止
-  printf("\x1b[2J\x1b[H");  // 画面クリア
+  stdout.buf = null;                          // stdoutのバッファリングを禁止
+  printf("\x1b[2J\x1b[H");                    // 画面クリア
 
   ttyCtl(TTYCTL_SETMODE, rawMode);
 
