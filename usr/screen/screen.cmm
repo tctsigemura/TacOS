@@ -35,7 +35,7 @@ public int main() {
                 ~TTYCTL_MODE_COOKED |
                 TTYCTL_MODE_NBLOCK;
 
-  boolean isTilde = false;
+  boolean canExit = false;
 
   stdout.buf = null;                          // stdoutのバッファリングを禁止
   printf("\x1b[2J\x1b[H");                    // 画面クリア
@@ -44,17 +44,15 @@ public int main() {
 
   while(true){
     if (ttyRead(kbdBuf, 1) != 0) {
-      if (kbdBuf[0] == '~' && !isTilde){
-        isTilde = true;
-      } else if (isTilde && kbdBuf[0] == '.'){
+      if (kbdBuf[0] == '~' && !canExit){
+        canExit = true;
+      } else if (canExit && kbdBuf[0] == '.'){
         break;
       } else {
         while((_in(TEC_STAT) & 0x80) == 0x00);
-        if (isTilde) {
-          if (kbdBuf[0] != '~' ) {
-            isTilde = false;
-            _out(TEC_DATA, ord('~'));
-          }
+        if (canExit && kbdBuf[0] != '~') {
+          canExit = false;
+          _out(TEC_DATA, ord('~'));
         }
         _out(TEC_DATA, ord(kbdBuf[0]));
       }
