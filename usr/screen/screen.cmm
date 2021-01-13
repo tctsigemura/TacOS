@@ -11,7 +11,7 @@ public int main() {
   int orgMode = ttyCtl(TTYCTL_GETMODE, 0);    // 普通のモード
   int rawMode = orgMode & ~TTYCTL_MODE_ECHO & ~TTYCTL_MODE_COOKED | TTYCTL_MODE_NBLOCK; // １文字入力（ノンブロック）
 
-  boolean isESC = false;
+  boolean isTilde = false;
 
   stdout.buf = null;  // stdoutのバッファリングを禁止
   printf("\x1b[2J\x1b[H");  // 画面クリア
@@ -20,12 +20,12 @@ public int main() {
 
   while(true){
     if (ttyRead(kbdBuf, 1) != 0) {
-      if (kbdBuf[0] == '\x1b'){
-        isESC = true;
-      } else if (isESC && kbdBuf[0] == 'q'){
+      if (kbdBuf[0] == '~'){
+        isTilde = true;
+      } else if (isTilde && kbdBuf[0] == '.'){
         break;
       } else {
-        isESC = false;
+        isTilde = false;
       }
       while((_in(TEC_STAT) & 0x80) == 0x00);
       _out(TEC_DATA, ord(kbdBuf[0]));
