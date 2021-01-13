@@ -19,6 +19,13 @@
  *
  */
 
+ /*
+ * screen/screen.cmm : screen プログラム
+ *
+ * 2021.01.13 : 新規作成
+ *
+ */
+
 #include <crt0.hmm>
 #include <stdio.hmm>
 #include <syslib.hmm>
