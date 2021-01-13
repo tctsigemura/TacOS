@@ -35,6 +35,11 @@
 
 char[] kbdBuf = array(1);                     // 入力用
 
+void putTeC(char c) {
+  while((_in(TEC_STAT) & 0x80) == 0x00);
+  _out(TEC_DATA, ord(c));
+}
+
 public int main() {
   int orgMode = ttyCtl(TTYCTL_GETMODE, 0);    // 普通のモード
   int rawMode = orgMode &                     // １文字入力（ノンブロック）
@@ -56,20 +61,19 @@ public int main() {
       } else if (canExit && kbdBuf[0] == '.'){
         break;
       } else {
-        while((_in(TEC_STAT) & 0x80) == 0x00);
         if (canExit && kbdBuf[0] != '~') {
           canExit = false;
-          _out(TEC_DATA, ord('~'));
+          putTeC('~');
         }
-        _out(TEC_DATA, ord(kbdBuf[0]));
+        putTeC(kbdBuf[0]);
       }
     }
 
     if ((_in(TEC_STAT) & 0x40) == 0x40) {
       printf("%c", chr(_in(TEC_DATA)));
     }
-
   }
+
   ttyCtl(TTYCTL_SETMODE, orgMode);
   printf("\n");
   return 0;
