@@ -44,15 +44,17 @@ public int main() {
 
   while(true){
     if (ttyRead(kbdBuf, 1) != 0) {
-      if (kbdBuf[0] == '~'){
+      if (kbdBuf[0] == '~' && !isTilde){
         isTilde = true;
       } else if (isTilde && kbdBuf[0] == '.'){
         break;
       } else {
         while((_in(TEC_STAT) & 0x80) == 0x00);
         if (isTilde) {
-          isTilde = false;
-          _out(TEC_DATA, ord('~'));
+          if (kbdBuf[0] != '~' ) {
+            isTilde = false;
+            _out(TEC_DATA, ord('~'));
+          }
         }
         _out(TEC_DATA, ord(kbdBuf[0]));
       }
