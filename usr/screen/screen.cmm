@@ -33,6 +33,10 @@
 #define TEC_DATA 0x0c
 #define TEC_STAT 0x0e
 
+// 終了コマンド
+#define ESC      '\x1b'
+#define QUIT     'q'
+
 char[] kbdBuf = array(1);                     // 入力用
 
 void putTeC(char c) {
@@ -56,14 +60,14 @@ public int main() {
 
   while(true){
     if (ttyRead(kbdBuf, 1) != 0) {
-      if (kbdBuf[0] == '~' && !canExit){
+      if (kbdBuf[0] == ESC && !canExit){
         canExit = true;
-      } else if (canExit && kbdBuf[0] == '.'){
+      } else if (canExit && kbdBuf[0] == QUIT){
         break;
       } else {
-        if (canExit && kbdBuf[0] != '~') {
+        if (canExit && kbdBuf[0] != ESC) {
           canExit = false;
-          putTeC('~');
+          putTeC(ESC);
         }
         putTeC(kbdBuf[0]);
       }
