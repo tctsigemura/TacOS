@@ -41,7 +41,6 @@
 #include <ctype.hmm>
 #include <syslib.hmm>
 #include <crt0.hmm>
-#include <sys/fs.hmm>
 
 #define LMAX 80                                   // 1行最大 80 文字
 #define ARGMAX 30                                 // コマンド業引数は最大30個
