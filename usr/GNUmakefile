@@ -19,6 +19,7 @@
 #
 # Makefile : usr ディレクトリ用の Makefile
 #
+# 2021.03.17         : tail を追加
 # 2021.01.13         : screen を追加
 # 2020.06.29         : tasm7 を追加
 # 2019.11.14         : envtest env pwd printenv を追加
@@ -33,7 +34,8 @@ MAKEFLAGS=--no-print-directory
 
 # サブディレクトリ
 SUBDIRS:=ar cat cp dump echo edit fsize hello in ls mkdir mv out rm rmdir \
-	shell touch ss sr spitest head env pwd printenv tasm7 sedit screen
+	shell touch ss sr spitest head env pwd printenv tasm7 sedit screen \
+        tail
 # port
 
 all :

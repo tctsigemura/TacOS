@@ -115,7 +115,7 @@ public int main() {
   fprintf(stderr, "TacOS Shell\n");
   putEnv("PWD=/");
 
-  char[] buf = malloc(LMAX+1);                    // キー入力文字列格納用
+  char[] buf = cMalloc(LMAX+1);                   // キー入力文字列格納用
   for (;;) {
     fprintf(stderr, "$ ");                        // プロンプトのつもり
     if (fgets(buf, LMAX+1, stdin)==null) break;   // 入力文字列を取得
