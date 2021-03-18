@@ -30,7 +30,6 @@
  */
 
 #include <crt0.hmm>
-#include <sys/fs.hmm>
 #include <stdio.hmm>
 #include <stdlib.hmm>
 #include <syslib.hmm>

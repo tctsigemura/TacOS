@@ -9,12 +9,12 @@ public char[][] textBuffer;
 void makeBuffer(){
   int maxSize = 100 * 81;   // 横幅の最大サイズが８０と仮定
   maxLine = maxSize / (columns+1); // 割り当てたヒープ領域をできるだけ使う
-  textBuffer = malloc(sizeof(void[]) * maxLine);
+  textBuffer = rMalloc(maxLine);
   for(int i = 0; i < maxLine; i = i + 1){
-    textBuffer[i] = malloc(sizeof(char) * (columns+1));
+    textBuffer[i] = cMalloc(columns+1);
   }
   textBuffer[0][0] ='\0'; // ゴミデータが入らないようにする
-  clipboard = malloc(sizeof(char) * (columns+1));
+  clipboard = cMalloc(columns+1);
 }
 
 // 初期化

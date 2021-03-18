@@ -1,0 +1,84 @@
+/*
+ * TacOS Source Code
+ *    Tokuyama kousen Advanced educational Computer.
+ *
+ * Copyright (C) 2016 - 2021 by
+ *                      Dept. of Computer Science and Electronic Engineering,
+ *                      Tokuyama College of Technology, JAPAN
+ *
+ *   上記著作権者は，Free Software Foundation によって公開されている GNU 一般公
+ * 衆利用許諾契約書バージョン２に記述されている条件を満たす場合に限り，本ソース
+ * コード(本ソースコードを改変したものを含む．以下同様)を使用・複製・改変・再配
+ * 布することを無償で許諾する．
+ *
+ *   本ソースコードは＊全くの無保証＊で提供されるものである。上記著作権者および
+ * 関連機関・個人は本ソースコードに関して，その適用可能性も含めて，いかなる保証
+ * も行わない．また，本ソースコードの利用により直接的または間接的に生じたいかな
+ * る損害に関しても，その責任を負わない．
+ *
+ *
+ */
+
+ /*
+ * screen/screen.cmm : screen プログラム
+ *
+ * 2021.01.13 : 新規作成
+ *
+ */
+
+#include <crt0.hmm>
+#include <stdio.hmm>
+#include <syslib.hmm>
+
+#define TEC_DATA 0x0c
+#define TEC_STAT 0x0e
+
+// 終了コマンド
+#define ESC      '\x1b'
+#define QUIT     'q'
+
+char[] kbdBuf = array(1);                     // 入力用
+
+void putTeC(char c) {
+  while((_in(TEC_STAT) & 0x80) == 0x00);
+  _out(TEC_DATA, ord(c));
+}
+
+public int main() {
+  int orgMode = ttyCtl(TTYCTL_GETMODE, 0);    // 普通のモード
+  int rawMode = orgMode &                     // １文字入力（ノンブロック）
+                ~TTYCTL_MODE_ECHO &
+                ~TTYCTL_MODE_COOKED |
+                TTYCTL_MODE_NBLOCK;
+
+  boolean canExit = false;
+
+  stdout.buf = null;                          // stdoutのバッファリングを禁止
+  printf("\x1b[2J\x1b[H");                    // 画面クリア
+
+  ttyCtl(TTYCTL_SETMODE, rawMode);
+
+  while(true){
+    if (ttyRead(kbdBuf, 1) != 0) {
+      if (kbdBuf[0] == ESC && !canExit){
+        canExit = true;
+      } else if (canExit && kbdBuf[0] == QUIT){
+        break;
+      } else {
+        if (canExit && kbdBuf[0] != ESC) {
+          canExit = false;
+          putTeC(ESC);
+        }
+        putTeC(kbdBuf[0]);
+      }
+    }
+
+    if ((_in(TEC_STAT) & 0x40) == 0x40) {
+      printf("%c", chr(_in(TEC_DATA)));
+    }
+  }
+
+  ttyCtl(TTYCTL_SETMODE, orgMode);
+  printf("\n");
+  return 0;
+}
