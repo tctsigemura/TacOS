@@ -109,10 +109,25 @@ public void shellMain() {
   spiResetMp3();                                    //   プロセスが実行する
   mp3FilesInit();                                   // ファイル一覧を作る
   demoScreen();                                     // 画面を初期化
+  int play_flag=1;
   for (;;) {
     int sw = readSw();
     int num = swToNum(sw);
     if (num==6) {                                   // 6 番のスイッチが押された
+      if (play_flag>0){
+        demoScreen();                                 // 画面を初期化
+        asta(1);                                    // 再生中の曲に印を表示
+        play(mp3FilesGetPath(1));                   // 再生開始
+        dbgPutStr(mp3FilesGetPath(1));
+        dbgPutStr("\n");
+      }else{
+        dbgPutStr("stop\n");
+        demoScreen();                                 // 画面を初期化
+        stop();
+      }
+      play_flag=play_flag*(-1);
+    }
+    /*
       dbgPutStr("stop\n");
       demoScreen();                                 // 画面を初期化
       stop();
@@ -123,6 +138,7 @@ public void shellMain() {
       dbgPutStr(mp3FilesGetPath(num));
       dbgPutStr("\n");
     }
+    */
     sleep(10);                                      // 10ms に一度
   }
 }
