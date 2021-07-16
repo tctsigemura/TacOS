@@ -20,3 +20,4 @@
 2012.03.02         : TaC7 用に書き換え + boot.bin + sioboot.bin を追加
 2011.11.27         : MacOS X に対応(cpp 問題)
 2011.05.11  v1     : 初期バージョン
+aaaaaaa
