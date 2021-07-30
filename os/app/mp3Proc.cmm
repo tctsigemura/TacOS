@@ -124,7 +124,7 @@ void play_next() {
 }
 
 // 音楽データをデコーダに送る
-void trans_data(int[] path) {
+void trans_data(char[] path) {
   int fd = open(path, READ_MODE);           // ファイルをオープン
   if (fd<0) {                               // オープンできない
     send(link, ERR);                        //   クライアントにエラーを通知
