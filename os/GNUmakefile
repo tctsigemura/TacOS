@@ -32,7 +32,7 @@
 # 2011.05.11 : 初期バージョン
 
 # デバッグ
-#DEBUG=DEBUG=1
+DEBUG=DEBUG=1
 
 #　ディレクトリを移動する際のログを出力しない
 MAKEFLAGS=--no-print-directory
