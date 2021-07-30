@@ -36,9 +36,9 @@
 // MP3ファイルの一覧（ただし，最大５個）
 //-----------------------------------------------------------------------------
 // ５つのファイル名
-char[][] fnames = array(5, 13);                     // 12345678.123
-int numFile;                                        // ファイルの個数
-
+//char[][] fnames = array(5, 13);                     // 12345678.123
+int numPlaylist;                                        // プレイリストの個数
+int nummusic;
 char[] mp3Dir = "/MP3";
 char[] path = array(18);                            // /MP3/12345678.123
 
@@ -49,6 +49,8 @@ char[] fnameToPath(char[] fname) {
   return path;
 }
 
+char[][][] files = array(8, 6, 18);
+
 // /MP3 ディレクトリからファイルの一覧を作る（初期化）
 public void mp3FilesInit() {
   int fd;                                           // ファイルディスクリプタ
@@ -57,26 +59,48 @@ public void mp3FilesInit() {
   }
   Dir dir;
   int i = 0;
-  while (i<5 && (dir=readDir(fd, "MP3"))!=null) {   // 最大5つファイル名を読む
-    strCpy(fnames[i], dir.name);
-    i = i + 1;
+  while (i<8 && (dir=readDir(fd, "MP3"))!=null) {
+    while (j<5){// 最大8つのプレイリストと5つファイル名を読む
+      strCpy(files[i][j], dir.name);
+      j = j+1;
+    }
+    strCpy(files[i][j+1], '\0');
+    i = i+1;
   }
   numFile = i;
   close(fd);
 }
 
-// n 番目ファイル名を返す（1<=n && n<=5）
-public char[] mp3FilesGetName(int n) {
-  if (1<=n && n<=numFile) {
-    return fnames[n-1];
+// (i,j)番目ファイル名を返す
+public char[] GetMusicName(int i, int j) {
+  numMusic = getMaxnumMusic(i);
+  if (1<=i && i<=numPlaylist && 1<=j && j<=numMusic) {
+    return files[i][j];
   }
   return null;
 }
 
-// n 番目パス名を返す（1<=n && n<=5）
-public char[] mp3FilesGetPath(int n) {
-  if (1<=n && n<=numFile) {
-    return fnameToPath(fnames[n-1]);
+// (i,j) 番目パス名を返す
+public char[] mp3FilesGetPath(int i, int j) {
+  numMusic = getMaxnumMusic(i);
+  if (1<=i && i<=numPlaylist && 1<=j && j<=numMusic) {
+    return fnameToPath(fnames[i][j]);
   }
   return null;
+}
+
+//プレイリスト数を返す
+public int getMaxnumPlaylist(){
+  return numPlaylist;
+}
+
+// i番目のプレイリストの曲数を返す
+public int getMaxnumMusic(int n){
+  j = 0;
+  flag = 0;
+  while (true){
+    if (files[n][j] =='\0') break;
+    j=j+1;
+  }
+  return j;
 }
