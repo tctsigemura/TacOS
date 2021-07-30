@@ -92,6 +92,11 @@ public char[] strCat(char[] dst, char[] src) {
   }
   return dst;
 }
+// i~jの文字列を取り出す
+//public char[] strSearch(char[] dst,int i,int j){
+  //while (i<j)
+
+//}
 
 // 文字列比較
 public int strCmp(char[] s1, char[] s2) {
