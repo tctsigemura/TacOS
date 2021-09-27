@@ -82,22 +82,17 @@ int swToNum(int sw) {
 //-----------------------------------------------------------------------------
 void demoScreen() {
   cls();                                            // LCDをクリアする
-  locateXY(0,0); putStr("MP3 Player demo");
+  locateXY(0,0); 
+  putStr("MP3 Player demo");
   for (int i=1; i<=5; i=i+1) {                      // スイッチ1〜5に付いて
     locateXY(2,i+1);
     putCh(chr(ord('0')+i));                         // スイッチの番号
     putStr(":");
-    char[] fname = mp3FilesGetName(i);              // 対応するファイル名
-    if (fname!=null) putStr(fname);
+    //char[] fname = mp3FilesGetName(i);              // 対応するファイル名
+    //if (fname!=null) putStr(fname);
   }
   locateXY(2,7);
   putStr("6:stop");                                 // 6番のスイッチ
-}
-
-void asta(int y) {
-  demoScreen();
-  locateXY(0, y+1);
-  putCh('*');
 }
 
 //-----------------------------------------------------------------------------
@@ -105,23 +100,67 @@ void asta(int y) {
 //-----------------------------------------------------------------------------
 // ここからプロセスの実行が始まる
 public void shellMain() {
+  int playlist_cnt = 0;
+  int operation_cnt = 0;
+  int music_cnt = 0;
+  int sleep_cnt = 0;
+  int sw;
+  int sw_num;
+//tmp valuable
+  int playing;
+  int max_music_num;
+  
   spiResetLcd();                                    // sleepを使用するので
   spiResetMp3();                                    //   プロセスが実行する
   mp3FilesInit();                                   // ファイル一覧を作る
   demoScreen();                                     // 画面を初期化
   for (;;) {
-    int sw = readSw();
-    int num = swToNum(sw);
-    if (num==6) {                                   // 6 番のスイッチが押された
-      dbgPutStr("stop\n");
-      demoScreen();                                 // 画面を初期化
-      stop();
-    } else if (num>0 && mp3FilesGetName(num)!=null) { // ファイルと対応するボタン
-      demoScreen();                                 // 画面を初期化
-      asta(num);                                    // 再生中の曲に印を表示
-      play(mp3FilesGetPath(num));                   // 再生開始
-      dbgPutStr(mp3FilesGetPath(num));
-      dbgPutStr("\n");
+    sw = readSw();
+    sw_num = swToNum(sw);
+    if(sw_num == 1){
+    	//disp_playlist(playlist_cnt);	             //プレイリスト名の変更
+    	music_cnt = 0;
+    	//disp_title(music_cnt);
+    	sleep_cnt = 0;		
+    }else if(sw_num == 2){
+    	//mv_cursor(-1, 0);
+    	sleep_cnt = 0;
+    }else if(sw_num == 3){
+    	//mv_cursor(+1, 0);
+    	sleep_cnt = 0;
+    }else if(sw_num == 4){
+    	//mv_cursor(0, -1);
+    	sleep_cnt = 0;
+    }else if(sw_num == 5){
+    	if(operation_cnt == 0){
+    		if(music_cnt > 0) {music_cnt = music_cnt-1;
+    		}
+    	}else if(operation_cnt == 1){
+    		//int playing = get_playing();
+    		if(playing == 0){//play(playlist_cnt,music_cnt);
+    		}else{stop();
+    		}
+    		//playing = get_playing();
+    		//disp_playing(playing);
+    	}else if(operation_cnt == 2){
+    		//int max_music_num = getMaxnumMusic();
+    		if(music_cnt < max_music_num){music_cnt = music_cnt + 1;}
+    	}else if(operation_cnt == 3){
+    		//change_shuffle ();
+    	}else if(operation_cnt == 4){
+    		//change_repeat();
+    	}
+    	sleep_cnt = 0;
+    }else if(sw_num == 6){
+    	//mv_cursor(0, +1);
+    	sleep_cnt = 0;
+    }else{
+    	if(sleep_cnt > 1000){
+    		sleep_cnt = 0;
+    		//DispSleep
+    	}else{
+    		sleep_cnt = sleep_cnt + 1;
+    	}
     }
     sleep(10);                                      // 10ms に一度
   }
