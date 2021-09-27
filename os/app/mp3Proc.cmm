@@ -32,6 +32,7 @@
 #include <util.hmm>
 #include "mp3Proc.hmm"
 #include "spi.hmm"
+#include <stdlib.hmm>
 #define BUFSIZ 512                          // MP3 ファイル用のバッファ
 
 // メッセージ
@@ -45,6 +46,11 @@
 // ＊＊＊＊　重要！！　クライアントプロセスは一つだけの前提　＊＊＊＊
 int link;                                   // メッセージ通信用のリンク
 boolean syncFlag = false;                   // クライアントが同期待ちである
+boolean playing = false;
+int playing_playlist_id;
+int playing_music_id;
+boolean shuffle = false;
+boolean repeat = false;
 
 //-----------------------------------------------------------------------------
 // クライアントプロセスが呼び出す
@@ -54,14 +60,51 @@ boolean syncFlag = false;                   // クライアントが同期待ち
 public void stop() {
   syncFlag = true;                          // データ転送プロセスをコマンド待にする
   sndrec(link, STOP, 0, 0, 0);              // 同期要求メッセージ
+
+  if (r==OK) {
+    playing = false;
+  }
 }
 
 // 音楽再生
-public boolean play(char[] path) {
+public void play(int playlist_id, int music_id) {
   syncFlag = true;                          // データ転送プロセスをコマンド待にする
+
   int r = sndrec(link, START,
-                  _AtoI(path), 0, 0);       // 再生開始メッセージ
-  return r==OK;                             // 成功なら true を返す
+                  _AtoI(mp3FileGetPath(palylist_id, music_id), 0, 0);       // 再生開始メッセージ
+
+  if (r==OK) {
+    playing = true;
+    playing_playlist_id = playing_id;
+    playing_music_id = music_id;
+  }
+}
+
+public void change_shuffle(){
+  if (shuffle==true) shuffle=false;
+  else shuffle=true;
+}
+
+public void change_repeat(){
+  if (repeat==true) repeat = false;
+  else repeat = true;
+}
+
+public void select_music(int playlist_id, int music_id){
+  stop();
+  play(playlist_id, music_id);
+}
+
+public boolean get_shuffle() {
+  return shuffle;
+}
+
+public boolean get_repeat(){
+  return repeat;
+}
+
+public boolean get_playing(){
+  return playing;
 }
 
 //-----------------------------------------------------------------------------
@@ -70,8 +113,18 @@ public boolean play(char[] path) {
 // MP3 データ用のバッファ
 char[] buf = array(BUFSIZ);
 
+// 曲が自動で次に再生するようにする
+void play_next() {
+  if (repeat==true) play(playing_playlist_id, playing_music_id);
+  else if (shuffle==true) play(playing_playlist_id, rand()%get_maximum_music(playing_playlist_id)+1);
+  else {
+    if (music_id == get_maximum_music(playing_playlist_id)) play(playing_playlist_id, 0);
+    else play(playing_playlist_id, playing_music_id=playing_playlist_id+1);
+  }
+}
+
 // 音楽データをデコーダに送る
-void trans(char[] path) {
+void trans_data(char[] path) {
   int fd = open(path, READ_MODE);           // ファイルをオープン
   if (fd<0) {                               // オープンできない
     send(link, ERR);                        //   クライアントにエラーを通知
@@ -85,6 +138,7 @@ void trans(char[] path) {
   }
   spiFlushMp3();                            // デコーダLSIのバッファをクリアし
   close(fd);                                // ファイルをクローズ
+  play_next();
 }
 
 // mp3Main は，プロセスのメインルーチンとしてカーネルに登録しておく．
