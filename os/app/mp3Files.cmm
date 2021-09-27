@@ -36,11 +36,12 @@
 // MP3ファイルの一覧（ただし，最大５個）
 //-----------------------------------------------------------------------------
 // ５つのファイル名
-char[][] fnames = array(5, 13);                     // 12345678.123
+char[][][] fnames = array(5,20, 13);                     // 12345678.123
 int numFile;                                        // ファイルの個数
 
 char[] mp3Dir = "/MP3";
 char[] path = array(18);                            // /MP3/12345678.123
+char[] none = array(13);
 
 char[] fnameToPath(char[] fname) {
   strCpy(path, mp3Dir);
@@ -57,8 +58,8 @@ public void mp3FilesInit() {
   }
   Dir dir;
   int i = 0;
-  while (i<5 && (dir=readDir(fd, "MP3"))!=null) {   // 最大5つファイル名を読む
-    strCpy(fnames[i], dir.name);
+  while (i<20 && (dir=readDir(fd, "MP3"))!=null) {   // 最大5つファイル名を読む
+    strCpy(fnames[0][i], dir.name);
     i = i + 1;
   }
   numFile = i;
@@ -66,17 +67,37 @@ public void mp3FilesInit() {
 }
 
 // n 番目ファイル名を返す（1<=n && n<=5）
-public char[] mp3FilesGetName(int n) {
+public char[] mp3FilesGetName(int m, int n) {
   if (1<=n && n<=numFile) {
-    return fnames[n-1];
+    return fnames[m-1][n-1];
   }
   return null;
 }
 
 // n 番目パス名を返す（1<=n && n<=5）
-public char[] mp3FilesGetPath(int n) {
+public char[] mp3FilesGetPath(int m, int n) {
   if (1<=n && n<=numFile) {
-    return fnameToPath(fnames[n-1]);
+    return fnameToPath(fnames[m-1][n-1]);
   }
   return null;
 }
+
+public void playlist_delete(int m, int n){
+  for(int i=n; i<20; i=i+1){
+    strCpy(fnames[m-1][i-1], fnames[m-1][i]);
+  }
+  strCpy(fnames[m-1][19], none);
+}
+
+public void playlist_add(int m, char[] name){
+  for(int i=20; i>1; i=i-1){
+    strCpy(fnames[m-1][i-1], fnames[m-1][i-2]);
+  }
+  strCpy(fnames[m-1][0], name);
+}
+
+// 配列の長さを返す
+// public int mp3FilesGetLength(){
+//   int size = sizeof(fnames)/sizeof(char);
+//   return size;
+// }

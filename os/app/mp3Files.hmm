@@ -29,5 +29,8 @@
  */
 
 public void mp3FilesInit();               // 初期化（ファイル一覧を作る）
-public char[] mp3FilesGetName(int n);     // n 番目ファイル名を返す
-public char[] mp3FilesGetPath(int n);     // n 番目パス名を返す
+public char[] mp3FilesGetName(int m, int n);     // n 番目ファイル名を返す
+public char[] mp3FilesGetPath(int m, int n);     // n 番目パス名を返す
+public void playlist_add(int m, char[] name);
+public void playlist_delete(int m, int n);
+// public int mp3FilesGetLength();            //配列の長さを返す
