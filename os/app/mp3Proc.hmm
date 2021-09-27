@@ -26,6 +26,6 @@
  *
  */
 
-public boolean play(char[] path);
+public void play(int i, int j);
 public void stop();
 public void mp3Main();

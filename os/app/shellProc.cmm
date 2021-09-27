@@ -137,7 +137,7 @@ public void shellMain() {
     		}
     	}else if(operation_cnt == 1){
     		//int playing = get_playing();
-    		if(playing == 0){//play(playlist_cnt,music_cnt);
+    		if(playing == 0){play(playlist_cnt,music_cnt);
     		}else{stop();
     		}
     		//playing = get_playing();
