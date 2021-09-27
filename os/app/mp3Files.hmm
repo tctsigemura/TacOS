@@ -29,5 +29,7 @@
  */
 
 public void mp3FilesInit();               // 初期化（ファイル一覧を作る）
-public char[] mp3FilesGetName(int n);     // n 番目ファイル名を返す
-public char[] mp3FilesGetPath(int n);     // n 番目パス名を返す
+public char[] mp3FilesGetPath(int i,int j);     // (i,j) 番目のパス名を返す
+public char[] mp3FilesGetMusicName(int i,int j); //(i,j) 番目のファイル名を返す
+public int getMaxnumPlaylist(); //プレイリストの総数を返す
+public int getMaxnumMusic(int n); //n番目のプレイリストの曲数を返す
