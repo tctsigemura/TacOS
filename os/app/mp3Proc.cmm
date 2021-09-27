@@ -32,6 +32,7 @@
 #include <util.hmm>
 #include "mp3Proc.hmm"
 #include "spi.hmm"
+#include "mp3Files.hmm"
 #include <stdlib.hmm>
 #define BUFSIZ 512                          // MP3 ファイル用のバッファ
 
@@ -59,7 +60,7 @@ boolean repeat = false;
 // 音楽再生停止
 public void stop() {
   syncFlag = true;                          // データ転送プロセスをコマンド待にする
-  sndrec(link, STOP, 0, 0, 0);              // 同期要求メッセージ
+  int r = sndrec(link, STOP, 0, 0, 0);              // 同期要求メッセージ
 
   if (r==OK) {
     playing = false;
@@ -71,7 +72,7 @@ public void play(int playlist_id, int music_id) {
   syncFlag = true;                          // データ転送プロセスをコマンド待にする
 
   int r = sndrec(link, START,
-                  _AtoI(mp3FileGetPath(palylist_id, music_id), 0, 0);       // 再生開始メッセージ
+                  _AtoI(mp3FilesGetPath(playlist_id, music_id), 0, 0);       // 再生開始メッセージ
 
   if (r==OK) {
     playing = true;

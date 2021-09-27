@@ -65,7 +65,7 @@ public void mp3FilesInit() {
       strCpy(files[i][j], dir.name);
       j = j+1;
     }
-    strCpy(files[i][j], "\0"); //番兵的なノリをいれる
+      files[i][j][0] = '\0'; //番兵的なノリをいれる
     i = i+1;
   }
   numPlaylist = i;
