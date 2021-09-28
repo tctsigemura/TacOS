@@ -1,8 +1,0 @@
-.DS_Store
-*~
-*.map
-*.o
-*.lst
-*.sym
-*.dSYM
-*.lock
