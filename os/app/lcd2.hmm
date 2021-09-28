@@ -1,0 +1,12 @@
+/*
+ * lcd2.hmm : 液晶管理
+ */
+
+public void mv_cursor(int top, int bottom);                 //上と下の所定の位置を点滅させる
+public void disp_title(int playlist_cnt, int music_cnt);    //曲のタイトルを表示
+public void disp_top(int playlist_head, int playlist_cursor);                           //上側のプレイリストの絵を表示
+public void disp_bottom(int cursor, boolean plyaing, boolean shuffle, boolean repeat);  //下側の色々をカーソルとともに表示
+//public void disp_playing(boolean playing, boolean shuffle, boolean repeat);                  //再生停止の状態を表示
+//public void disp_shuffle(boolean shuffle);                  //シャッフルの状態を表示
+//public void disp_repeat(boolean repeat);                    //リピートの状態を表示
+//public void disp_sleep();                                   //スリープ画面を表示
