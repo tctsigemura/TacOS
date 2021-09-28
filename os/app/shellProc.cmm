@@ -191,7 +191,8 @@ void operation_mode(int num){
       //再生・停止を切り替え
       //isplaying = !isplaying; //藤村
       isplaying = get_playing();
-    	if(playing == 0){play(playing_playlist_id, playing_music_id);}
+      if(isplaying == false)
+      	{play(playing_playlist_id, playing_music_id);}
       else{stop();}
     	isplaying = get_playing();
     }
@@ -239,3 +240,4 @@ public void shellMain() {
     else operation_mode(num);
     sleep(10);                                      // 10ms に一度
   }
+}

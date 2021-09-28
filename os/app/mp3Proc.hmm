@@ -29,3 +29,9 @@
 public void play(int i, int j);
 public void stop();
 public void mp3Main();
+public void change_shuffle();
+public void change_repeat();
+public boolean get_shuffle();
+public boolean get_repeat();
+public boolean get_playing();
+public void select_music(int playlist_id, int music_id);

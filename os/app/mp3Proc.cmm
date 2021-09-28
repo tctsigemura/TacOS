@@ -72,11 +72,11 @@ public void play(int playlist_id, int music_id) {
   syncFlag = true;                          // データ転送プロセスをコマンド待にする
 
   int r = sndrec(link, START,
-                  _AtoI(mp3FilesGetPath(playlist_id, music_id), 0, 0);       // 再生開始メッセージ
+                  _AtoI(mp3FilesGetPath(playlist_id, music_id)),0,0);       // 再生開始メッセージ
 
   if (r==OK) {
     playing = true;
-    playing_playlist_id = playing_id;
+    playing_playlist_id = playlist_id;
     playing_music_id = music_id;
   }
 }
@@ -117,9 +117,9 @@ char[] buf = array(BUFSIZ);
 // 曲が自動で次に再生するようにする
 void play_next() {
   if (repeat==true) play(playing_playlist_id, playing_music_id);
-  else if (shuffle==true) play(playing_playlist_id, rand()%get_maximum_music(playing_playlist_id)+1);
+  else if (shuffle==true) play(playing_playlist_id, rand()%getMaxnumMusic(playing_playlist_id)+1);
   else {
-    if (music_id == get_maximum_music(playing_playlist_id)) play(playing_playlist_id, 0);
+    if (playing_music_id == getMaxnumMusic(playing_playlist_id)) play(playing_playlist_id, 0);
     else play(playing_playlist_id, playing_music_id=playing_playlist_id+1);
   }
 }
@@ -152,7 +152,7 @@ public void mp3Main() {
     if (l.op==STOP) {
       send(link, OK);                       // クライアントを再開する
     } else if (l.op==START) {
-      trans(_ItoA(l.prm1));                 // ファイルからデータ転送
+      trans_data(_ItoA(l.prm1));                 // ファイルからデータ転送
     }
   }
 }
