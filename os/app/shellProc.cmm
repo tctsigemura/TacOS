@@ -44,7 +44,7 @@ int bottom_cursor = 0; //下のカーソル
 boolean isplaying = false;
 boolean isshuffle = false;
 boolean isrepeat = false;
-int playing_plyalist_id = 0;
+int playing_playlist_id = 0;
 int playing_music_id = 0;
 int cnt = 0;
 int sleep_cnt = 0;
@@ -126,7 +126,7 @@ char[] repeat_font2 = { '\x04', '\x10', '\x10', '\x00', '\x3c', '\x10', '\x00', 
 void demoScreen() {
   cls();                                            // LCDをクリアする
   disp_top(head_playlist, top_cursor);
-  disp_title(playing_plyalist_id, playing_music_id);
+  disp_title(playing_playlist_id, playing_music_id);
   disp_bottom(bottom_cursor, isplaying, isshuffle, isrepeat);
   locateXY(7,7);spiWriteLcdDat(shuffle_font1, 8);
   locateXY(8,7);spiWriteLcdDat(shuffle_font2, 8);
@@ -170,7 +170,7 @@ void sleep_mode(int num){
 void operation_mode(int num){
   demoScreen();
   if (num==1){
-    playing_plyalist_id = head_playlist+top_cursor;
+    playing_playlist_id = head_playlist+top_cursor;
     playing_music_id = 0;
     sleep_cnt=0;
   }else if (num==2){
