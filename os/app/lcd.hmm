@@ -31,3 +31,6 @@ public void putCh(char c);                 // カーソル位置に１文字表�
 public void putStr(char[] str);            // カーソル位置に文字列表示
 public void putDec(int val, int width);    // カーソル位置に10進数表示
 public void cls();                         // 画面のクリア
+public void putplaylistfont(int i, int j, boolean iscursor); //プレイリストの絵の1文字分を表示
+public void putoperationfont(int operation_font_id, boolean iscursor);
+public void disp_fish(int x, int y);
