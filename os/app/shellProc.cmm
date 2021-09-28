@@ -30,10 +30,47 @@
 #include <kernel.hmm>
 #include <util.hmm>
 #include "lcd.hmm"
+#include "lcd2.hmm"
 #include "mp3Proc.hmm"
 #include "spi.hmm"
 #include "mp3Files.hmm"
 #include "shellProc.hmm"
+
+#define N 6
+
+int top_cursor = 0;
+int head_playlist = 0; //playlist count: 先頭に表示するプレイリストは何番目かを示す
+int bottom_cursor = 0; //下のカーソル
+boolean isplaying = false;
+boolean isshuffle = false;
+boolean isrepeat = false;
+int playing_plyalist_id = 0;
+int playing_music_id = 0;
+int cnt = 0;
+int sleep_cnt = 0;
+boolean issleep = false;
+
+int min(int x,int y){
+    if(x<=y) return x;
+    else return y;
+    return 0;
+}
+
+int max(int x,int y){
+    if(x>=y) return x;
+    else return y;
+    return 0;
+}
+
+void inc(){
+    if(top_cursor==3) head_playlist=min(head_playlist+1,N-4);
+    else top_cursor = top_cursor+1;
+}
+
+void dec(){
+    if(top_cursor==0) head_playlist=max(head_playlist-1,0);
+    else top_cursor = top_cursor-1;
+}
 
 //-----------------------------------------------------------------------------
 // スイッチの読み取り
@@ -80,19 +117,110 @@ int swToNum(int sw) {
 //-----------------------------------------------------------------------------
 // 画面表示
 //-----------------------------------------------------------------------------
+
+char[] shuffle_font1 = { '\x94', '\x54', '\x34', '\x00', '\x28', '\x20', '\x18', '\x00' };
+char[] shuffle_font2 = { '\x2c', '\x24', '\xfc', '\x02', '\x31', '\x28', '\x24', '\x70' };
+char[] repeat_font1 = { '\x00', '\x0c', '\x40', '\x3c', '\x00', '\x3c', '\x28', '\x28' };
+char[] repeat_font2 = { '\x04', '\x10', '\x10', '\x00', '\x3c', '\x10', '\x00', '\x00' };
+
 void demoScreen() {
   cls();                                            // LCDをクリアする
-  locateXY(0,0); 
-  putStr("MP3 Player demo");
-  for (int i=1; i<=5; i=i+1) {                      // スイッチ1〜5に付いて
-    locateXY(2,i+1);
-    putCh(chr(ord('0')+i));                         // スイッチの番号
-    putStr(":");
-    //char[] fname = mp3FilesGetName(i);              // 対応するファイル名
-    //if (fname!=null) putStr(fname);
+  disp_top(head_playlist, top_cursor);
+  disp_title(playing_plyalist_id, playing_music_id);
+  disp_bottom(bottom_cursor, isplaying, isshuffle, isrepeat);
+  locateXY(7,7);spiWriteLcdDat(shuffle_font1, 8);
+  locateXY(8,7);spiWriteLcdDat(shuffle_font2, 8);
+  locateXY(11,7);spiWriteLcdDat(repeat_font1, 8);
+  locateXY(12,7);spiWriteLcdDat(repeat_font2, 8);
+  
+}
+
+int mylfsr = 1;
+int myrand() {
+  mylfsr = ((mylfsr >> 1) & 0x7fff) ^ (-(mylfsr & 1) & 0xb400); 
+  return mylfsr;
+}
+
+int current_y;
+void move_y(){
+  int val = myrand()%3;
+  if(val==0){
+    current_y = max(0,current_y-1);
+  }else if(val==1){
+    current_y = current_y;
+  }else if(val==2){
+    current_y = min(5,current_y+1);
   }
-  locateXY(2,7);
-  putStr("6:stop");                                 // 6番のスイッチ
+}
+
+void set_sleep(){
+  issleep = true;
+  cnt = 0;
+  current_y = myrand()%7;
+  cls();
+}
+
+void sleep_mode(int num){
+  if (num>0) issleep = false;//ここのif文はsleep解除の条件に変更
+    if(cnt%100==0){cls();move_y();disp_fish(cnt/100-1, current_y);}
+    cnt = (cnt+1)%2000;
+    sleep(10);
+}
+
+void operation_mode(int num){
+  demoScreen();
+  if (num==1){
+    playing_plyalist_id = head_playlist+top_cursor;
+    playing_music_id = 0;
+    sleep_cnt=0;
+  }else if (num==2){
+    dec();
+    sleep_cnt=0;
+  } else if (num==3){
+    inc();
+    sleep_cnt=0;
+  } else if(num==4){
+    bottom_cursor = max(bottom_cursor-1, 0);
+    sleep_cnt=0;
+  } else if(num==5){
+    if(bottom_cursor==0){
+      playing_music_id = max(playing_music_id-1,0);
+      //play(playling_playlist_id,playing_music_id);
+    }
+    else if(bottom_cursor==1){
+      //再生・停止を切り替え
+      //isplaying = !isplaying; //藤村
+      isplaying = get_playing();
+    	if(playing == 0){play(playing_playlist_id, playing_music_id);}
+      else{stop();}
+    	isplaying = get_playing();
+    }
+    else if(bottom_cursor==2){
+      //一曲戻す
+      playing_music_id = min(playing_music_id+1,getMaxnumMusic(playing_playlist_id));
+    }
+    else if(bottom_cursor==3){
+      //シャッフル切り替え
+      //isshuffle = !isshuffle;  //藤村
+      change_shuffle();
+    }
+    else if(bottom_cursor==4){
+      //リピート切り替え
+      //isrepeat = !isrepeat;   //藤村
+      change_repeat();
+    }
+    sleep_cnt=0;
+  } else if (num==6){
+    bottom_cursor = min(bottom_cursor+1, 4);
+    sleep_cnt=0;
+  } else{
+    if(sleep_cnt > 1000){
+    		sleep_cnt = 0;
+    		set_sleep();
+    }else{
+    		sleep_cnt = sleep_cnt + 1;
+    }
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -100,68 +228,14 @@ void demoScreen() {
 //-----------------------------------------------------------------------------
 // ここからプロセスの実行が始まる
 public void shellMain() {
-  int playlist_cnt = 0;
-  int operation_cnt = 0;
-  int music_cnt = 0;
-  int sleep_cnt = 0;
-  int sw;
-  int sw_num;
-//tmp valuable
-  int playing;
-  int max_music_num;
-  
   spiResetLcd();                                    // sleepを使用するので
   spiResetMp3();                                    //   プロセスが実行する
   mp3FilesInit();                                   // ファイル一覧を作る
   demoScreen();                                     // 画面を初期化
   for (;;) {
-    sw = readSw();
-    sw_num = swToNum(sw);
-    if(sw_num == 1){
-    	//disp_playlist(playlist_cnt);	             //プレイリスト名の変更
-    	music_cnt = 0;
-    	//disp_title(music_cnt);
-    	sleep_cnt = 0;		
-    }else if(sw_num == 2){
-    	//mv_cursor(-1, 0);
-    	sleep_cnt = 0;
-    }else if(sw_num == 3){
-    	//mv_cursor(+1, 0);
-    	sleep_cnt = 0;
-    }else if(sw_num == 4){
-    	//mv_cursor(0, -1);
-    	sleep_cnt = 0;
-    }else if(sw_num == 5){
-    	if(operation_cnt == 0){
-    		if(music_cnt > 0) {music_cnt = music_cnt-1;
-    		}
-    	}else if(operation_cnt == 1){
-    		//int playing = get_playing();
-    		if(playing == 0){play(playlist_cnt,music_cnt);
-    		}else{stop();
-    		}
-    		//playing = get_playing();
-    		//disp_playing(playing);
-    	}else if(operation_cnt == 2){
-    		//int max_music_num = getMaxnumMusic();
-    		if(music_cnt < max_music_num){music_cnt = music_cnt + 1;}
-    	}else if(operation_cnt == 3){
-    		//change_shuffle ();
-    	}else if(operation_cnt == 4){
-    		//change_repeat();
-    	}
-    	sleep_cnt = 0;
-    }else if(sw_num == 6){
-    	//mv_cursor(0, +1);
-    	sleep_cnt = 0;
-    }else{
-    	if(sleep_cnt > 1000){
-    		sleep_cnt = 0;
-    		//DispSleep
-    	}else{
-    		sleep_cnt = sleep_cnt + 1;
-    	}
-    }
+    int sw = readSw();
+    int num = swToNum(sw);
+    if(issleep) sleep_mode(num);
+    else operation_mode(num);
     sleep(10);                                      // 10ms に一度
   }
-}
