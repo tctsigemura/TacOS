@@ -2,7 +2,7 @@
 ; TacOS Source Code
 ;    Tokuyama kousen Advanced educational Computer
 ;
-; Copyright (C) 2009-2019 by
+; Copyright (C) 2009-2022 by
 ;                      Dept. of Computer Science and Electronic Engineering,
 ;                      Tokuyama College of Technology, JAPAN
 ;
@@ -20,6 +20,9 @@
 ;
 ; util/crt0.s : カーネル用スタートアップ
 ;
+; 2022.07.01 : Tec7d専用(SPの位置は常に0xffe0)
+; 2021.10.15 : TaC-CPU V3 対応(mull 命令が使用できないので)
+; 2021.10.15 : _div32削除
 ; 2019.12.27 : 論理アドレスから物理アドレスの変換 _ItoP(), _AtoP() 追加
 ; 2018.11.30 : TaC7a と TaC7b を自動識別し SP の初期値を決める．
 ; 2017.12.10 : _setPri のコメントを訂正
@@ -43,19 +46,8 @@
 __memSiz ws     1           ; 主記憶の最終アドレスを格納する
 
 .start                      ; IPL からここにジャンプしてくる
-        ld      sp,#0xe000  ; TaC7a の古いファームならメモリの最後は 0xdfff
-        ld      g1,#-1      ;
-        st      g1,0,sp     ; TaC7a の古いファームなら 0xe000 から 0xeffff は
-        ld      g0,0,sp     ;  上位バイトが未実装なのでデータが化けるはず
-        cmp     g0,g1       ;
-        jnz     .l          ; データが一致しなければ TaC7a の古いファーム
-        ld      sp,#0xf000  ; 次に TaC7b-d の古いファームと仮定し 0xefff
-        st      g1,0,sp     ; TaC7b-d の古いファームなら 0xf000 はROM
-        ld      g0,0,sp     ;   化けるようなら古いファーム
-        cmp     g0,g1       ;
-        jnz     .l          ; データが一致しなければ TeC7b-d の古いファーム
         ld      sp,#0xffe0  ; 一致すれば TaC7a-d の新しいファームなので 0xffe0
-.l      st      sp,__memSiz ; TacOSに主記憶のサイズを知らせる
+        st      sp,__memSiz ; カーネルに主記憶のサイズを知らせる
         call    _main       ; カーネルのメインに飛ぶ
 .m      halt                ; 万一カーネルが終了したらここで終わる
         jmp     .m          ;
@@ -170,21 +162,26 @@ __sub32                     ; int[] _sub32(int[] dst, int[] src);
 
 ;; 32ビットかけ算ルーチン
 __mul32                     ; int[] _mul32(int[] dst, int src)
-        ld      g2,2,sp     ; ディスティネーション(アドレス)
-        ld      g0,2,g2     ; ディスティネーション下位ワード
-        mull    g0,4,sp     ; ソース
-        st      g1,0,g2     ; ディスティネーション上位ワード
-        st      g0,2,g2     ; ディスティネーション下位ワード
-        ld      g0,g2       ; ディスティネーションを返す
+        push    g3
+        ld      g0,4,sp     ; ディスティネーション(アドレス)
+        ld      g1,2,g0     ; ディスティネーション下位ワード(B)
+        ld      g2,#0       ; (g1,g2) <= (B,0)
+        ld      g3,#16      ; カウンタ
+.L4     ld      g0,#0       ; g0をとりあえず0にする
+        shll    g1,#1       ; g1 <<= 1
+        jnc     .L5         ; g1の最上位が1だったなら
+        ld      g0,6,sp     ;  g0にソースをロード
+.L5     shll    g2,#1       ; g2 <<= 1
+        jnc     .L6         ; キャリーがあったら
+        add     g1,#1       ;  g1 += 1
+.L6     add     g2,g0       ; g2 += g0
+        jnc     .L7         ; キャリーがあったら
+        add     g1,#1       ;  g1 += 1
+.L7     sub     g3,#1       ; 16回繰り返したか
+        jnz     .L4
+        ld      g0,4,sp     ; ディスティネーション(アドレス)
+        ld      g1,0,g0     ; ディスティネーション上位ワード
+        ld      g2,2,g0     ; ディスティネーション下位ワード
+        pop     g3
         ret
 
-;; 32ビット割算ルーチン
-__div32                     ; int[] _div32(int[] dst, int src)
-        ld      g2,2,sp     ; ディスティネーション(アドレス)
-        ld      g0,2,g2     ; ディスティネーション下位ワード
-        ld      g1,0,g2     ; ディスティネーション上位ワード
-        divl    g0,4,sp     ; ソース
-        st      g1,2,g2     ; ディスティネーション下位ワード(余)
-        st      g0,0,g2     ; ディスティネーション上位ワード(商)
-        ld      g0,g2       ; ディスティネーションを返す
-        ret

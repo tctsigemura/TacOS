@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer
  *
- * Copyright (C) 2008-2020 by
+ * Copyright (C) 2008-2021 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * util/util.hmm : util.cmm の外部インターフェイス
  *
+ * 2021.10.15 : _div32 削除
  * 2020.08.23 : crt0.hmm を取り込む（crt0.hmmは廃止）
  * 2020.08.16 : 各関数の使用方法を記述したコメントを追加
  * 2019.09.25 : unputBuf() 追加
@@ -230,17 +231,6 @@ public int[]  _sub32(int[] dst, int[] src);
  *             (dst <- dst * src)
  */
 public int[]  _mul32(int[] dst, int src);
-
-/*-----------------------------------------------------------------------------
- *   名前    : _div32
- *   戻り値  : dstと同じアドレス
- *   引数    : int[] dst  32bit データ
- *             int src    16bit データ
- *   解説    : 32bitデータ dst を 16bit データ src で割った商と余りを計算する．
- *             dst[0] <- dst / src  （商）
- *             dst[1] <- dst % src  （余）
- */
-public int[]  _div32(int[] dst, int src);
 
 /*-----------------------------------------------------------------------------
  *   名前    : _ld32（マクロ）
