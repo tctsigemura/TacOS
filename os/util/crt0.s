@@ -185,3 +185,39 @@ __mul32                     ; int[] _mul32(int[] dst, int src)
         pop     g3
         ret
 
+;;ビットマップの指定ビット読み込み
+__readMap
+        ld      g1,2,sp     ; ビットマップのアドレス
+        ld      g2,4,sp     ; 何番目のビットを読み込むか
+        push    g2
+        shr     g2,#3
+        add     g1,g2
+        pop     g2
+        and     g2,#07
+        ld      g0,g1
+        shr     g0,g2
+        and     g0,#01
+        ret
+
+;;ビットマップの指定ビットに値を書き込み
+__writeMap
+        push    g3
+        ld      g1,2,sp     ; ビットマップのアドレス
+        ld      g2,4,sp     ; 何番目のビットに書き込むか
+        ld      g0,6,sp     ; 0,1のどっちを書き込むか
+        push    g2
+        shr     g2,#3
+        add     g1,g2
+        pop     g2
+        and     g2,#07
+        ld      g3,#1
+        shll    g3,g2
+        ld      g2,g1
+        cmp     g0,#0
+        jz      .L8
+        or      g2,g3
+        jmp     .L9
+.L8     xor     g2,g3
+.L9     st      g2,g1
+        pop     g3
+        ret
