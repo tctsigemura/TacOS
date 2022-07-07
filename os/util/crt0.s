@@ -189,35 +189,36 @@ __mul32                     ; int[] _mul32(int[] dst, int src)
 __readMap
         ld      g1,2,sp     ; ビットマップのアドレス
         ld      g2,4,sp     ; 何番目のビットを読み込むか
-        push    g2
-        shr     g2,#3
-        add     g1,g2
-        pop     g2
-        and     g2,#07
-        ld      g0,g1
-        shr     g0,g2
-        and     g0,#01
+        push    g2          ; g2の値を待避
+        shrl     g2,#3      ; g2を3ビット右シフト
+        add     g1,g2       ; g1の値にg2の値を加算      
+        pop     g2          ; g2の値を待避させた時の状態に
+        and     g2,#7       ; g2を下位3ビットでマスク
+        ld      g0,@g1      ; g0にg1のアドレスにある値を格納
+        shrl     g0,g2      ; g0をg2の値ビット右シフト
+        and     g0,#1       ; g0の最下位ビットを取り出す
         ret
 
 ;;ビットマップの指定ビットに値を書き込み
 __writeMap
-        push    g3
         ld      g1,2,sp     ; ビットマップのアドレス
         ld      g2,4,sp     ; 何番目のビットに書き込むか
         ld      g0,6,sp     ; 0,1のどっちを書き込むか
-        push    g2
-        shr     g2,#3
-        add     g1,g2
+        push    g3
+        push    g2          ; g2の値を待避
+        shrl     g2,#3      ; g2の値を3ビット右シフト
+        add     g1,g2       ; g1にg2の値を加算
         pop     g2
-        and     g2,#07
-        ld      g3,#1
-        shll    g3,g2
-        ld      g2,g1
-        cmp     g0,#0
-        jz      .L8
-        or      g2,g3
-        jmp     .L9
-.L8     xor     g2,g3
-.L9     st      g2,g1
+        and     g2,#7       ; g2を下位３ビットでマスク
+        ld      g3,#1       ; g3に1を読み込み
+        shll    g3,g2       ; g3をg2ビット分左シフト
+        ld      g2,@g1      ; g2にg1のアドレスにある値を格納
+        cmp     g0,#0       ; g0の値と0を比較
+        jz      .L8         ; g0が0だったらジャンプ
+        or      g2,g3       ; g0が1の時g2とg3のor
+        jmp     .L9         ; .L8からはg0が0の命令のためジャンプ
+.L8     xor     g3,#-1      ; g3と-1(0xFFFF)をxor
+        and     g2,g3       ; g2とg3のand
+.L9     st      g2,@g1      ; g2の値をg1のアドレスに格納
         pop     g3
         ret
