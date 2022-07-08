@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer
  *
- * Copyright (C) 2008-2021 by
+ * Copyright (C) 2008-2022 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * util/util.hmm : util.cmm の外部インターフェイス
  *
+ * 2022.07.08 : _readMap,_writeMap 追加
  * 2021.10.15 : _div32 削除
  * 2020.08.23 : crt0.hmm を取り込む（crt0.hmmは廃止）
  * 2020.08.16 : 各関数の使用方法を記述したコメントを追加
@@ -253,6 +254,31 @@ public int[]  _mul32(int[] dst, int src);
  *             l <- dst[1]
  */
 #define st32(h,l,src) ((h)=(src)[0],(l)=(src)[1])   // 32bit のデータのストア
+
+//*****************************************************************************
+// ビットマップ読み書きルーチン
+// ビットマップの指定ビットに読み書きの処理を行う
+//*****************************************************************************
+
+/*-----------------------------------------------------------------------------
+ *   名前    : _readMap
+ *   戻り値  : 引数で指定したビットの値
+ *   引数    : int adr         ビットマップのアドレス
+ *             int bitnum      ビットの番号
+ *   解説    : 指定したアドレスの指定したビットを読み込み、そのビットが0か1かを返す
+ *            
+ */
+public void _readMap(int adr, int bitnum)
+
+/*-----------------------------------------------------------------------------
+ *   名前    : _writeMap
+ *   引数    : int adr       ビットマップのアドレス
+ *             int bitnum   ビットの番号
+ *             int data     書き込みたい値
+ *   解説    : ビットマップの指定したビットに0又は1を書き込む
+ *            
+ */
+public void _writeMap(int adr, int bitnum, int data)
 
 //*****************************************************************************
 // 仮想アドレス，物理アドレス変換:
