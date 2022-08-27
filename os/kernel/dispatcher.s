@@ -2,7 +2,7 @@
 ;  TacOS Source Code
 ;     Tokuyama kousen Advanced educational Computer.
 ;
-;  Copyright (C) 2011 - 2019 by
+;  Copyright (C) 2011 - 2022 by
 ;                       Dept. of Computer Science and Electronic Engineering,
 ;                       Tokuyama College of Technology, JAPAN
 ;
@@ -21,6 +21,7 @@
 ;
 ; kernel/dispatcher.s : ディスパッチャ
 ;
+; 2022.07.04 : TaC-CPU V3 対応開始
 ; 2019.12.05 : メモリ保護を追加
 ; 2017.10.27 : ルーチン名を変更(_dispatch -> _yield, _startProc -> _dispatch)
 ; 2015.11.17 : PCB の項目を追加したため、[next]と[magic]へのポインタをずらした
@@ -49,10 +50,8 @@
 ;
 _yield
         ;--- G13(SP)以外の CPU レジスタと FLAG をカーネルスタックに退避 ---
-        push    g0              ; FLAG の保存場所を準備する
+        push    flag            ; FLAG を保存
         push    g0              ; G0 を保存
-        ld      g0,flag         ; FLAG を上で準備した位置に保存
-        st      g0,2,sp         ;
         push    g1              ; G1 を保存
         push    g2              ; G2 を保存
         push    g3              ; G3 を保存
