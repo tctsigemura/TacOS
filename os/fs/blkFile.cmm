@@ -118,7 +118,7 @@ void readBPB() {
     panic("FAT32?");
 
   ld32(rootLba, 0, ord(buf[16]));           // root <= FAT数
-  _add32(_mul32(rootLba, sctPrFAT), fatLba);// root <= root * sctPtFAT + fat
+  _add32(_mul32(rootLba, sctPrFAT), fatLba);// root <= root * sctPrFAT + fat
   
   // データの開始位置(セクタ)の計算
   ld32(dataLba, 0, wordLE(buf, 17) / 16);   // data <= ルートディレクトリサイズ
