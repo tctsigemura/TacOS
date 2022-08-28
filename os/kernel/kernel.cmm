@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2020 by
+ * Copyright (C) 2011 - 2022 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2022.07.04 : TaC-CPU V3 対応開始
  * 2020.09.06 : exit， wait の内部処理を pm へ移動（削除）
                 delProc，iSemV を public に (pm が使用)
  * 2020.09.06 : サーバプロセスの初期化を regProc.cmm に分離
@@ -581,7 +582,7 @@ public void main() {
   ttyInit();                                        // TTY初期化
 #endif
   procInit();                                       // プロセス(procTbl)初期化
-  out(0xf2, 0x0001);                                // MMU を有効にする
+  out(0xa2, 0x0001);                                // MMU を有効にする
 
   // システムスタート
 #ifdef DEBUG
