@@ -337,8 +337,6 @@ public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
   pcb.idx      = idx;                               // 一覧表で登録位置
   pcb.evtCnt   = 0;                                 // タイマー停止中
   pcb.evtSem   = newSem(0);                         // タイマー用のセマフォ
-  pcb.memBase  = null;                              // メモリアドレス(pmが設定)
-  pcb.memLen   = 0;                                 // メモリサイズ(pmが設定)
 #ifndef EMBEDDED
   pcb.parent   = null;                              // 親プロセスへのポインタ
   pcb.exitStat = -1;                                // プロセスの終了ステータス

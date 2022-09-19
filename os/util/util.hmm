@@ -268,7 +268,7 @@ public int[]  _mul32(int[] dst, int src);
  *   解説    : 指定したアドレスの指定したビットを読み込み、そのビットが0か1かを返す
  *            
  */
-public int _readMap(int adr, int bitnum)
+public int _readMap(int adr, int bitnum);
 
 /*-----------------------------------------------------------------------------
  *   名前    : _writeMap
@@ -278,7 +278,7 @@ public int _readMap(int adr, int bitnum)
  *   解説    : ビットマップの指定したビットに0又は1を書き込む
  *            
  */
-public void _writeMap(int adr, int bitnum, int data)
+public void _writeMap(int adr, int bitnum, int data);
 
 //*****************************************************************************
 // 仮想アドレス，物理アドレス変換:

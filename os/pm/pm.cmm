@@ -268,8 +268,6 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
   int priv = EI|USER;                              // 普通はユーザモード
   if (magic==IMAGIC) priv = EI|IPRV;               // I/O特権モード
   newProc(0,pcb.enice,pUsp-pText,priv,newPcb,fds); // PCB 等初期化
-  newPcb.memBase = _ItoA(pText);                   // メモリ空間アドレス
-  newPcb.memLen  = pEnd - pText;                   // メモリ空間サイズ
   newPcb.parent  = pcb;                            // 親プロセスを設定
   schProc(newPcb);                                 // プロセスを実行可能に
   return newPcb.pid;                               // PID を返す
@@ -361,7 +359,7 @@ public void exit(int status) {
   for (int i=0; i<P_FILE_MAX; i=i+1)                // クローズ忘れがあれば
     if (curProc.fds[i]!=-1) close(i);               //   クローズする
 
-  free(curProc.memBase);                            // メモリ空間を解放
+  //free(curProc.memBase);                          // メモリ空間を解放
   curProc.exitStat = status;                        // 終了ステータスを格納
   zmbProc();                                        // 自身をゾンビにする
   //panic("exit");  ここは実行されない
