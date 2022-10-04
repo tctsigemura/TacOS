@@ -72,9 +72,26 @@
 #include <errno.hmm>
 #include "pm.hmm"
 #include "exeFile.hmm"
+#include <process.hmm>
 
 // PM は単一プロセスで実行されるので、ほとんどのグローバル変数アクセスで
 // 排他を気にしなくて良い
+
+int allocFrame(){                                   //空きフレームを割り当て
+  int num;
+  int bit;
+  for(num=0;num<256;num+1){
+    bit = _readMap(pcb.pageTable,num);
+    if(bit == 0){
+      break;
+    }
+  }
+  _writeMap(pageTable,num,1);
+}
+
+void freeFrame(int num){                            //指定したフレームを開放
+  _writeMap(pcb.pageTable,num,0);
+}
 
 //-----------------------------------------------------------------------------
 // セクタ単位ではなくバイト、ワード単位のread(getByte(), getWord())を提供する
@@ -264,6 +281,7 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
     return ENOMEM;
   }
   int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
+  int[] newPcb.pageTable;
 
   int priv = EI|USER;                              // 普通はユーザモード
   if (magic==IMAGIC) priv = EI|IPRV;               // I/O特権モード
