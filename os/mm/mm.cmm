@@ -56,7 +56,7 @@
 
 #define MBSIZE sizeof(MemBlk)                   // MemBlk のバイト数
 #define MAGIC  (memPool)                        // 番兵のアドレスを使用する
-#define PAGESIZ 256;
+#define PAGESIZ 256
 
 // 空き領域はリストにして管理される
 struct MemBlk {                                 // 空き領域管理用の構造体
@@ -77,7 +77,7 @@ void mmInit() {                                 // プログラム起動前の�
                 +P_FILE_MAX*sizeof(int);        //   FDの一覧表の領域
   int heapSize = PRC_MAX*pcbSize+(FILEMAX*(sizeof(File)+BLKSIZ))
                  +PAGESIZ-1;                    // ヒープ領域
-  memPool.next.size= heapSize & ~255;           // ページサイズで繰り上げ    
+  memPool.next.size= heapSize & ~(PAGESIZ - 1);           // ページサイズで繰り上げ    
   memPool.next.next = null;
 }
 

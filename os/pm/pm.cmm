@@ -73,24 +73,31 @@
 #include "pm.hmm"
 #include "exeFile.hmm"
 #include <process.hmm>
+#include <file.hmm>
+#include <fsDef.hmm>
 
 // PM は単一プロセスで実行されるので、ほとんどのグローバル変数アクセスで
 // 排他を気にしなくて良い
 
-int allocFrame(){                                   //空きフレームを割り当て
+
+char[] bitmap = array(32);                          //　32バイトのビットマップ
+
+int allocFrame(){                                   //　空きフレームを割り当て
   int num;
-  int bit;
-  for(num=0;num<256;num+1){
-    bit = _readMap(pcb.pageTable,num);
-    if(bit == 0){
-      break;
+  for(num=0;num<256;num=num+1){
+    if(_readMap(bitmap, num) == 0){                 //　空きが見つかったら
+        _writeMap(bitmap,num,1);                    //　その番号を返す
     }
   }
-  _writeMap(pageTable,num,1);
+  return -1;                                        //　見つからなかったらエラー
 }
 
-void freeFrame(int num){                            //指定したフレームを開放
-  _writeMap(pcb.pageTable,num,0);
+void freeFrame(int num){                            //　指定したフレームを開放
+  if(_readMap(bitmap,num) == 1){                    //　指定した場所が1なら
+    _writeMap(bitmap,num,0);                        //　ビットマップに0を書き込み
+  }else{                                            //　指定した場所が0だったら
+    panic("_readMap(bitmap,num)!=1");               //　パニックを起こす
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -281,7 +288,6 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
     return ENOMEM;
   }
   int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
-  int[] newPcb.pageTable;
 
   int priv = EI|USER;                              // 普通はユーザモード
   if (magic==IMAGIC) priv = EI|IPRV;               // I/O特権モード
@@ -295,6 +301,7 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
 // プロセスマネージャーの本体(ここで各システムコールを実行する)
 //-----------------------------------------------------------------------------
 
+
 int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
   int r = -1;
   if (op==EXEC) { // exec(path,argv,envp,parent)
@@ -304,8 +311,20 @@ int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
   return r;
 }
 
+#define PAGESIZ 256
+
+int kheapsiz = (PRC_MAX * sizeof(PCB)+P_KERN_STKSIZ       
+              +P_FILE_MAX*sizeof(int) + 
+              (FILEMAX * (sizeof(File) + BLKSIZ))+ PAGESIZ-1) & ~(PAGESIZ - 1);
+
 // プロセスマネージャサーバのメインルーチン
 public void pmMain() {
+  int pagenum = kheapsiz / PAGESIZ;                 // カーネルヒープのページ数
+  int cnt=0;
+  while(cnt<pagenum){                               //カーネルが使うページを確保する
+    allocMem();
+    cnt = cnt + 1;
+  }
   pmLink = newLink();                               // リンクを生成する
   while (true) {                                    // システムコールを待つ
     Link l = receive(pmLink);                       // システムコールを受信
