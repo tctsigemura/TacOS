@@ -80,26 +80,6 @@
 // 排他を気にしなくて良い
 
 
-char[] bitmap = array(32);                          //　32バイトのビットマップ
-
-int allocFrame(){                                   //　空きフレームを割り当て
-  int num;
-  for(num=0;num<256;num=num+1){
-    if(_readMap(bitmap, num) == 0){                 //　空きが見つかったら
-        _writeMap(bitmap,num,1);                    //　その番号を返す
-    }
-  }
-  return -1;                                        //　見つからなかったらエラー
-}
-
-void freeFrame(int num){                            //　指定したフレームを開放
-  if(_readMap(bitmap,num) == 1){                    //　指定した場所が1なら
-    _writeMap(bitmap,num,0);                        //　ビットマップに0を書き込み
-  }else{                                            //　指定した場所が0だったら
-    panic("_readMap(bitmap,num)!=1");               //　パニックを起こす
-  }
-}
-
 //-----------------------------------------------------------------------------
 // セクタ単位ではなくバイト、ワード単位のread(getByte(), getWord())を提供する
 //-----------------------------------------------------------------------------
@@ -313,18 +293,8 @@ int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
 
 #define PAGESIZ 256
 
-int kheapsiz = (PRC_MAX * sizeof(PCB)+P_KERN_STKSIZ       
-              +P_FILE_MAX*sizeof(int) + 
-              (FILEMAX * (sizeof(File) + BLKSIZ))+ PAGESIZ-1) & ~(PAGESIZ - 1);
-
 // プロセスマネージャサーバのメインルーチン
 public void pmMain() {
-  int pagenum = kheapsiz / PAGESIZ;                 // カーネルヒープのページ数
-  int cnt=0;
-  while(cnt<pagenum){                               //カーネルが使うページを確保する
-    allocMem();
-    cnt = cnt + 1;
-  }
   pmLink = newLink();                               // リンクを生成する
   while (true) {                                    // システムコールを待つ
     Link l = receive(pmLink);                       // システムコールを受信

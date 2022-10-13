@@ -75,9 +75,9 @@ void mmInit() {                                 // プログラム起動前の�
   memPool.next = _ItoA(addrof(_end));           // 空き領域
   int pcbSize = sizeof(PCB)+P_KERN_STKSIZ       // PCB とカーネルスタック
                 +P_FILE_MAX*sizeof(int);        //   FDの一覧表の領域
-  int heapSize = PRC_MAX*pcbSize+(FILEMAX*(sizeof(File)+BLKSIZ))
-                 +PAGESIZ-1;                    // ヒープ領域
-  memPool.next.size= heapSize & ~(PAGESIZ - 1);           // ページサイズで繰り上げ    
+  int heapSize = PRC_MAX*pcbSize+(FILEMAX*(sizeof(File)+BLKSIZ));   // ヒープ領域
+  int pagePooladr = (_end()+heapSize+PAGESIZ-1) & ~(PAGESIZ-1); //ページプールのアドレス
+  memPool.next.size = pagePooladr-_end();         //空きメモリサイズ
   memPool.next.next = null;
 }
 
@@ -152,6 +152,43 @@ int mmFree(void[] mem) {                        // 領域解放
   }
   return 0;
 }
+
+
+//-----------------------------------------------------------------------------
+// ページプール関係
+//-----------------------------------------------------------------------------
+
+char[] bitmap = array(32);                          //　32バイトのビットマップ
+
+public int allocFrame(){                            //　空きフレームを割り当て
+  for(int num=0;num<256;num=num+1){                 //　頭から探索
+    if(_readMap(bitmap, num) == 0){                 //　空きが見つかったら
+        _writeMap(bitmap,num,1);                    
+        return num;                                 //　その番号を返す
+    }
+  }
+  return -1;                                        //　見つからなかったらエラー
+}
+
+public void freeFrame(int num){                     //　指定したフレームを開放
+  if(_readMap(bitmap,num) == 1){                    //　指定した場所が1なら
+    _writeMap(bitmap,num,0);                        //　ビットマップに0を書き込み
+  }else{                                            //　指定した場所が0だったら
+    panic("_readMap(bitmap,num)!=1");               //　パニックを起こす
+  }
+}
+
+void pageInit(){                                    //初期化ルーチン
+  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ       // PCB とカーネルスタック
+                +P_FILE_MAX*sizeof(int);        //   FDの一覧表の領域
+  int heapSize = PRC_MAX*pcbSize+(FILEMAX*(sizeof(File)+BLKSIZ));   // ヒープ領域
+  int kPage = ((heapSize+PAGESIZ-1) & ~(PAGESIZ-1))/PAGESIZ;  //カーネルのページ数
+  int num;
+  for(int cnt=0;cnt<kPage;cnt=cnt+1){               //ページ数分フレームを割り当てる
+    num = allocFrame();
+  }
+}
+
 
 //-----------------------------------------------------------------------------
 // メモリマネージャサーバの本体（メインループ他）
