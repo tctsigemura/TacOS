@@ -56,7 +56,6 @@
 
 #define MBSIZE sizeof(MemBlk)                   // MemBlk のバイト数
 #define MAGIC  (memPool)                        // 番兵のアドレスを使用する
-#define PAGESIZ 256
 
 // 空き領域はリストにして管理される
 struct MemBlk {                                 // 空き領域管理用の構造体
@@ -71,13 +70,19 @@ struct MemBlk {                                 // 空き領域管理用の構�
 MemBlk memPool = {null, 0};                     // 空き領域リストの番兵
 public int _end();                              // カーネルの BBS 領域の最後
 
+int pcbSize;                                    // PCBのサイズ
+int heapSize;                                   // カーネルのヒープのサイズ
+int pagePoolAdr;                                // ページプールのアドレス
+
 void mmInit() {                                 // プログラム起動前の初期化
   memPool.next = _ItoA(addrof(_end));           // 空き領域
-  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ       // PCB とカーネルスタック
-                +P_FILE_MAX*sizeof(int);        //   FDの一覧表の領域
-  int heapSize = PRC_MAX*pcbSize+(FILEMAX*(sizeof(File)+BLKSIZ));   // ヒープ領域
-  int pagePooladr = (_end()+heapSize+PAGESIZ-1) & ~(PAGESIZ-1); //ページプールのアドレス
-  memPool.next.size = pagePooladr-_end();         //空きメモリサイズ
+  pcbSize = sizeof(PCB)+P_KERN_STKSIZ       // PCB とカーネルスタック
+              +P_FILE_MAX*sizeof(int);        //   FDの一覧表の領域
+  heapSize = PRC_MAX*pcbSize+(FILEMAX*(sizeof(File)+BLKSIZ));
+  // ヒープ領域
+  pagePoolAdr = (_end()+heapSize+PAGESIZ-1) & ~(PAGESIZ-1);
+  //ページプールのアドレス
+  memPool.next.size = pagePoolAdr-_end();         //空きメモリサイズ
   memPool.next.next = null;
 }
 
@@ -179,13 +184,9 @@ public void freeFrame(int num){                     //　指定したフレー�
 }
 
 void pageInit(){                                    //初期化ルーチン
-  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ       // PCB とカーネルスタック
-                +P_FILE_MAX*sizeof(int);        //   FDの一覧表の領域
-  int heapSize = PRC_MAX*pcbSize+(FILEMAX*(sizeof(File)+BLKSIZ));   // ヒープ領域
-  int kPage = ((heapSize+PAGESIZ-1) & ~(PAGESIZ-1))/PAGESIZ;  //カーネルのページ数
-  int num;
+  int kPage = pagePoolAdr/PAGESIZ;  //カーネルのページ数
   for(int cnt=0;cnt<kPage;cnt=cnt+1){               //ページ数分フレームを割り当てる
-    num = allocFrame();
+    allocFrame();
   }
 }
 
@@ -208,6 +209,7 @@ int mmSysCall(int op, int prm1) {
 // メモリマネージャサーバのメインルーチン
 public void mmMain() {
   mmInit();                                     // データ構造の初期化
+  pageInit();
   mmLink=newLink();                             // リンクを生成する
   while(true) {                                 // サーバのメインループ
     Link l = receive(mmLink);                   //   システムコールを受ける
