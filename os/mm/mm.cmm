@@ -70,15 +70,13 @@ struct MemBlk {                                 // 空き領域管理用の構�
 MemBlk memPool = {null, 0};                     // 空き領域リストの番兵
 public int _end();                              // カーネルの BBS 領域の最後
 
-int pcbSize;                                    // PCBのサイズ
-int heapSize;                                   // カーネルのヒープのサイズ
 int pagePoolAdr;                                // ページプールのアドレス
 
 void mmInit() {                                 // プログラム起動前の初期化
   memPool.next = _ItoA(addrof(_end));           // 空き領域
-  pcbSize = sizeof(PCB)+P_KERN_STKSIZ       // PCB とカーネルスタック
+  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ       // PCB とカーネルスタック
               +P_FILE_MAX*sizeof(int);        //   FDの一覧表の領域
-  heapSize = PRC_MAX*pcbSize+(FILEMAX*(sizeof(File)+BLKSIZ));
+  int heapSize = PRC_MAX*pcbSize+(FILEMAX*(sizeof(File)+BLKSIZ));
   // ヒープ領域
   pagePoolAdr = (_end()+heapSize+PAGESIZ-1) & ~(PAGESIZ-1);
   //ページプールのアドレス
