@@ -83,7 +83,7 @@ struct PCB {              // PCB を表す構造体
   int[] pageTable;       //ページテーブルのフレームのアドレス
   
   //ページング用
-  int filedsc;           //exeファイルのファイルディスクリプタ
+  int filedsc;           //オープンしたexeファイルのファイルディスクリプタ
   int textSiz;           //textセグメントのサイズ
   int dataSiz;           //dataセグメントのサイズ
 
