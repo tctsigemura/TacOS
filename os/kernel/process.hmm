@@ -81,6 +81,11 @@ struct PCB {              // PCB を表す構造体
  
   // ページテーブルのフレームのアドレス
   int[] pageTable;       //ページテーブルのフレームのアドレス
+  
+  //ページング用
+  int filedsc;           //exeファイルのファイルディスクリプタ
+  int textSiz;           //textセグメントのサイズ
+  int dataSiz;           //dataセグメントのサイズ
 
   // プロセスの親子関係の情報
   PCB parent;             // 親プロセスへのポインタ
