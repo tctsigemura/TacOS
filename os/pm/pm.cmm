@@ -236,8 +236,38 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb) {
 
 // exec システムコールの処理をする
 int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
-  int r;                                           // 実行結果
-  r = openByte(path);                              // EXE ファイルをオープン
+
+  // PCB を確保・初期化し新しいプロセスを実行可能にする
+  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ          // PCB とカーネルスタック
+                +P_FILE_MAX*sizeof(int);           //   FDの一覧表の領域
+  PCB newPcb = malloc(pcbSize);                    // PCBを確保
+  if (newPcb==null) {                              //   エラー発生
+    free(_ItoA(pText));
+    return ENOMEM;
+  }
+  
+  //ページテーブルを確保する
+   int pageFrame1 = allocFrame();
+   if(pageFrame1 < 0){                             // 空きフレームが無かったら
+      return ENOMEM;                               // エラー発生
+   }
+   int pageFrame2 = allocFrame();
+   if(pageFrame2 < 0){                             // 空きフレームが無かったら
+      FreeFrame(pageFrame1);                       // 先に確保したフレームを解放
+      return ENOMEM;                               // エラー発生
+   }
+   pageFrame1 = pageFrame1 << 8;                   // フレーム番号を8ビットシフトし
+   pageFrame2 = pageFrame2 << 8;                   //　物理アドレスに変換する
+   newPcb.pageTable1 = pageFrame1;                 //　PCBにページテーブルのアドレス
+   newPcb.pageTable2 = pageFrame2;                 // 　を記録する
+   int[] pageTable1 = _ItoA(pageFrame1);
+   int[] pageTable2 = _ItoA(pageFrame2);
+   for(int num=0;num<128;num=num+1){               //　ページテーブルを初期化
+      pageTable1[num] = 0;
+      pageTable2[num] = 0;
+   }
+   
+/*
   if(r<0) return ENOEXEC;                          //   見つからなかった
   if ((r=readHeader())!=0 || (r=allocMem())!=0) {  // ヘッダを読みメモリ割付け
     closeByte();                                   //   エラー発生
@@ -255,18 +285,15 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
   // BSS セグメントをクリアする
   for(int i=0; i<bssSiz; i=i+1)                    // BSS セグメントに
     MEM[pBss+i] = chr(0);                          //   0を格納する
+*/
 
   // コマンド行引数を親プロセスから子プロセスのユーザスタックにコピーする
   copyArgsEnvp(argv, envp, pcb);
 
-  // PCB を確保・初期化し新しいプロセスを実行可能にする
-  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ          // PCB とカーネルスタック
-                +P_FILE_MAX*sizeof(int);           //   FDの一覧表の領域
-  PCB newPcb = malloc(pcbSize);                    // PCBを確保
-  if (newPcb==null) {                              //   エラー発生
-    free(_ItoA(pText));
-    return ENOMEM;
-  }
+  int r;                                           // 実行結果
+  r = openByte(path);                              // EXE ファイルをオープン
+  newPcb.filedsc = r;       
+  
   int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
 
   int priv = EI|USER;                              // 普通はユーザモード
