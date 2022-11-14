@@ -212,7 +212,7 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb, PCB newPcb) {
     st = st + strLen(_AtoP(envp[envs],pcb))+1+2;    //  envp 配列と文字列の領域
     envs = envs + 1;                                //   サイズを合計していく
   }
-  pUsp = pUsp - ((st+1) & ~1);                      // スタックの終了位置調整
+  //pUsp = pUsp - ((st+1) & ~1);                      // スタックの終了位置調整
 
   // スタックの底に確保した領域に argc, argv, envp, ... を書込む
   int[] USP = _ItoA(pUsp);                          // スタックを表現する配列
@@ -231,6 +231,30 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb, PCB newPcb) {
   index = index + argc + 1;
   // envp の格納
   strAdr = copyCA(USP, index, strAdr, envp, envs, pcb);
+}
+
+// ページテーブルと参照しているフレームを解放する
+void freePageTable(PCB newPcb){
+  int[] pageTable1 = newPcb.pageTable1;
+  int[] pageTable2 = newPcb.pageTable2;
+  int[] pageTable = pageTable1;
+  int entry;
+
+  for(int roop;roop<2;roop=roop+1){
+    for(int num;num<128;num=num+2){
+      entry = pageTable[num];
+      entry = entry>>7;
+      if(entry==1){
+        entry = pageTable[num+1];
+        freeFrame(entry);
+      }
+    }
+    pageTable = pageTable2;
+  }
+
+  int pageFrame1 = _AtoI(newPcb.pageTable1);
+  int pageFrame2 = _AtoI(newPcb.pageTable2);
+
 }
 
 // exec システムコールの処理をする
@@ -261,7 +285,7 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
    newPcb.pageTable2 = _ItoA(pageTableAdr2);        // 　を記録する
    int[] pageTable1 = _ItoA(pageTableAdr1);
    int[] pageTable2 = _ItoA(pageTableAdr2);
-   for(int num=0;num<128;num=num+1){               //　ページテーブルを初期化
+   for(int num=0;num<256;num=num+1){               //　ページテーブルを初期化
       pageTable1[num] = 0;
       pageTable2[num] = 0;
    }
@@ -291,13 +315,13 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
   int r;                                           // 実行結果
   r = openByte(path);                              // EXE ファイルをオープン
   if(r<0){                                         //   見つからなかった 
-    //ページテーブル他をまとめて解放する関数をかく
+    freePageTable(newPcb);
     return ENOEXEC;
   }
   newPcb.filedsc = r;       
  if ((r=readHeader())!=0) {                        // ヘッダを読む
     closeByte();                                   //   エラー発生
-    //ページテーブル他をまとめて解放する関数をかく
+    freePageTable(newPcb);
     return r;
   }
 
