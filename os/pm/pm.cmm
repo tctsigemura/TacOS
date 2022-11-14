@@ -79,7 +79,6 @@
 // PM は単一プロセスで実行されるので、ほとんどのグローバル変数アクセスで
 // 排他を気にしなくて良い
 
-
 //-----------------------------------------------------------------------------
 // セクタ単位ではなくバイト、ワード単位のread(getByte(), getWord())を提供する
 //-----------------------------------------------------------------------------
@@ -199,7 +198,7 @@ int copyCA(int[] USP, int index, int strAdr, char[][] ary, int size, PCB pcb) {
 }
 
 // スタックの底に argc, argv, envp, argv[0], ... を格納する
-void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb) {
+void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb, PCB newPcb) {
   // 注意: argv, envp は論理アドレスの配列
   // スタックの底に確保する領域のサイズを計算する
   int st = 2 + 2 + 2 + 2 + 2;                       // 文字列以外
@@ -236,9 +235,38 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb) {
 
 // exec システムコールの処理をする
 int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
-  int r;                                           // 実行結果
-  r = openByte(path);                              // EXE ファイルをオープン
-  if(r<0) return ENOEXEC;                          //   見つからなかった
+
+  // PCB を確保・初期化し新しいプロセスを実行可能にする
+  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ          // PCB とカーネルスタック
+                +P_FILE_MAX*sizeof(int);           //   FDの一覧表の領域
+  PCB newPcb = malloc(pcbSize);                    // PCBを確保
+  if (newPcb==null) {                              //   エラー発生
+    free(_ItoA(pText));
+    return ENOMEM;
+  }
+
+    //ページテーブルを確保する
+   int pageFrame1 = allocFrame();
+   if(pageFrame1 < 0){                             // 空きフレームが無かったら
+      return ENOMEM;                               // エラー発生
+   }
+   int pageFrame2 = allocFrame();
+   if(pageFrame2 < 0){                             // 空きフレームが無かったら
+      freeFrame(pageFrame1);                       // 先に確保したフレームを解放
+      return ENOMEM;                               // エラー発生
+   }
+   int pageTableAdr1 = pageFrame1 << 8;            // フレーム番号を8ビットシフトし
+   int pageTableAdr2 = pageFrame2 << 8;            //　物理アドレスに変換する
+   newPcb.pageTable1 = _ItoA(pageTableAdr1);       //　PCBにページテーブルのアドレス
+   newPcb.pageTable2 = _ItoA(pageTableAdr2);        // 　を記録する
+   int[] pageTable1 = _ItoA(pageTableAdr1);
+   int[] pageTable2 = _ItoA(pageTableAdr2);
+   for(int num=0;num<128;num=num+1){               //　ページテーブルを初期化
+      pageTable1[num] = 0;
+      pageTable2[num] = 0;
+   }
+
+/*
   if ((r=readHeader())!=0 || (r=allocMem())!=0) {  // ヘッダを読みメモリ割付け
     closeByte();                                   //   エラー発生
     return r;
@@ -255,18 +283,27 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
   // BSS セグメントをクリアする
   for(int i=0; i<bssSiz; i=i+1)                    // BSS セグメントに
     MEM[pBss+i] = chr(0);                          //   0を格納する
+*/
 
   // コマンド行引数を親プロセスから子プロセスのユーザスタックにコピーする
-  copyArgsEnvp(argv, envp, pcb);
+  copyArgsEnvp(argv, envp, pcb, newPcb);
 
-  // PCB を確保・初期化し新しいプロセスを実行可能にする
-  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ          // PCB とカーネルスタック
-                +P_FILE_MAX*sizeof(int);           //   FDの一覧表の領域
-  PCB newPcb = malloc(pcbSize);                    // PCBを確保
-  if (newPcb==null) {                              //   エラー発生
-    free(_ItoA(pText));
-    return ENOMEM;
+  int r;                                           // 実行結果
+  r = openByte(path);                              // EXE ファイルをオープン
+  if(r<0){                                         //   見つからなかった 
+    //ページテーブル他をまとめて解放する関数をかく
+    return ENOEXEC;
   }
+  newPcb.filedsc = r;       
+ if ((r=readHeader())!=0) {                        // ヘッダを読む
+    closeByte();                                   //   エラー発生
+    //ページテーブル他をまとめて解放する関数をかく
+    return r;
+  }
+
+  newPcb.textSiz = textSiz;                       // テキストとデータセグメントの
+  newPcb.dataSiz = dataSiz;                       // サイズを記憶する
+
   int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
 
   int priv = EI|USER;                              // 普通はユーザモード
@@ -290,8 +327,6 @@ int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
     r = -1;                                         // どれでもなければエラー
   return r;
 }
-
-#define PAGESIZ 256
 
 // プロセスマネージャサーバのメインルーチン
 public void pmMain() {
