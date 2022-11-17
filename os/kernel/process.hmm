@@ -80,8 +80,7 @@ struct PCB {              // PCB を表す構造体
   int evtSem;             // イベント用セマフォの番号
  
   // ページテーブルのフレームのアドレス
-  int[] pageTable1;      //ページテーブルのフレームのアドレス
-  int[] pageTable2;
+  int[] pageTable;      //ページテーブルのフレームのアドレス
 
   //ページング用
   int filedsc;           //オープンしたexeファイルのファイルディスクリプタ

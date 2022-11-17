@@ -185,6 +185,63 @@ int readTextData() {
   return 0;                                         // 正常終了
 }
 
+void[] _VtoP(void[] a, PCB p){                      //　仮装アドレスを物理アドレスに変換
+  int[] pageTable = p.pageTable;;                   //　ページテーブルのアドレス
+  int data;                                     //　ページテーブルの中のデータ
+  int page = _AtoI(a) >> 8;                         //　アドレスaの上位8ビット取り出し
+  data = pageTable[page*2];                         //　ページテーブルの中身を取り出す
+  data = data >> 7;
+  if(data==1){
+    data = pageTable[page*2+1];
+    data = data << 8;
+    int adr = _AtoI(a);
+    adr = adr & 0x00ff;
+    data = data +adr;
+  }
+  return  _ItoA(data);
+}
+
+char peekB(void[] a, PCB pcb){
+  char[] adr = _VtoP(a,pcb);
+  if(_AtoI(adr)==0){
+    //エラー処理
+  }
+  return adr[0];
+}
+
+int peekW(void[] a, PCB pcb){
+  char[] adr = _VtoP(a,pcb);
+  if(_AtoI(adr)==0){
+    //エラー処理
+  }
+  char word1 = adr[0];
+  char word2 = adr[1];
+  return (ord(word1) << 8 | ord(word2));
+}
+
+void pokeB(void[] a, char c, PCB pcb){
+  char[] adr = _VtoP(a,pcb);
+  if(_AtoI(adr)==0){
+    allocMem();
+  }
+  adr[0] = c;
+}
+
+void pokeW(void[] a, int i,PCB pcb){
+  int[] adr = _VtoP(a,pcb);
+  if(_AtoI(adr)==0){
+    allocMem();
+  }
+  int word1 = i >> 8;
+  int word2 = i & 0x00ff;
+  adr[0] = word1;
+  adr[1] = word2;
+}
+
+void strCpyVP(){
+
+}
+
 // スタックに文字列の配列をコピーする (返り値: strAdr)
 int copyCA(int[] USP, int index, int strAdr, char[][] ary, int size, PCB pcb) {
   for (int i=0; i<size; i=i+1) {                    // すべての要素について
@@ -212,7 +269,7 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb, PCB newPcb) {
     st = st + strLen(_AtoP(envp[envs],pcb))+1+2;    //  envp 配列と文字列の領域
     envs = envs + 1;                                //   サイズを合計していく
   }
-  //pUsp = pUsp - ((st+1) & ~1);                      // スタックの終了位置調整
+  pUsp = pUsp - ((st+1) & ~1);                      // スタックの終了位置調整
 
   // スタックの底に確保した領域に argc, argv, envp, ... を書込む
   int[] USP = _ItoA(pUsp);                          // スタックを表現する配列
@@ -235,13 +292,9 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb, PCB newPcb) {
 
 // ページテーブルと参照しているフレームを解放する
 void freePageTable(PCB newPcb){
-  int[] pageTable1 = newPcb.pageTable1;
-  int[] pageTable2 = newPcb.pageTable2;
-  int[] pageTable = pageTable1;
+  int[] pageTable = newPcb.pageTable;
   int entry;
-
-  for(int roop;roop<2;roop=roop+1){
-    for(int num;num<128;num=num+2){
+    for(int num;num<256;num=num+2){
       entry = pageTable[num];
       entry = entry>>7;
       if(entry==1){
@@ -249,12 +302,9 @@ void freePageTable(PCB newPcb){
         freeFrame(entry);
       }
     }
-    pageTable = pageTable2;
-  }
-
-  int pageFrame1 = _AtoI(newPcb.pageTable1);
-  int pageFrame2 = _AtoI(newPcb.pageTable2);
-
+  int pageFrame = _AtoI(newPcb.pageTable);
+  pageFrame = pageFrame >> 8;
+  freeFrame(pageFrame);
 }
 
 // exec システムコールの処理をする
@@ -270,24 +320,17 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
   }
 
     //ページテーブルを確保する
-   int pageFrame1 = allocFrame();
-   if(pageFrame1 < 0){                             // 空きフレームが無かったら
+   int pageFrame = alloc2Frame();
+   if(pageFrame < 0){                              // 空きフレームが無かったら
       return ENOMEM;                               // エラー発生
    }
-   int pageFrame2 = allocFrame();
-   if(pageFrame2 < 0){                             // 空きフレームが無かったら
-      freeFrame(pageFrame1);                       // 先に確保したフレームを解放
-      return ENOMEM;                               // エラー発生
-   }
-   int pageTableAdr1 = pageFrame1 << 8;            // フレーム番号を8ビットシフトし
-   int pageTableAdr2 = pageFrame2 << 8;            //　物理アドレスに変換する
-   newPcb.pageTable1 = _ItoA(pageTableAdr1);       //　PCBにページテーブルのアドレス
-   newPcb.pageTable2 = _ItoA(pageTableAdr2);        // 　を記録する
-   int[] pageTable1 = _ItoA(pageTableAdr1);
-   int[] pageTable2 = _ItoA(pageTableAdr2);
+
+   int pageTableAdr = pageFrame << 8;            // フレーム番号を8ビットシフトし
+   newPcb.pageTable = _ItoA(pageTableAdr);       //　PCBにページテーブルのアドレス
+   int[] pageTable = _ItoA(pageTableAdr);
    for(int num=0;num<256;num=num+1){               //　ページテーブルを初期化
-      pageTable1[num] = 0;
-      pageTable2[num] = 0;
+      pageTable[num*2] = 0;
+      pageTable[num*2+1] = 0;
    }
 
 /*
