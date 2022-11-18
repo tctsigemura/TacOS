@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2018 by
+ * Copyright (C) 2011 - 2022 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,8 @@
 /*
  * fs/blkFile.cmm : ブロック(セクタ単位)で操作する簡単なファイルを提供する
  *
+ * 2022.11.18 : readFatがflushFatを呼出時にLBAの計算値が破壊されるバグ訂正
+ * 2022.11.14 : ルートディレクトリのセクタ数を定数ではなくBPBから計算する
  * 2018.06.30 : コメントアウトされていた総セクタ数をチェックするコードを削除
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2016.01.06 : コードレビューを反映
@@ -63,7 +65,6 @@
 #include "blkFile.hmm"
 
 #define ENDCLST      0xfff6                 // ユーザが使用できるクラスタ#の最後
-#define ROOTSCT_MAX  32                     // FAT16 の ROOTDIR は32セクタ固定
 
 // 一時領域:プロセスとして動作するので一時領域はファイル毎に作らなくてよい
 int[] sTmp  = {0, 0};                       // セクタアドレス用
@@ -73,6 +74,7 @@ int[] dTmp  = {0, 0};                       // データ用
 // BPB : ファイルシステム基本情報
 //----------------------------------------------------------------------------
 int sctPrClst;                              // 1クラスタ当たりのセクタ数
+int sctPrDir;                               // ルートディレクトリのセクタ数
 int sctPrFAT;                               // 1FAT 当たりのセクタ数
 int[] bpbLba  = { 0, 0 };                   // BPB 領域の開始 LBA
 int[] fatLba  = { 0, 0 };                   // FAT 領域の開始 LBA
@@ -121,7 +123,8 @@ void readBPB() {
   _add32(_mul32(rootLba, sctPrFAT), fatLba);// root <= root * sctPrFAT + fat
   
   // データの開始位置(セクタ)の計算
-  ld32(dataLba, 0, wordLE(buf, 17) / 16);   // data <= ルートディレクトリサイズ
+  sctPrDir = wordLE(buf, 17) / 16;          // ルートディレクトリのセクタ数
+  ld32(dataLba, 0, sctPrDir);               // data <= ルートディレクトリサイズ
   _add32(dataLba, rootLba);                 // data <= data + root
 
   free(buf);                                // バッファを解放
@@ -157,17 +160,18 @@ public void flushFat(){
 // readFat   : FAT を読み、次のクラスタ番号を返す
 // 返り値    : 次のクラスタ番号
 // 引数 clst : 現在のクラスタ番号
-int readFat(int clst) {
+int[] fTmp = { 0, 0 };                      // 専用の32ビットデータ置き場
+int readFat(int clst) {                     //  (sTmp, dTmpはflushFatが破壊)
   // clst が指すセクタアドレスに変換する
   int s = (clst >> 8) & 0xff;               // FAT内セクタ番号
-  ld32(sTmp, 0, s);                         // セクタ番号を 32bit にする
-  _add32(sTmp, fatLba);                     // FAT の開始アドレスを加える
+  ld32(fTmp, 0, s);                         // セクタ番号を 32bit にする
+  _add32(fTmp, fatLba);                     // FAT の開始アドレスを加える
 
-  if(sTmp[0]!=fatLbaH || sTmp[1]!=fatLbaL){ //  キャッシュにあるものと違うなら
+  if(fTmp[0]!=fatLbaH || fTmp[1]!=fatLbaL){ //  キャッシュにあるものと違うなら
     flushFat();                             //    キャッシュをフラッシュ
-    readSct(sTmp[0], sTmp[1], fatCache);    //    セクタをキャッシュに読み込む
-    fatLbaH = sTmp[0];                      //    キャッシュ中のアドレスを更新
-    fatLbaL = sTmp[1];                      //    キャッシュ中のアドレスを更新
+    readSct(fTmp[0], fTmp[1], fatCache);    //    セクタをキャッシュに読み込む
+    fatLbaH = fTmp[0];                      //    キャッシュ中のアドレスを更新
+    fatLbaL = fTmp[1];                      //    キャッシュ中のアドレスを更新
   }
 
   int offs = (clst & 0xff)<<1;              // セクタ内オフセット
@@ -189,7 +193,7 @@ void writeFat(int clst, int val) {
 //----------------------------------------------------------------------------
 boolean badBlk(Blk blk) {                   // blk の値は正しいかチェックする
   return (blk.clst==UNASSIGN || _uCmp(ENDCLST, blk.clst)<0) ||
-         (blk.clst==ROOTDIR  && _uCmp(ROOTSCT_MAX, blk.sct)<=0);
+         (blk.clst==ROOTDIR  && _uCmp(sctPrDir, blk.sct)<=0);
 }
 
 // readBlk  : 1セクタ読み出す
@@ -239,7 +243,7 @@ public boolean nextBlk(Blk blk) {
   int clst = blk.clst;
   int sct  = blk.sct + 1;                   // セクタを進める
   if (clst==ROOTDIR) {                      // ルートディレクトリの場合
-    if (sct>=ROOTSCT_MAX) return false;     //   固定長のセクタ以上なら EOF
+    if (sct>=sctPrDir) return false;        //   セクタ数以上なら EOF
   } else if (sct>=sctPrClst) {              // クラスタの最後まで来たら
     clst = readFat(clst);                   //   クラスタを進める
     if (_uCmp(clst,ENDCLST)>0) return false; //     終端番号なら EOF
