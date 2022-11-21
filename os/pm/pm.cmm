@@ -185,8 +185,8 @@ int readTextData() {
   return 0;                                         // 正常終了
 }
 
-void[] _VtoP(void[] a, PCB p){                      //　仮装アドレスを物理アドレスに変換
-  int[] pageTable = p.pageTable;;                   //　ページテーブルのアドレス
+void[] _VtoP(void[] a, PCB pcb){                      //　仮装アドレスを物理アドレスに変換
+  int[] pageTable = pcb.pageTable;;                   //　ページテーブルのアドレス
   int data;                                         //　ページテーブルの中のデータ
   int page = _AtoI(a) >> 8;                         //　アドレスaの上位8ビット取り出し
   data = pageTable[page*2];                         //　ページテーブルの中身を取り出す
@@ -299,8 +299,8 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb, PCB newPcb) {
 }
 
 // ページテーブルと参照しているフレームを解放する
-void freePageTable(PCB newPcb){
-  int[] pageTable = newPcb.pageTable;
+void freePageTable(PCB pcb){
+  int[] pageTable = pcb.pageTable;
   int entry;
     for(int num;num<256;num=num+2){
       entry = pageTable[num];
@@ -310,7 +310,7 @@ void freePageTable(PCB newPcb){
         freeFrame(entry);
       }
     }
-  int pageFrame = _AtoI(newPcb.pageTable);
+  int pageFrame = _AtoI(pcb.pageTable);
   pageFrame = pageFrame >> 8;
   freeFrame(pageFrame);
 }
