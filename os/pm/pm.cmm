@@ -187,38 +187,41 @@ int readTextData() {
 
 void[] _VtoP(void[] a, PCB p){                      //　仮装アドレスを物理アドレスに変換
   int[] pageTable = p.pageTable;;                   //　ページテーブルのアドレス
-  int data;                                     //　ページテーブルの中のデータ
+  int data;                                         //　ページテーブルの中のデータ
   int page = _AtoI(a) >> 8;                         //　アドレスaの上位8ビット取り出し
   data = pageTable[page*2];                         //　ページテーブルの中身を取り出す
-  data = data >> 7;
+  data = data >> 7;                                 //　最上位ビットを取り出す
   if(data==1){
-    data = pageTable[page*2+1];
-    data = data << 8;
-    int adr = _AtoI(a);
-    adr = adr & 0x00ff;
+    data = pageTable[page*2+1];                     //　フレーム番号を読み込み
+    data = data << 8;                               //　上位8ビットにフレーム番号を移動
+    int adr = _AtoI(a);                             
+    adr = adr & 0x00ff;                             //　アドレスの下8ビットをマスクする
     data = data +adr;
   }
   return  _ItoA(data);
 }
 
+//　指定したアドレスの1バイトを返す
 char peekB(void[] a, PCB pcb){
   char[] adr = _VtoP(a,pcb);
   if(_AtoI(adr)==0){
-    //エラー処理
+    exit(1);//エラー処理
   }
   return adr[0];
 }
 
+//　指定したアドレスの1ワードを返す
 int peekW(void[] a, PCB pcb){
   char[] adr = _VtoP(a,pcb);
   if(_AtoI(adr)==0){
-    //エラー処理
+    exit(1);//エラー処理
   }
   char word1 = adr[0];
   char word2 = adr[1];
   return (ord(word1) << 8 | ord(word2));
 }
 
+//　指定したアドレスに1バイト書き込む
 void pokeB(void[] a, char c, PCB pcb){
   char[] adr = _VtoP(a,pcb);
   if(_AtoI(adr)==0){
@@ -227,6 +230,7 @@ void pokeB(void[] a, char c, PCB pcb){
   adr[0] = c;
 }
 
+//　指定したアドレスに1ワード書き込む
 void pokeW(void[] a, int i,PCB pcb){
   int[] adr = _VtoP(a,pcb);
   if(_AtoI(adr)==0){
@@ -238,8 +242,12 @@ void pokeW(void[] a, int i,PCB pcb){
   adr[1] = word2;
 }
 
-void strCpyVP(){
-
+// 文字列をコピーする
+void strCpyVP(int[] dst, int[] src, PCB cpcb, PCB ppcb){
+  char c;
+  for(int i=0;(c=peekB(_ItoA(_AtoI(src)+i),ppcb))!='\0';i=i+1){
+    pokeB(_ItoA(_AtoI(dst)+i),c,cpcb);
+  }
 }
 
 // スタックに文字列の配列をコピーする (返り値: strAdr)
