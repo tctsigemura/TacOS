@@ -226,7 +226,7 @@ int peekW(void[] a, PCB pcb){
 void pokeB(void[] a, char c, PCB pcb){
   char[] adr = _VtoP(a,pcb);                        //　指定したアドレスを物理アドレスに変換
   if(_AtoI(adr)==0){                                //　フレームに変換できなかったら
-    allocMem();                                     //　フレームを割り当て
+    int num = allocFrame();                         //　フレームを割り当て
   }
   adr[0] = c;                                       //　アドレスに1バイトの文字列を書き込む
 }
@@ -235,7 +235,7 @@ void pokeB(void[] a, char c, PCB pcb){
 void pokeW(void[] a, int i,PCB pcb){
   int[] adr = _VtoP(a,pcb);                         //　指定したアドレスを物理アドレスに変換
   if(_AtoI(adr)==0){                                //　フレームに変換できなかったら
-    allocMem();                                     //　フレームを割り当て
+    int num = allocFrame();                         //　フレームを割り当て
   }
   int word1 = i >> 8;                               //　前1バイトを取り出し
   int word2 = i & 0x00ff;                           //　後ろ１バイトを取り出し
@@ -244,20 +244,20 @@ void pokeW(void[] a, int i,PCB pcb){
 }
 
 // 文字列をコピーする　ppcb:親プロセスのpcb、cpcb:子プロセスのpcb
-void strCpyVP(int[] dst, int[] src, PCB cpcb, PCB ppcb){
+void strCpyVP(void[] dst, void[] src, PCB pPcb, PCB cPcb){
   char c;
   // '\0'になるまで文字列をコピーする
-  for(int i=0;(c=peekB(_ItoA(_AtoI(src)+i),ppcb))!='\0';i=i+1){
-    pokeB(_ItoA(_AtoI(dst)+i),c,cpcb);
+  for(int i=0;(c=peekB(_ItoA(_AtoI(src)+i),pPcb))!='\0';i=i+1){
+    pokeB(_ItoA(_AtoI(dst)+i),c,cPcb);
   }
 }
 
 // スタックに文字列の配列をコピーする (返り値: strAdr)
-int copyCA(int[] USP, int index, int strAdr, char[][] ary, int size, PCB pcb) {
+int copyCA(int[] USP, int index, int strAdr, char[][] ary, int size, PCB pPcb, PCB cPcb) {
   for (int i=0; i<size; i=i+1) {                    // すべての要素について
     USP[index + i] = strAdr;                        //   参照配列位置格納
-    char[] str = _AtoP(ary[i], pcb);                //   文字列の実体を取得
-    strCpy(_ItoA(pText+strAdr), str);               //   文字列をコピー
+    char[] str = _AtoP(ary[i], pPcb);               //   文字列の実体を取得
+    strCpyVP(_ItoA(pText+strAdr), str, pPcb, cPcb); //   文字列をコピー
     strAdr = strAdr + strLen(str) + 1;              //   文字列格納位置を進める
   }
   USP[index + size] = 0x0000;                       // null を格納
@@ -265,18 +265,18 @@ int copyCA(int[] USP, int index, int strAdr, char[][] ary, int size, PCB pcb) {
 }
 
 // スタックの底に argc, argv, envp, argv[0], ... を格納する
-void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb, PCB newPcb) {
+void copyArgsEnvp(char[][] argv, char[][] envp, PCB pPcb, PCB cPcb) {
   // 注意: argv, envp は論理アドレスの配列
   // スタックの底に確保する領域のサイズを計算する
   int st = 2 + 2 + 2 + 2 + 2;                       // 文字列以外
   int argc = 0;                                     // コマンド行引数の個数
   while (argv!=null && argv[argc]!=null) {          // コマンド行引数について
-    st = st + strLen(_AtoP(argv[argc],pcb))+1+2;    //  argv 配列と文字列の領域
+    st = st + strLen(_AtoP(argv[argc],pPcb))+1+2;   //  argv 配列と文字列の領域
     argc = argc + 1;                                //   サイズを合計していく
   }
   int envs = 0;                                     // 環境変数の個数
   while (envp!=null && envp[envs]!=null) {          // 環境変数について
-    st = st + strLen(_AtoP(envp[envs],pcb))+1+2;    //  envp 配列と文字列の領域
+    st = st + strLen(_AtoP(envp[envs],pPcb))+1+2;   //  envp 配列と文字列の領域
     envs = envs + 1;                                //   サイズを合計していく
   }
   pUsp = pUsp - ((st+1) & ~1);                      // スタックの終了位置調整
@@ -294,10 +294,10 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pcb, PCB newPcb) {
   int index = 3;                                    // 配列のインデックス
 
   // argv の格納
-  strAdr = copyCA(USP, index, strAdr, argv, argc, pcb);
+  strAdr = copyCA(USP, index, strAdr, argv, argc, pPcb, cPcb);
   index = index + argc + 1;
   // envp の格納
-  strAdr = copyCA(USP, index, strAdr, envp, envs, pcb);
+  strAdr = copyCA(USP, index, strAdr, envp, envs, pPcb, cPcb);
 }
 
 // ページテーブルと参照しているフレームを解放する
@@ -343,24 +343,6 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
       pageTable[num*2+1] = 0;
    }
 
-/*
-  if ((r=readHeader())!=0 || (r=allocMem())!=0) {  // ヘッダを読みメモリ割付け
-    closeByte();                                   //   エラー発生
-    return r;
-  }
-
-  r = readTextData();                              // テキストとデータを読む
-  closeByte();                                     // ファイルをクローズ
-
-  if (r!=0) {                                      // エラーが発生していれば
-    free(_ItoA(pText));                            //   メモリを解放する
-    return r;
-  }
-
-  // BSS セグメントをクリアする
-  for(int i=0; i<bssSiz; i=i+1)                    // BSS セグメントに
-    MEM[pBss+i] = chr(0);                          //   0を格納する
-*/
 
   // コマンド行引数を親プロセスから子プロセスのユーザスタックにコピーする
   copyArgsEnvp(argv, envp, pcb, newPcb);
@@ -379,7 +361,7 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
   }
 
   newPcb.textSiz = textSiz;                       // テキストとデータセグメントの
-  newPcb.dataSiz = dataSiz;                       // サイズを記憶する
+  newPcb.dataSiz = dataSiz;                       // 　サイズを記憶する
 
   int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
 
