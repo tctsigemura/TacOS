@@ -72,9 +72,7 @@
 #include <errno.hmm>
 #include "pm.hmm"
 #include "exeFile.hmm"
-#include <process.hmm>
-#include <file.hmm>
-#include <fsDef.hmm>
+
 
 // PM は単一プロセスで実行されるので、ほとんどのグローバル変数アクセスで
 // 排他を気にしなくて良い
@@ -185,57 +183,59 @@ int readTextData() {
   return 0;                                         // 正常終了
 }
 
-//　仮装アドレスを物理アドレスに変換する
+#define V(pcb, page) (pcb.pageTable[(page)*2+1]>>15)  //　ページテーブルのエントリのVビット
+#define FRAME(pcb, page) (pcb.pageTable[(page)*2+1]&0x00ff) //　フレーム番号
+
+//　仮想アドレスを物理アドレスに変換する
 void[] _VtoP(void[] a, PCB pcb){                   
-  int[] pageTable = pcb.pageTable;;                 //　ページテーブルのアドレス
-  int data;                                         //　ページテーブルの中のデータ
   int page = _AtoI(a) >> 8;                         //　アドレスaの上位8ビット取り出し
-  data = pageTable[page*2];                         //　ページテーブルの中身を取り出す
-  data = data >> 7;                                 //　最上位ビットを取り出す
-  if(data==1){
-    data = pageTable[page*2+1];                     //　フレーム番号を読み込み
-    data = data << 8;                               //　上位8ビットにフレーム番号を移動
-    int adr = _AtoI(a);                             
-    adr = adr & 0x00ff;                             //　アドレスの下8ビットをマスクする
-    data = data +adr;                               //  下8ビットは変化しない
-  }
-  return  _ItoA(data);                              //　アドレスに変換して返す
+  int adr = _AtoI(a)& 0x00ff;                       //　アドレスaの下位8ビット取り出し
+  if(V(pcb, page)==0) return null;                  //  変換できなかった
+  return  _ItoA((FRAME(pcb, page)<<8)|adr);         //　アドレスに変換して返す
 }
 
 //　指定したアドレスの1バイトを返す
 char peekB(void[] a, PCB pcb){
-  char[] adr = _VtoP(a,pcb);                        //　指定したアドレスを物理アドレスに変換
-  if(_AtoI(adr)==0){                                //　フレームに変換できなかったら
-    exit(1);                                        //　エラー処理
+  char[] adr = _VtoP(a,pcb);                        //　アドレスaを物理アドレスに変換
+  if(adr==null){                                    //　フレームに変換できなかったら
+    panic("no frame");
   }
   return adr[0];                                    //　アドレスの中身1バイトを返す
 }
 
 //　指定したアドレスの1ワードを返す
 int peekW(void[] a, PCB pcb){
-  char[] adr = _VtoP(a,pcb);                        //　指定したアドレスを物理アドレスに変換
-  if(_AtoI(adr)==0){                                //　フレームに変換できなかったら
-    exit(1);                                        //  エラー処理
+  int[] adr = _VtoP(a,pcb);                         //　アドレスaを物理アドレスに変換
+  if(adr==null){                                    //　フレームに変換できなかったら
+    panic("no frame");
   }
-  char word1 = adr[0];                              //  アドレスの中身1バイト
-  char word2 = adr[1];                              //　アドレスの一つ次の中身1バイト
-  return (ord(word1) << 8 | ord(word2));            //　1ワード(2バイト)にして返す
+  return adr[0];                                    //　1ワード(2バイト)を返す
 }
 
 //　指定したアドレスに1バイト書き込む
 void pokeB(void[] a, char c, PCB pcb){
-  char[] adr = _VtoP(a,pcb);                        //　指定したアドレスを物理アドレスに変換
-  if(_AtoI(adr)==0){                                //　フレームに変換できなかったら
-    int num = allocFrame();                         //　フレームを割り当て
+  char[] adr = _VtoP(a,pcb);                        //　アドレスaを物理アドレスに変換
+  int page = _AtoI(a)>>8;                           //　ページ番号
+  int num;                                          //　フレーム番号
+  if(adr==null){                                    //　フレームに変換できなかったら
+    num = allocFrame();                             //　フレームを割り当て
+    if(num < 0) panic("no frame");
+    pcb.pageTable[page*2] = 0x80;                   //　Vビットを1にする
+    pcb.pageTable[page*2+1] = num;                  //　フレーム番号をページテーブルに記憶
   }
   adr[0] = c;                                       //　アドレスに1バイトの文字列を書き込む
 }
 
 //　指定したアドレスに1ワード書き込む
 void pokeW(void[] a, int i,PCB pcb){
-  int[] adr = _VtoP(a,pcb);                         //　指定したアドレスを物理アドレスに変換
-  if(_AtoI(adr)==0){                                //　フレームに変換できなかったら
-    int num = allocFrame();                         //　フレームを割り当て
+  int[] adr = _VtoP(a,pcb);                         //　アドレスaを物理アドレスに変換
+  int page = _AtoI(a)>>8;                           //　ページ番号
+  int num;
+  if(adr==null){                                    //　フレームに変換できなかったら
+    num = allocFrame();                             //　フレームを割り当て
+    if(num < 0) panic("no frame");
+    pcb.pageTable[page*2] = 0x80;                   //　Vビットを1にする
+    pcb.pageTable[page*2+1] = num;                  //　フレーム番号をページテーブルに記憶
   }
   int word1 = i >> 8;                               //　前1バイトを取り出し
   int word2 = i & 0x00ff;                           //　後ろ１バイトを取り出し
@@ -252,11 +252,22 @@ void strCpyVP(void[] dst, void[] src, PCB pPcb, PCB cPcb){
   }
 }
 
+//　スワップイン
+void swapIn(void[] adr, PCB pcb, int fnum){
+  int page = _AtoI(adr)>>8;                         //　スワップインするアドレスのページ番号
+  int[] fad = _ItoA(fnum<<8);                       //　フレーム番号からアドレスを求める
+  fd = pcb.filedsc;                                 //　pcbのexeファイルのファイルディスクリプタ
+
+  for(int num=0;num<256;num=num+1){
+    fad[num] = getByte();
+  }
+}
+
 // スタックに文字列の配列をコピーする (返り値: strAdr)
 int copyCA(int[] USP, int index, int strAdr, char[][] ary, int size, PCB pPcb, PCB cPcb) {
   for (int i=0; i<size; i=i+1) {                    // すべての要素について
     USP[index + i] = strAdr;                        //   参照配列位置格納
-    char[] str = _AtoP(ary[i], pPcb);               //   文字列の実体を取得
+    char[] str = _AtoP(ary[i], pPcb);                //   文字列の実体を取得
     strCpyVP(_ItoA(pText+strAdr), str, pPcb, cPcb); //   文字列をコピー
     strAdr = strAdr + strLen(str) + 1;              //   文字列格納位置を進める
   }
@@ -334,15 +345,13 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
    if(pageFrame < 0){                              // 空きフレームが無かったら
       return ENOMEM;                               // エラー発生
    }
-
-   int pageTableAdr = pageFrame << 8;            // フレーム番号を8ビットシフトし
-   newPcb.pageTable = _ItoA(pageTableAdr);       //　PCBにページテーブルのアドレス
+   int pageTableAdr = pageFrame << 8;              // フレーム番号を8ビットシフトし
+   newPcb.pageTable = _ItoA(pageTableAdr);         //　PCBにページテーブルのアドレス
    int[] pageTable = _ItoA(pageTableAdr);
    for(int num=0;num<256;num=num+1){               //　ページテーブルを初期化
       pageTable[num*2] = 0;
       pageTable[num*2+1] = 0;
    }
-
 
   // コマンド行引数を親プロセスから子プロセスのユーザスタックにコピーする
   copyArgsEnvp(argv, envp, pcb, newPcb);

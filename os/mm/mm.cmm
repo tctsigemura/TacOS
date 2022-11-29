@@ -50,7 +50,6 @@
 #include <syscall.hmm>
 #include "mm.hmm"
 #include <fsDef.hmm>
-#include <fs.hmm>
 #include <process.hmm>
 #include <file.hmm>
 
@@ -66,21 +65,22 @@ struct MemBlk {                                 // 空き領域管理用の構�
 //-----------------------------------------------------------------------------
 // 初期化ルーチン
 //-----------------------------------------------------------------------------
+//　PCBのサイズ
+#define PCBSIZ (sizeof(PCB)+P_KERN_STKSIZ+P_FILE_MAX*sizeof(int))
+//　ヒープサイズ
+#define HEPSIZ (PRC_MAX*PCBSIZ+(FILEMAX*(sizeof(File)+BLKSIZ)))
+
 // メモリ管理の初期化
 MemBlk memPool = {null, 0};                     // 空き領域リストの番兵
 public int _end();                              // カーネルの BBS 領域の最後
 
-int pagePoolAdr;                                // ページプールのアドレス
+int framePoolAdr;                                // フレームプールのアドレス
 
 void mmInit() {                                 // プログラム起動前の初期化
   memPool.next = _ItoA(addrof(_end));           // 空き領域
-  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ       // PCB とカーネルスタック
-              +P_FILE_MAX*sizeof(int);        //   FDの一覧表の領域
-  int heapSize = PRC_MAX*pcbSize+(FILEMAX*(sizeof(File)+BLKSIZ));
-  // ヒープ領域
-  pagePoolAdr = (_end()+heapSize+PAGESIZ-1) & ~(PAGESIZ-1);
-  //ページプールのアドレス
-  memPool.next.size = pagePoolAdr-_end();         //空きメモリサイズ
+  //　フレームプールのアドレス
+  framePoolAdr = (_end()+HEPSIZ+PAGESIZ-1) & ~(PAGESIZ-1);
+  memPool.next.size = framePoolAdr-_end();         //空きメモリサイズ
   memPool.next.next = null;
 }
 
@@ -175,12 +175,12 @@ public int allocFrame(){                            //　空きフレームを�
 
 public int alloc2Frame(){                           //　２フレーム連続してフレームを割り当て
   for(int num=0;num<256;num=num+1){                 //　頭から探索
-    if(_readMap(bitmap, num) == 0){                 //　空きが見つかったら
-        if(_readMap(bitmap, num+1) == 0){           //　次のフレームが空いているか確認
+  //　2フレーム連続して空いていたら
+    if(_readMap(bitmap, num) == 0 && 
+       _readMap(bitmap, num+1) == 0){          
         _writeMap(bitmap,num,1);                    
         _writeMap(bitmap,num+1,1);                    
         return num;                                 //　1フレーム目の番号を返す
-        }
     }
   }
   return -1;                                        //　見つからなかったらエラー
@@ -195,7 +195,7 @@ public void freeFrame(int num){                     //　指定したフレー�
 }
 
 void pageInit(){                                    //初期化ルーチン
-  int kPage = pagePoolAdr/PAGESIZ;  //カーネルのページ数
+  int kPage = framePoolAdr/PAGESIZ;  //カーネルのページ数
   for(int cnt=0;cnt<kPage;cnt=cnt+1){               //ページ数分フレームを割り当てる
     allocFrame();
   }
