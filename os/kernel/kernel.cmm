@@ -338,6 +338,10 @@ public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
   pcb.evtCnt   = 0;                                 // タイマー停止中
   pcb.evtSem   = newSem(0);                         // タイマー用のセマフォ
 #ifndef EMBEDDED
+  pcb.pageTable = null;                             // ページテーブルのアドレス
+  pcb.filedsc  = 0;                                 // プロセスの.exeファイル
+  pcb.textSiz  = 0;                                 // プロセスのtextサイズ
+  pcb.dataSiz  = 0;                                 // プロセスのdataサイズ
   pcb.parent   = null;                              // 親プロセスへのポインタ
   pcb.exitStat = -1;                                // プロセスの終了ステータス
 #endif
