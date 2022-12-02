@@ -71,22 +71,24 @@ _yield
         st      sp,0,g1         ; [G1+0] は PCB の sp フィールド
         ;
         ;------- [curProc の magic フィールド]をチェック ---------
-        ld      g0,30,g1        ; [G1+30] は PCB の magic フィールド
+        ;ld      g0,30,g1        ; [G1+30] は PCB の magic フィールド
+        ld      g0,34,g1        ; [G1+34] は PCB の magic フィールド
         cmp     g0,#0xabcd      ; P_MAGIC と比較、一致しなければ
         jnz     .stkOverFlow    ; カーネルスタックがオーバーフローしている
 
 _dispatch
         ;-------- 次に実行するプロセスの G13(SP)を復元 ----------
         ld      g0,_readyQueue  ; 実行可能列の番兵のアドレス
-        ld      g0,28,g0        ; [G0+28] は PCB の next フィールド(先頭の PCB)
+        ;ld      g0,28,g0        ; [G0+28] は PCB の next フィールド(先頭の PCB)
+        ld      g0,32,g0        ; [G0+32] は PCB の next フィールド(先頭の PCB)
         st      g0,_curProc     ; 現在のプロセス(curProc)に設定する
         ld      sp,0,g0         ; PCB から SP を取り出す
         ;
         ;--------------- リロケーションレジスタを設定 ------------
-        ld      g1,16,g0        ; PCB から memBase を取り出す
-        out     g1,0xf4         ; Base レジスタに格納
-        ld      g1,18,g0        ; PCB から memLen を取り出す
-        out     g1,0xf6         ; Limit レジスタに格納
+        ;ld      g1,16,g0        ; PCB から memBase を取り出す
+        ;out     g1,0xf4         ; Base レジスタに格納
+        ;ld      g1,18,g0        ; PCB から memLen を取り出す
+        ;out     g1,0xf6         ; Limit レジスタに格納
         ;
         ;-------- G13(SP)以外の CPU レジスタを復元 -----------
         pop     usp             ; ユーザモードスタックポインタ(G14)を復元
