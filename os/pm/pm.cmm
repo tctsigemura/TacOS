@@ -84,45 +84,14 @@ int[] buf = array(1);                               // ここにセクタ単位�
 int fd      = -1;                                   // FS で使用する FD
 boolean eof = true;                                 // EOF に達したか
 int bufLen  = 0;                                    // buf 中の有効なバイト数
-int bufPtr  = -1;                                   // buf 中のバイト位置
-/*
-// オープン
-int openByte(char[] path) {
-   fd = open(path, READ_MODE);                      // FS のシステムコールは
-   if (fd<0) return -1;                             //   セクタ単位
-   eof = false;
-   bufLen = 0;                                      // bufLen を初期化
-   bufPtr = -1;                                     // bufPtr を初期化
-   return 0;
-}
+int bufPtr  = -1;                                   // buf 
 
-// バイト単位の read
-char getByte() {
-  if (eof) return '\0';
-  bufPtr = bufPtr + 1;
-  if (bufPtr>=bufLen) {
-    bufLen = read(fd, buf, BLKSIZ);
-    if (bufLen<=0) {
-      eof = true;
-      return '\0';
-    }
-    bufPtr = 0;
-  }
-  return buf[bufPtr];
-}
-*/
 // ワード単位の read (EXE ファイル用なのでビッグエンディアンとして処理する)
 int getWord() {
   read(fd, buf, 2);
   return buf[0];
 }
-/*
-// クローズ
-void closeByte() {
-  eof = true;
-  close(fd);
-}
-*/
+
 //-----------------------------------------------------------------------------
 // exec システムコール
 //-----------------------------------------------------------------------------
@@ -137,9 +106,6 @@ int magic;                                          // マジック番号
 int textSiz;                                        // TEXT セグメントサイズ
 int dataSiz;                                        // DATA セグメントサイズ
 int bssSiz;                                         // BSS  セグメントサイズ
-//int relSiz;                                       // 再配置情報のサイズ
-//int stkSiz;                                       // ユーザスタックサイズ
-
 
 // EXE ファイルのヘッダから上記のデータを読み出す
 int readHeader() {
@@ -149,8 +115,6 @@ int readHeader() {
   textSiz     = getWord();                          // TEXT セグメントサイズ
   dataSiz     = getWord();                          // DATA セグメントサイズ
   bssSiz      = getWord();                          // BSS  セグメントサイズ
-  //relSiz      = getWord();                        // 再配置情報のサイズ
-  //stkSiz      = getWord();                        // ユーザスタックサイズ
   if (eof) return ENOEXEC;                          // ファイルが短い
   return 0;                                         // 正常終了
 }
@@ -162,28 +126,14 @@ int pBss;                                           // BSS セグメントのア
 int pUsp;                                           // ユーザスタックの底
 int pEnd;                                           // 空間最後のアドレス
 
-// プロセスのメモリ空間を割り当てる
-void allocMem() {
-  //int procSiz = textSiz+dataSiz+bssSiz+stkSiz;    // メモリ空間サイズ
-  //pText = _AtoI(malloc(procSiz));                 // メモリ空間を確保
-  //if (pText==0) return ENOMEM;                    // malloc できなかった
+// プロセスのセグメント配置を決める
+void locateSeg() {
   pText = 0;                                        // TEXTセグメントのアドレス
   pData = pText + textSiz;                          // DATAセグメントのアドレス
   pBss  = pData + dataSiz;                          // BSS セグメントのアドレス
   pUsp  = 0xFFFF;                                   // ユーザスタックの底(暫定)
-  pEnd  = pUsp;                                     // 空間最後のアドレス
-  //return 0;                                         // 正常終了
+  pEnd  = pBss + bssSiz;                           // 空間最後のアドレス
 }
-/*
-// TEXT セグメントと DATA セグメントをメモリに読み込む
-int readTextData() {
-  for (int pAdr=pText; _uCmp(pAdr,pBss)<0; pAdr=pAdr+1) {// TEXTとDATA について
-    MEM[pAdr] = getByte();                          //  ファイルから読んで格納
-    if (eof) return ENOEXEC;                        //  ファイルが短い
-  }
-  return 0;                                         // 正常終了
-}
-*/
 
 int[] frame;
 #define V(pcb, page) (pcb.pageTable[(page)*2+1]>>15)  //　ページテーブルのエントリのVビット
@@ -375,7 +325,7 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
   newPcb.textSiz = textSiz;                       // テキストとデータセグメントの
   newPcb.dataSiz = dataSiz;                       // 　サイズを記憶する
 
-  allocMem();                                     // 各セグメントのアドレスを求める
+  locateSeg();                                    // 各セグメントのアドレスを求める
 
   int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
 
