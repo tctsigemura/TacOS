@@ -137,8 +137,8 @@ int magic;                                          // マジック番号
 int textSiz;                                        // TEXT セグメントサイズ
 int dataSiz;                                        // DATA セグメントサイズ
 int bssSiz;                                         // BSS  セグメントサイズ
-int relSiz;                                         // 再配置情報のサイズ
-int stkSiz;                                         // ユーザスタックサイズ
+//int relSiz;                                       // 再配置情報のサイズ
+//int stkSiz;                                       // ユーザスタックサイズ
 
 
 // EXE ファイルのヘッダから上記のデータを読み出す
@@ -149,8 +149,8 @@ int readHeader() {
   textSiz     = getWord();                          // TEXT セグメントサイズ
   dataSiz     = getWord();                          // DATA セグメントサイズ
   bssSiz      = getWord();                          // BSS  セグメントサイズ
-  relSiz      = getWord();                          // 再配置情報のサイズ
-  stkSiz      = getWord();                          // ユーザスタックサイズ
+  //relSiz      = getWord();                        // 再配置情報のサイズ
+  //stkSiz      = getWord();                        // ユーザスタックサイズ
   if (eof) return ENOEXEC;                          // ファイルが短い
   return 0;                                         // 正常終了
 }
@@ -161,19 +161,20 @@ int pData;                                          // DATAセグメントのア
 int pBss;                                           // BSS セグメントのアドレス
 int pUsp;                                           // ユーザスタックの底
 int pEnd;                                           // 空間最後のアドレス
-/*
+
 // プロセスのメモリ空間を割り当てる
-int allocMem() {
-  int procSiz = textSiz+dataSiz+bssSiz+stkSiz;      // メモリ空間サイズ
-  pText = _AtoI(malloc(procSiz));                   // メモリ空間を確保
-  if (pText==0) return ENOMEM;                      // malloc できなかった
+void allocMem() {
+  //int procSiz = textSiz+dataSiz+bssSiz+stkSiz;    // メモリ空間サイズ
+  //pText = _AtoI(malloc(procSiz));                 // メモリ空間を確保
+  //if (pText==0) return ENOMEM;                    // malloc できなかった
+  pText = 0;                                        // TEXTセグメントのアドレス
   pData = pText + textSiz;                          // DATAセグメントのアドレス
   pBss  = pData + dataSiz;                          // BSS セグメントのアドレス
-  pUsp  = pBss  + bssSiz + stkSiz;                  // ユーザスタックの底(暫定)
+  pUsp  = 0xFFFF;                                   // ユーザスタックの底(暫定)
   pEnd  = pUsp;                                     // 空間最後のアドレス
-  return 0;                                         // 正常終了
+  //return 0;                                         // 正常終了
 }
-
+/*
 // TEXT セグメントと DATA セグメントをメモリに読み込む
 int readTextData() {
   for (int pAdr=pText; _uCmp(pAdr,pBss)<0; pAdr=pAdr+1) {// TEXTとDATA について
@@ -183,6 +184,8 @@ int readTextData() {
   return 0;                                         // 正常終了
 }
 */
+
+int[] frame;
 #define V(pcb, page) (pcb.pageTable[(page)*2+1]>>15)  //　ページテーブルのエントリのVビット
 #define FRAME(pcb, page) (pcb.pageTable[(page)*2+1]&0x00ff) //　フレーム番号
 
@@ -213,7 +216,7 @@ int peekW(void[] a, PCB pcb){
 }
 
 //　変換できなかったページのフレームを割り当ててページテーブルに記憶する
-void[] pFault(void[] a, PCB pcb){
+void[] pageFault(void[] a, PCB pcb){
     int num = allocFrame();                         //　フレームを割り当て
     if(num < 0) panic("no frame");
     int page = _AtoI(a)/PAGESIZ;                    //　ページ番号
@@ -226,7 +229,7 @@ void[] pFault(void[] a, PCB pcb){
 void pokeB(void[] a, char c, PCB pcb){
   char[] adr = _VtoP(a,pcb);                        //　アドレスaを物理アドレスに変換
   if(adr==null){                                    //　フレームに変換できなかったら
-    adr = pFault(a, pcb);                           //  フレームを割り当てページテーブルに記憶
+    adr = pageFault(a, pcb);                        //  フレームを割り当てページテーブルに記憶
   }
   adr[0] = c;                                       //　アドレスに1バイトの文字列を書き込む
 }
@@ -235,7 +238,7 @@ void pokeB(void[] a, char c, PCB pcb){
 void pokeW(void[] a, int word,PCB pcb){
   int[] adr = _VtoP(a,pcb);                         //　アドレスaを物理アドレスに変換
   if(adr==null){                                    //　フレームに変換できなかったら
-    adr = pFault(a, pcb);                           //  フレームを割り当てページテーブルに記憶
+    adr = pageFault(a, pcb);                        //  フレームを割り当てページテーブルに記憶
   }
   adr[0] = word;                                    //  アドレスに1ワード格納
 }
@@ -260,6 +263,12 @@ void swapIn(void[] adr, PCB pcb, int fnum){
   r = read(fd, fadr, PAGESIZ);                      //　ページ単位のコピー
   if(r<0) panic("read error");
 }
+
+//  フレームの空きが無い時にフレームを入れ替える
+void frameTrade(){ 
+  //どのフレームをどのプロセスが使用しているか配列に格納するとなると全プロセスで共通の配列を使う必要がある？
+}
+
 
 // スタックに文字列の配列をコピーする (返り値: strAdr)
 int copyCA(int[] USP, int index, int strAdr, char[][] ary, int size, PCB pPcb, PCB cPcb) {
@@ -328,30 +337,30 @@ void freePageTable(PCB pcb){
 // exec システムコールの処理をする
 int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
   // PCB を確保・初期化し新しいプロセスを実行可能にする
-  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ          // PCB とカーネルスタック
-                +P_FILE_MAX*sizeof(int);           //   FDの一覧表の領域
-  PCB newPcb = malloc(pcbSize);                    // PCBを確保
-  if (newPcb==null) {                              //   エラー発生
+  int pcbSize = sizeof(PCB)+P_KERN_STKSIZ           // PCB とカーネルスタック
+                +P_FILE_MAX*sizeof(int);            //   FDの一覧表の領域
+  PCB newPcb = malloc(pcbSize);                     // PCBを確保
+  if (newPcb==null) {                               //   エラー発生
     free(_ItoA(pText));
     return ENOMEM;
   }
     //ページテーブルを確保する
    int pageFrame = alloc2Frame();
-   if(pageFrame < 0){                              // 空きフレームが無かったら
-      return ENOMEM;                               // エラー発生
+   if(pageFrame < 0){                               // 空きフレームが無かったら
+      return ENOMEM;                                // エラー発生
    }
-   int pageTableAdr = pageFrame * PAGESIZ;         // フレーム番号をアドレスの上位ビットに
-   newPcb.pageTable = _ItoA(pageTableAdr);         //　PCBにページテーブルのアドレス
+   int pageTableAdr = pageFrame * PAGESIZ;          // フレーム番号をアドレスの上位ビットに
+   newPcb.pageTable = _ItoA(pageTableAdr);          //　PCBにページテーブルのアドレス
    int[] pageTable = _ItoA(pageTableAdr);
-   for(int num=0;num<256;num=num+1){               //　ページテーブルを初期化
+   for(int num=0;num<256;num=num+1){                //　ページテーブルを初期化
       pageTable[num*2] = 0;
       pageTable[num*2+1] = 0;
    }
   // コマンド行引数を親プロセスから子プロセスのユーザスタックにコピーする
   copyArgsEnvp(argv, envp, pcb, newPcb);
 
-  int fd;                                          // オープンの実行結果
-  fd = open(path, READ_MODE);                      // EXE ファイルをオープン
+  int fd;                                           // オープンの実行結果
+  fd = open(path, READ_MODE);                       // EXE ファイルをオープン
   if(fd<0){                                         //   見つからなかった 
     freePageTable(newPcb);
     return ENOEXEC;
@@ -366,11 +375,14 @@ int sysExec(char[] path, char[][] argv, char[][] envp, PCB pcb) {
   newPcb.textSiz = textSiz;                       // テキストとデータセグメントの
   newPcb.dataSiz = dataSiz;                       // 　サイズを記憶する
 
+  allocMem();                                     // 各セグメントのアドレスを求める
+
   int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
 
   int priv = EI|USER;                              // 普通はユーザモード
   if (magic==IMAGIC) priv = EI|IPRV;               // I/O特権モード
   newProc(0,pcb.enice,pUsp-pText,priv,newPcb,fds); // PCB 等初期化
+
   newPcb.parent  = pcb;                            // 親プロセスを設定
   schProc(newPcb);                                 // プロセスを実行可能に
   return newPcb.pid;                               // PID を返す

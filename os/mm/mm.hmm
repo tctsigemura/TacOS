@@ -35,6 +35,12 @@
 public int mmLink;             // MM 用のリンク番号
 public void mmMain();
 
+//　PCBのサイズ
+#define PCBSIZ (sizeof(PCB)+P_KERN_STKSIZ+P_FILE_MAX*sizeof(int))
+//　ヒープサイズ
+#define HEPSIZ (PRC_MAX*PCBSIZ+(FILEMAX*(sizeof(File)+BLKSIZ)))
+
+
 //----------------------------------------------------------------------------
 // カーネルプロセス用のメモリ関係システムコール
 //----------------------------------------------------------------------------

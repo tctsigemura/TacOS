@@ -74,17 +74,13 @@ struct MemBlk {                                 // 空き領域管理用の構�
 MemBlk memPool = {null, 0};                     // 空き領域リストの番兵
 public int _end();                              // カーネルの BBS 領域の最後
 
-int framePoolAdr;                                // フレームプールのアドレス
+int framePoolAdr;                               // フレームプールのアドレス
 
 void mmInit() {                                 // プログラム起動前の初期化
   memPool.next = _ItoA(addrof(_end));           // 空き領域
-#ifdef EMBEDDED
-  memPool.next.size = _memSiz - addrof(_end);   // 空きメモリサイズ
-#else
   //　フレームプールのアドレス
-  framePoolAdr = (addrof(_end)+HEPSIZ+PAGESIZ-1) & ~(PAGESIZ-1);
-  memPool.next.size = framePoolAdr-addrof(_end);//空きメモリサイズ
-#endif
+  framePoolAdr = (_end()+HEPSIZ+PAGESIZ-1) & ~(PAGESIZ-1);
+  memPool.next.size = framePoolAdr-_end();         //空きメモリサイズ
   memPool.next.next = null;
 }
 
@@ -199,9 +195,9 @@ public void freeFrame(int num){                     //　指定したフレー�
 }
 
 void pageInit(){                                    //初期化ルーチン
-  int kPage = framePoolAdr/PAGESIZ;  //カーネルのページ数
+  int kPage = framePoolAdr/PAGESIZ;                 //カーネルのページ数
   for(int cnt=0;cnt<kPage;cnt=cnt+1){               //ページ数分フレームを割り当てる
-    allocFrame();
+    _writeMap(bitmap, cnt, 1);
   }
 }
 
@@ -224,9 +220,7 @@ int mmSysCall(int op, int prm1) {
 // メモリマネージャサーバのメインルーチン
 public void mmMain() {
   mmInit();                                     // データ構造の初期化
-#ifndef EMBEDDED
   pageInit();
-#endif
   mmLink=newLink();                             // リンクを生成する
   while(true) {                                 // サーバのメインループ
     Link l = receive(mmLink);                   //   システムコールを受ける
