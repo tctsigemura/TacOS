@@ -62,20 +62,20 @@ public void[] malloc(int s);
 public void free(void[] mem);
 
 /*----------------------------------------------------------------------------
- *   名前   : allocFrame
+ *   名前   : getFrame
  *　 戻り値 : int
  *　 引数   : なし
  *   解説   : 空きフレームを割り付ける
  */
-public int allocFrame();
+public int getFrame();
 
 /*----------------------------------------------------------------------------
- *   名前   : alloc2Frame
+ *   名前   : get2Frame
  *　 戻り値 : int
  *　 引数   : なし
  *   解説   : 連続した二つの空きフレームを割り付ける
  */
-public int alloc2Frame();
+public int get2Frame();
 
 /*----------------------------------------------------------------------------
  *   名前   : freeFrame
