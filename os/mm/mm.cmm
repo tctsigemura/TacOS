@@ -65,10 +65,6 @@ struct MemBlk {                                 // 空き領域管理用の構�
 //-----------------------------------------------------------------------------
 // 初期化ルーチン
 //-----------------------------------------------------------------------------
-//　PCBのサイズ
-#define PCBSIZ (sizeof(PCB)+P_KERN_STKSIZ+P_FILE_MAX*sizeof(int))
-//　ヒープサイズ
-#define HEPSIZ (PRC_MAX*PCBSIZ+(FILEMAX*(sizeof(File)+BLKSIZ)))
 
 // メモリ管理の初期化
 MemBlk memPool = {null, 0};                     // 空き領域リストの番兵
@@ -78,9 +74,13 @@ int framePoolAdr;                               // フレームプールのア�
 
 void mmInit() {                                 // プログラム起動前の初期化
   memPool.next = _ItoA(addrof(_end));           // 空き領域
-  //　フレームプールのアドレス
-  framePoolAdr = (_end()+HEPSIZ+PAGESIZ-1) & ~(PAGESIZ-1);
-  memPool.next.size = framePoolAdr-_end();         //空きメモリサイズ
+#ifdef EMBEDDED
+   memPool.next.size = _memSiz - addrof(_end);   // 空きメモリサイズ
+ #else
+   //　フレームプールのアドレス
+   framePoolAdr = (addrof(_end)+HEPSIZ+PAGESIZ-1) & ~(PAGESIZ-1);
+   memPool.next.size = framePoolAdr-addrof(_end);//空きメモリサイズ
+ #endif
   memPool.next.next = null;
 }
 
@@ -220,7 +220,9 @@ int mmSysCall(int op, int prm1) {
 // メモリマネージャサーバのメインルーチン
 public void mmMain() {
   mmInit();                                     // データ構造の初期化
+  #ifndef EMBEDDED
   pageInit();
+  #endif
   mmLink=newLink();                             // リンクを生成する
   while(true) {                                 // サーバのメインループ
     Link l = receive(mmLink);                   //   システムコールを受ける
