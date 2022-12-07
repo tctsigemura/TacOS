@@ -78,17 +78,14 @@
 // 排他を気にしなくて良い
 
 //-----------------------------------------------------------------------------
-// セクタ単位ではなくバイト、ワード単位のread(getByte(), getWord())を提供する
+// ワード単位の read (EXE ファイル用なのでビッグエンディアンとして処理する)
 //-----------------------------------------------------------------------------
-int[] buf = array(1);                               // ここにセクタ単位で読込む
+int[] buf = array(1);                               // ここにバイトワード単位で読込む
 int fd      = -1;                                   // FS で使用する FD
 boolean eof = true;                                 // EOF に達したか
-int bufLen  = 0;                                    // buf 中の有効なバイト数
-int bufPtr  = -1;                                   // buf 
 
-// ワード単位の read (EXE ファイル用なのでビッグエンディアンとして処理する)
 int getWord() {
-  read(fd, buf, 2);
+  eof = read(fd, buf, 2)<=0;
   return buf[0];
 }
 
@@ -119,7 +116,7 @@ int readHeader() {
   return 0;                                         // 正常終了
 }
 
-// プロセスのメモリ空間の物理アドレス
+// プロセスのメモリ空間の仮想アドレス
 int pText;                                          // TEXTセグメントのアドレス
 int pData;                                          // DATAセグメントのアドレス
 int pBss;                                           // BSS セグメントのアドレス
@@ -131,81 +128,84 @@ void locateSeg() {
   pText = 0;                                        // TEXTセグメントのアドレス
   pData = pText + textSiz;                          // DATAセグメントのアドレス
   pBss  = pData + dataSiz;                          // BSS セグメントのアドレス
-  pUsp  = 0xFFFF;                                   // ユーザスタックの底(暫定)
-  pEnd  = pBss + bssSiz;                           // 空間最後のアドレス
+  pUsp  = 0xffff;                                   // ユーザスタックの底
+  pEnd  = pBss + bssSiz;                            // 空間最後のアドレス
 }
 
-int[] frame;
 #define V(pcb, page) (pcb.pageTable[(page)*2+1]>>15)  //　ページテーブルのエントリのVビット
 #define FRAME(pcb, page) (pcb.pageTable[(page)*2+1]&0x00ff) //　フレーム番号
 
 //　仮想アドレスを物理アドレスに変換する
-void[] _VtoP(void[] a, PCB pcb){                   
-  int page = _AtoI(a)/PAGESIZ;                      //　アドレスをページ番号に変換
-  int adr = _AtoI(a)%PAGESIZ;                       //　アドレスaの下位8ビット取り出し
-  if(V(pcb, page)==0) return null;                  //  変換できなかった
-  return  _ItoA((FRAME(pcb, page)*PAGESIZ)|adr);    //　アドレスに変換して返す
+int _VtoP(int a, PCB pcb){                   
+  int page = a/PAGESIZ;                             //　アドレスをページ番号に変換
+  int adr = a%PAGESIZ;                              //　アドレスaの下位8ビット取り出し
+  if(V(pcb, page)==0) return -1;                    //  変換できなかった
+  return  ((FRAME(pcb, page)*PAGESIZ)|adr);
 }
 
 //　指定したアドレスの1バイトを返す
-char peekB(void[] a, PCB pcb){
-  char[] adr = _VtoP(a,pcb);                        //　アドレスaを物理アドレスに変換
-  if(adr==null){                                    //　フレームに変換できなかったら
+char peekB(int a, PCB pcb){
+  int adr = _VtoP(a,pcb);                           //　アドレスaを物理アドレスに変換
+  if(adr<0){                                        //　フレームに変換できなかったら
     panic("no frame");
   }
-  return adr[0];                                    //　アドレスの中身1バイトを返す
+  char[] ad = _ItoA(adr);
+  return ad[0];                                     //　アドレスの中身1バイトを返す
 }
 
 //　指定したアドレスの1ワードを返す
-int peekW(void[] a, PCB pcb){
-  int[] adr = _VtoP(a,pcb);                         //　アドレスaを物理アドレスに変換
-  if(adr==null){                                    //　フレームに変換できなかったら
+int peekW(int a, PCB pcb){
+  int adr = _VtoP(a,pcb);                           //　アドレスaを物理アドレスに変換
+  if(adr<0){                                        //　フレームに変換できなかったら
     panic("no frame");
   }
-  return adr[0];                                    //　1ワード(2バイト)を返す
+  int[] ad = _ItoA(adr);
+  return ad[0];                                     //　1ワード(2バイト)を返す
 }
 
 //　変換できなかったページのフレームを割り当ててページテーブルに記憶する
-void[] pageFault(void[] a, PCB pcb){
+int pageFault(int a, PCB pcb){
     int num = allocFrame();                         //　フレームを割り当て
     if(num < 0) panic("no frame");
-    int page = _AtoI(a)/PAGESIZ;                    //　ページ番号
+    int page = a/PAGESIZ;                           //　ページ番号
     pcb.pageTable[page*2] = 0x80;                   //　Vビットを1にする
     pcb.pageTable[page*2+1] = num;                  //　フレーム番号をページテーブルに記憶
-    return _ItoA(num*PAGESIZ);                      //　アドレスに変換して返す
+    return (num*PAGESIZ);
 }
 
 //　指定したアドレスに1バイト書き込む
-void pokeB(void[] a, char c, PCB pcb){
-  char[] adr = _VtoP(a,pcb);                        //　アドレスaを物理アドレスに変換
-  if(adr==null){                                    //　フレームに変換できなかったら
+void pokeB(int a, char c, PCB pcb){
+  int adr = _VtoP(a,pcb);                           //　アドレスaを物理アドレスに変換
+  if(adr<0){                                        //　フレームに変換できなかったら
     adr = pageFault(a, pcb);                        //  フレームを割り当てページテーブルに記憶
   }
-  adr[0] = c;                                       //　アドレスに1バイトの文字列を書き込む
+  char[] ad = _ItoA(adr);
+  ad[0] = c;                                       //　アドレスに1バイトの文字列を書き込む
 }
 
 //　指定したアドレスに1ワード書き込む
-void pokeW(void[] a, int word,PCB pcb){
-  int[] adr = _VtoP(a,pcb);                         //　アドレスaを物理アドレスに変換
-  if(adr==null){                                    //　フレームに変換できなかったら
+void pokeW(int a, int word,PCB pcb){
+  int adr = _VtoP(a,pcb);                         //　アドレスaを物理アドレスに変換
+  if(adr<0){                                        //　フレームに変換できなかったら
     adr = pageFault(a, pcb);                        //  フレームを割り当てページテーブルに記憶
   }
-  adr[0] = word;                                    //  アドレスに1ワード格納
+  int[] ad = _ItoA(adr);
+  ad[0] = word;                                    //  アドレスに1ワード格納
 }
 
 // 文字列をコピーする　ppcb:親プロセスのpcb、cpcb:子プロセスのpcb
 void strCpyVP(void[] dst, void[] src, PCB pPcb, PCB cPcb){
   char c;
   // '\0'になるまで文字列をコピーする
-  for(int i=0;(c=peekB(_ItoA(_AtoI(src)+i),pPcb))!='\0';i=i+1){
-    pokeB(_ItoA(_AtoI(dst)+i),c,cPcb);
+  for(int i=0;(c=peekB(_AtoI(src)+i,pPcb))!='\0';i=i+1){
+    pokeB(_AtoI(dst)+i,c,cPcb);
   }
 }
 
 //　スワップイン
-void swapIn(void[] adr, PCB pcb, int fnum){
+void swapIn(int adr, PCB pcb, int fnum){
   int r = 0;                                        // 実行結果
-  int page = _AtoI(adr)/PAGESIZ;                    //　スワップインするアドレスのページ番号
+  int page = adr/PAGESIZ;                           //　スワップインするアドレスのページ番号
   int[] fadr = _ItoA(fnum*PAGESIZ);                 //　フレーム番号からアドレスを求める
   int fd = pcb.filedsc;                             //　pcbのexeファイルのファイルディスクリプタ
   r = seek(fd, 0, page*PAGESIZ+PAGESIZ);            // 入力を指定のアドレスまでSeek
@@ -214,10 +214,6 @@ void swapIn(void[] adr, PCB pcb, int fnum){
   if(r<0) panic("read error");
 }
 
-//  フレームの空きが無い時にフレームを入れ替える
-void frameTrade(){ 
-  //どのフレームをどのプロセスが使用しているか配列に格納するとなると全プロセスで共通の配列を使う必要がある？
-}
 
 
 // スタックに文字列の配列をコピーする (返り値: strAdr)
