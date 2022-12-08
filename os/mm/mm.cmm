@@ -50,7 +50,6 @@
 #include <syscall.hmm>
 #include "mm.hmm"
 #include <fsDef.hmm>
-#include <process.hmm>
 #include <file.hmm>
 
 #define MBSIZE sizeof(MemBlk)                   // MemBlk のバイト数
@@ -75,11 +74,11 @@ int framePoolAdr;                               // フレームプールのア�
 void mmInit() {                                 // プログラム起動前の初期化
   memPool.next = _ItoA(addrof(_end));           // 空き領域
 #ifdef EMBEDDED
-   memPool.next.size = _memSiz - addrof(_end);   // 空きメモリサイズ
+  memPool.next.size = _memSiz - addrof(_end);   // 空きメモリサイズ
  #else
-   //　フレームプールのアドレス
-   framePoolAdr = (addrof(_end)+HEPSIZ+PAGESIZ-1) & ~(PAGESIZ-1);
-   memPool.next.size = framePoolAdr-addrof(_end);//空きメモリサイズ
+  //　フレームプールのアドレス
+  framePoolAdr = (addrof(_end)+HEPSIZ+PAGESIZ-1) & ~(PAGESIZ-1);
+  memPool.next.size = framePoolAdr-addrof(_end);//空きメモリサイズ
  #endif
   memPool.next.next = null;
 }
@@ -158,7 +157,7 @@ int mmFree(void[] mem) {                        // 領域解放
 
 
 //-----------------------------------------------------------------------------
-// ページプール関係
+// フレームプール関係
 //-----------------------------------------------------------------------------
 
 char[] bitmap = array(32);                          //　32バイトのビットマップ
