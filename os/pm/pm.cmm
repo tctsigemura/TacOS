@@ -215,8 +215,22 @@ void swapIn(int adr, PCB pcb, int fnum){
 //  フレームの空きが無い時にフレームを入れ替える
 void frameChange(PCB pcb, int adr){
   PCB p;
-  for(int i=0; i<PRC_MAX; i=i+1) {
+  int flag = 0;
+  int frameNum = 0;
+  int pIdx = adr/PAGESIZ;                           // adrのページテーブルのidx
+  for(int i=0; i<PRC_MAX; i=i+1) {                  // 全てのプロセスについて
     p = procTbl[i];
+    for(int page=0; page<PAGESIZ; page=page+1) {    //   エントリの数繰り返す
+      // V=1,Textセグメントのフレームを入れ替える
+      if (V(p,page)==1 && (page * PAGESIZ)<p.textSiz) {
+        frameNum = FRAME(p,page);
+        p.pageTable[page] = 0x0000;                 // エントリをクリア
+        pcb.pageTable[pIdx] = 0x8700|frameNum;      // ページテーブルに記憶
+        flag = 1;
+        break;
+      } 
+    }
+    if (flag == 1) break;
   }
 }
 
