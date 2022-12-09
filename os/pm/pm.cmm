@@ -236,10 +236,12 @@ void frameChange(PCB pcb, int adr){
     p = procTbl[i];
     if(p != null) {
       fNum = searchFrame(pcb);                      // 解放できるフレームを探す 
-      if(fNum != 0) break;                          // 見つかったらbreak             
+      if(fNum != 0) {                               // フレームが見つかったら
+        pcb.pageTable[pIdx] = 0x8700|fNum;          // ページテーブルに記憶  
+        break;
+      }
     }
   }
-  pcb.pageTable[pIdx] = 0x8700|fNum;                // ページテーブルに記憶  
 }
 
 // スタックに文字列の配列をコピーする (返り値: strAdr)
