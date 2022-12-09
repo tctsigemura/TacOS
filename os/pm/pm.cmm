@@ -140,14 +140,68 @@ int _VtoP(int a, PCB pcb){
   int page = a / PAGESIZ;                           // ページ番号
   int adr  = a % PAGESIZ;                           // ページ内アドレス
   if (V(pcb, page)==0) return 0;                    // 変換できなかった
-  return  (FRAME(pcb, page)*PAGESIZ)|adr;
+  return  (FRAME(pcb, page)*PAGESIZ)|adr;           // 物理アドレスに変換して返す
+}
+
+// 解放できるフレームを探す
+ int searchFrame(PCB pcb){
+  int fNum = 0;
+    // Textセグメントの全てのページについて
+    for(int page=0; page<pcb.textSiz; page=page+1) {
+      // V=1のフレームを入れ替える
+      if (V(pcb,page)==1) {
+        fNum = FRAME(pcb,page);                     // フレーム番号
+        pcb.pageTable[page] = 0x0000;               // エントリをクリア
+        break;
+      } 
+    }
+  return fNum;                                      // フレーム番号を返す
+ }
+
+//  フレームの空きが無い時にフレームを入れ替える
+int frameChange(PCB pcb, int adr){
+  PCB p;
+  int fNum = 0;
+  int pIdx = adr/PAGESIZ;                           // adrのページテーブルのidx
+  for(int i=0; i<PRC_MAX; i=i+1) {                  // 全てのプロセスについて
+    p = procTbl[i];                                 // PCBを取り出し
+    if(p != null) {                                 // PCBが入っていれば
+      fNum = searchFrame(pcb);                      // 解放できるフレームを探す 
+      if(fNum != 0) break;                          // フレームが見つかったらbreak
+    }
+  }
+  return fNum;                                      // フレーム番号を返す
+}
+
+// フレームを割り当てページテーブルに記憶する
+int allocFrame(int a, PCB pcb) {
+  int num = getFrame();                             // フレームを割り当て
+  if (num < 0) {                                    // 空きフレームがなかったら
+    num = frameChange(pcb,a);                       // フレームを入れ替え
+    if (num == 0) panic("no text segment frame");   // 入れ替えられなかったら
+  }
+  int page = a / PAGESIZ;                           // ページ番号
+  pcb.pageTable[page] = 0x8700|num;                 // V=1,RWX=111,フレーム番号
+  return num*PAGESIZ;                               // 物理アドレスを返す
+}
+
+// スワップイン
+void swapIn(int adr, PCB pcb){
+  int page = adr/PAGESIZ;                           // スワップインページ番号
+  int fad = allocFrame(adr,pcb);
+  int[] fadr = _ItoA(fad);                          // 物理アドレス
+  int fd = pcb.filedsc;                             // exeファイルのfd
+  int r = seek(fd, 0, page*PAGESIZ+PAGESIZ);        // 指定のアドレスまでSeek
+  if(r<0) panic("seek error");
+  r = read(fd, fadr, PAGESIZ);                      // exeからフレームにswap-in
+  if(r<0) panic("read error");
 }
 
 // 指定したアドレスの1バイトを返す
 char peekB(int a, PCB pcb){
   int adr = _VtoP(a,pcb);                           // 物理アドレスに変換
   if (adr==0) {                                     // 変換できなかった
-    panic("no frame");
+    swapIn(a,pcb);                                  // 必要なページをswap-in
   }
   char[] ad = _ItoA(adr);                           // アドレスに変換
   return ad[0];                                     // アドレスの1バイトを返す
@@ -157,19 +211,10 @@ char peekB(int a, PCB pcb){
 int peekW(int a, PCB pcb) {
   int adr = _VtoP(a,pcb);                           // 物理アドレスに変換
   if (adr==0) {                                     // 変換できなかった
-    panic("no frame");
+    swapIn(a,pcb);                                  // 必要なページをswap-in
   }
   int[] ad = _ItoA(adr);                            // アドレスに変換
   return ad[0];                                     // アドレスの1ワードを返す
-}
-
-// フレームを割り当てページテーブルに記憶する
-int allocFrame(int a, PCB pcb) {
-  int num = getFrame();                             // フレームを割り当て
-  if (num < 0) panic("no frame");
-  int page = a / PAGESIZ;                           // ページ番号
-  pcb.pageTable[page] = 0x8700|num;                 // V=1,RWX=111,フレーム番号
-  return num*PAGESIZ;
 }
 
 // 指定したアドレスに1バイト書き込む
@@ -198,49 +243,6 @@ void strCpyVP(int dst, PCB cPcb, int src, PCB pPcb) {
   char c;
   for(int i=0;(c=peekB(src+i,pPcb))!='\0';i=i+1){   // '\0'になるまでコピーする
     pokeB(dst+i,c,cPcb);
-  }
-}
-
-// スワップイン
-void swapIn(int adr, PCB pcb, int fnum){
-  int page = adr/PAGESIZ;                           // スワップインページ番号
-  int[] fadr = _ItoA(fnum*PAGESIZ);                 // フレームのアドレス
-  int fd = pcb.filedsc;                             // exeファイルのfd
-  int r = seek(fd, 0, page*PAGESIZ+PAGESIZ);        // 指定のアドレスまでSeek
-  if(r<0) panic("seek error");
-  r = read(fd, fadr, PAGESIZ);                      // exeからフレームにswap-in
-  if(r<0) panic("read error");
-}
-
-// 解放できるフレームを探す
- int searchFrame(PCB pcb){
-  int fNum = 0;
-    // Textセグメントの全てのページについて
-    for(int page=0; page<pcb.textSiz; page=page+1) {
-      // V=1のフレームを入れ替える
-      if (V(pcb,page)==1) {
-        fNum = FRAME(pcb,page);                     // フレーム番号
-        pcb.pageTable[page] = 0x0000;               // エントリをクリア
-        break;
-      } 
-    }
-  return fNum;
- }
-
-//  フレームの空きが無い時にフレームを入れ替える
-void frameChange(PCB pcb, int adr){
-  PCB p;
-  int fNum = 0;
-  int pIdx = adr/PAGESIZ;                           // adrのページテーブルのidx
-  for(int i=0; i<PRC_MAX; i=i+1) {                  // 全てのプロセスについて
-    p = procTbl[i];
-    if(p != null) {
-      fNum = searchFrame(pcb);                      // 解放できるフレームを探す 
-      if(fNum != 0) {                               // フレームが見つかったら
-        pcb.pageTable[pIdx] = 0x8700|fNum;          // ページテーブルに記憶  
-        break;
-      }
-    }
   }
 }
 
