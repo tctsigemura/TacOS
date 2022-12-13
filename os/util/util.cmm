@@ -154,6 +154,21 @@ public boolean unputBuf(RingBuf buf) {
   return true;                                      // 削除できたらtrue
 }
 
+// -------------------------------- 乱数ルーチン -------------------------
+// 擬似乱数の初期化（0で初期化はNG)
+int lfsr = 1;
+public void srand(int seed) {
+  if (seed==0) seed=1;
+  lfsr = seed;
+}
+
+// 擬似乱数（ガロアLFSR）
+public int rand() {
+  lfsr = ((lfsr >> 1) & 0x7fff) ^ (-(lfsr & 1) & 0xb400); 
+  return lfsr;
+}
+
+
 // --------------------------- デバッグ用表示ルーチン -------------------------
 // 1文字出力（起動時のメッセージなどを表示するための簡易版）
 void dbgPutSIO(char c) {                            // SIO への出力
