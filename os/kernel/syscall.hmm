@@ -79,5 +79,6 @@
 #define TTYCTL          16
 #define MALLOC          17
 #define FREE            18
+#define SWAPIN          19
 
 #endif
