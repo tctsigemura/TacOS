@@ -80,5 +80,6 @@
 #define MALLOC          17
 #define FREE            18
 #define SWAPIN          19
+#define POKEW           20
 
 #endif

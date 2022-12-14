@@ -61,6 +61,7 @@
 // util の初期化ルーチン
 public void utilInit() {
   MEM = _ItoA(0);                                   // MEMは0x0000を指すchar型
+  WMEM = _ItoA(0);
 }
 
 // 32bit の大小比較(第1引数の方が大きいとき1、等しいとき0、小さいとき-1)
