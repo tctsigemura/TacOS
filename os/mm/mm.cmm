@@ -160,42 +160,43 @@ int mmFree(void[] mem) {                        // 領域解放
 // フレームプール関係
 //-----------------------------------------------------------------------------
 
-char[] bitmap = array(32);                          //　32バイトのビットマップ
+char[] bitmap = array(32);                          // 32バイトのビットマップ
 
-public int getFrame(){                              //　空きフレームを割り当て
-  for(int num=0;num<256;num=num+1){                 //　頭から探索
-    if(_readMap(bitmap, num) == 0){                 //　空きが見つかったら
+public int getFrame(){                              // 空きフレームを割り当て
+  for(int num=0;num<256;num=num+1){                 // 頭から探索
+    if(_readMap(bitmap, num) == 0){                 // 空きが見つかったら
         _writeMap(bitmap,num,1);                    
-        return num;                                 //　その番号を返す
+        return num;                                 // その番号を返す
     }
   }
-  return -1;                                        //　見つからなかったらエラー
+  return -1;                                        // 見つからなかったらエラー
 }
 
-public int get2Frame(){                             //　２フレーム連続してフレームを割り当て
-  for(int num=0;num<256;num=num+1){                 //　頭から探索
+// ２フレーム連続してフレームを割り当てる
+public int get2Frame(){
+  for(int num=0;num<256;num=num+1){                 // 頭から探索
   //　2フレーム連続して空いていたら
     if(_readMap(bitmap, num) == 0 && 
        _readMap(bitmap, num+1) == 0){          
         _writeMap(bitmap,num,1);                    
         _writeMap(bitmap,num+1,1);                    
-        return num;                                 //　1フレーム目の番号を返す
+        return num;                                 // 1フレーム目の番号を返す
     }
   }
-  return -1;                                        //　見つからなかったらエラー
+  return -1;                                        // 見つからなかったらエラー
 }
 
-public void freeFrame(int num){                     //　指定したフレームを開放
-  if(_readMap(bitmap,num) == 1){                    //　指定した場所が1なら
-    _writeMap(bitmap,num,0);                        //　ビットマップに0を書き込み
-  }else{                                            //　指定した場所が0だったら
-    panic("_readMap(bitmap,num)!=1");               //　パニックを起こす
+public void freeFrame(int num){                     // 指定したフレームを開放
+  if(_readMap(bitmap,num) == 1){                    // 指定した場所が1なら
+    _writeMap(bitmap,num,0);                        // ビットマップに0を書き込み
+  }else{                                            // 指定した場所が0だったら
+    panic("_readMap(bitmap,num)!=1");               // パニックを起こす
   }
 }
 
-void pageInit(){                                    //初期化ルーチン
-  int kPage = framePoolAdr/PAGESIZ;                 //カーネルのページ数
-  for(int cnt=0;cnt<kPage;cnt=cnt+1){               //ページ数分フレームを割り当てる
+void pageInit(){                                    // 初期化ルーチン
+  int kPage = framePoolAdr/PAGESIZ;                 // カーネルのページ数
+  for(int cnt=0;cnt<kPage;cnt=cnt+1){               // ページ数分フレームを割り当て
     _writeMap(bitmap, cnt, 1);
   }
 }

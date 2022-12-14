@@ -139,8 +139,8 @@ void locateSeg() {
 
 // 仮想アドレスを物理アドレスに変換する
 int vToP(int vAdr, PCB pcb) {                   
-  int pNum = vAdr / PAGESIZ;                           // ページ番号
-  int adr  = vAdr % PAGESIZ;                           // ページ内アドレス
+  int pNum = vAdr / PAGESIZ;                        // ページ番号
+  int adr  = vAdr % PAGESIZ;                        // ページ内アドレス
   if (!(V(pcb, pNum))) return 0;                    // 変換できなかった
   return  (FRAME(pcb, pNum)*PAGESIZ)|adr;           // 物理アドレスに変換して返す
 }
@@ -151,7 +151,7 @@ int searchFrame(PCB pcb) {
   // Textセグメントの全てのページについて
   for(int pNum=0; (pNum*PAGESIZ)<pcb.textSiz; pNum=pNum+1) {
     // V=1のフレームを入れ替える
-    if (V(pcb,pNum)) {
+    if (V(pcb,pNum)) {                              // V=1
       fNum = FRAME(pcb,pNum);                       // フレーム番号
       pcb.pageTable[pNum] = 0x0000;                 // エントリをクリア
       break;
@@ -175,7 +175,7 @@ int changeFrame() {
 
 // フレームを割り当てページテーブルに記憶する
 int allocFrame(int vAdr, PCB pcb) {
-  int pNum = vAdr/PAGESIZ;
+  int pNum = vAdr/PAGESIZ;                          // ページ番号取り出し
   int fNum = getFrame();                            // フレームを割り当て
   if (fNum < 0) {                                   // 空きフレームがなかったら
     fNum = changeFrame();                           // フレームを入れ替え
@@ -194,7 +194,7 @@ int swapIn(int vAdr, PCB pcb) {
   if (r>=0) {                                       // Seekできたら
     r = read(fd, _ItoA(pAdr), PAGESIZ);             // exeからフレームにswap-in
   }
-  if (r!=PAGESIZ) panic("swapin");
+  if (r!=PAGESIZ) panic("swapin");                  // readに失敗したらpanic
   return r;
 }
 
@@ -203,7 +203,7 @@ char peekB(int vAdr, PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
     swapIn(vAdr, pcb);                              // 必要なページをswap-in
-    pAdr = vToP(vAdr,pcb);
+    pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
   }
   char[] pAd = _ItoA(pAdr);                         // アドレスに変換
   return pAd[0];                                    // アドレスの1バイトを返す
@@ -214,7 +214,7 @@ int peekW(int vAdr, PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
     swapIn(vAdr, pcb);                              // 必要なページをswap-in
-    pAdr = vToP(vAdr,pcb);
+    pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
   }
   int[] pAd = _ItoA(pAdr);                          // アドレスに変換
   return pAd[0];                                    // アドレスの1ワードを返す
@@ -222,9 +222,9 @@ int peekW(int vAdr, PCB pcb) {
 
 // 指定したアドレスに1バイト書き込む
 void pokeB(int vAdr, char c, PCB pcb) {
-  int pAdr = vToP(vAdr,pcb);                       // 物理アドレスに変換
+  int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
-    pAdr = allocFrame(vAdr,pcb);
+    pAdr = allocFrame(vAdr,pcb);                    // フレーム割り当て
   }
   char[] pAd = _ItoA(pAdr);                         // アドレスに変換し
   pAd[0] = c;                                       // アドレスに1バイト格納
@@ -232,9 +232,9 @@ void pokeB(int vAdr, char c, PCB pcb) {
 
 // 指定したアドレスに1ワード書き込む
 void pokeW(int vAdr, int word,PCB pcb) {
-  int pAdr = vToP(vAdr,pcb);                       // 物理アドレスに変換
+  int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
-    pAdr = allocFrame(vAdr,pcb);
+    pAdr = allocFrame(vAdr,pcb);                    // フレーム割り当て
   }
   int[] pAd = _ItoA(pAdr);                          // アドレスに変換し
   pAd[0] = word;                                    // アドレスに1ワード格納
@@ -254,7 +254,7 @@ int copyCA(int[] USP, int index, int strAdr, char[][] ary,
            int size, PCB pPcb, PCB cPcb) {
   for (int i=0; i<size; i=i+1) {                    // すべての要素について
     USP[index + i] = strAdr;                        //   参照配列位置格納
-    int str = vToP(_AtoI(ary[i]), pPcb);           //   文字列の実体を取得
+    int str = vToP(_AtoI(ary[i]), pPcb);            //   文字列の実体を取得
     strCpyVP(pText+strAdr, cPcb, str, pPcb);        //   文字列をコピー
     strAdr = strAdr + strLen(_ItoA(str)) + 1;       //   文字列格納位置を進める
   }
@@ -302,7 +302,7 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pPcb, PCB cPcb) {
 
 // ページテーブルと参照しているフレームを解放する
 void freePageTable(PCB pcb) {
-  int[] pageTable = pcb.pageTable;                  // プロセスのページテーブルのアドレス
+  int[] pageTable = pcb.pageTable;                  // ページテーブルのアドレス
   // フレームの解放
   for(int pNum=0; pNum<TOTALPAGE; pNum=pNum+1) {    // ページテーブルのidx
     if(V(pcb, pNum)){                               // Vビットが1なら
@@ -311,7 +311,7 @@ void freePageTable(PCB pcb) {
   }
   // ページテーブルの解放
   int fNum =  _AtoI(pageTable)/PAGESIZ;             // アドレスのフレーム番号
-  freeFrame(fNum);                                  // フレーム番号のフレームを解放
+  freeFrame(fNum);                                  // フレームを解放
   freeFrame(fNum+1);                                // 2フレーム目を解放
 }
 
@@ -338,21 +338,21 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
   }
   PCB newPcb = malloc(pcbSize);                     // PCBを確保
   if (newPcb==null) {                               //   エラー発生
-    freeFrame(pageFrame);                           // フレーム番号のフレームを解放
+    freeFrame(pageFrame);                           // フレームを解放
     freeFrame(pageFrame+1);                         // 2フレーム目を解放
     close(fd);
     return ENOMEM;
   }
   
-  newPcb.filedsc = fd;                              // exeファイルのファイルディスクリプタ
+  newPcb.filedsc = fd;                              // .exeのファイルディスクリプタ
   newPcb.textSiz = textSiz;                         // テキストセグメントサイズ
   newPcb.dataSiz = dataSiz;                         // データセグメントサイズ
 
   int pageTableAdr = pageFrame * PAGESIZ;           // フレーム番号をアドレスに
   int[] pageTable = _ItoA(pageTableAdr);
   newPcb.pageTable = pageTable;                     // PCBにページテーブル登録
-  for(int num=0; num<TOTALPAGE; num=num+1){         // ページテーブルを初期化
-    pageTable[num] = 0;
+  for(int pNum=0; pNum<TOTALPAGE; pNum=pNum+1){     // ページテーブルを初期化
+    pageTable[pNum] = 0;
   }
 
   locateSeg();                                      // 各セグメントアドレス計算
