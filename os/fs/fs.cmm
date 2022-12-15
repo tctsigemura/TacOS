@@ -161,6 +161,12 @@ public int seek(int fd, int ptrh, int ptrl) {
 
 // stat システムコール
 public int stat(char[] path, Stat stat) {
+#ifdef EMBEDDED
  int r = sndrec(fsLink, STAT, _AtoI(path), _AtoI(stat), 0);
+#else
+ char[] str = peekS(_AtoI(path),curProc);
+ int r = sndrec(fsLink, STAT, _AtoI(str), _AtoI(stat), 0);
+ free(str);
+#endif
  return r;
 }
