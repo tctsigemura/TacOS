@@ -137,6 +137,18 @@ void locateSeg() {
 // フレーム番号の取り出し
 #define FRAME(pcb,pNum) (pcb.pageTable[pNum]&0x00ff)
 
+// ページ入れ替え禁止ビット(Sticky bit)の設定
+void setSticky(int pNum, PCB pcb){
+  int entry = pcb.pageTable[pNum]|0x2000;
+  pcb.pageTable[pNum] = entry;
+} 
+
+// ページ入れ替え禁止ビット(Sticky bit)の解除
+public void rmSticky(int pNum, PCB pcb){
+  int entry = pcb.pageTable[pNum]&0xdfff;
+  pcb.pageTable[pNum] = entry;
+} 
+
 // 仮想アドレスを物理アドレスに変換する
 int vToP(int vAdr, PCB pcb) {                   
   int pNum = vAdr / PAGESIZ;                        // ページ番号
@@ -164,9 +176,9 @@ int searchFrame(PCB pcb) {
 int changeFrame() {
   int fNum = 0;                                     // フレーム番号
   for(int i=0; i<PRC_MAX; i=i+1) {                  // 全てのプロセスについて
-    PCB p = procTbl[i];                             // PCBを取り出し
-    if(p != null) {                                 // PCBが入っていれば
-      fNum = searchFrame(p);                        // 解放できるフレームを探す 
+    PCB pcb = procTbl[i];                           // PCBを取り出し
+    if(pcb != null) {                               // PCBが入っていれば
+      fNum = searchFrame(pcb);                      // 解放できるフレームを探す 
       if(fNum != 0) break;                          // フレームが見つかったらbreak
     }
   }
@@ -182,31 +194,31 @@ int allocFrame(int vAdr, PCB pcb) {
     if (fNum == 0) panic("no text segment frame");  // 入れ替えられなかったら
   }
   pcb.pageTable[pNum] = 0x8700|fNum;                // V=1,RWX=111,フレーム番号
-  return fNum*PAGESIZ;                              // 物理アドレスを返す
+  return fNum;                                      // 物理アドレスを返す
 }
 
 // 1フレームを0でクリアする
-void clearFrame(int pAdr) {
-  pAdr = pAdr/2;
+void clearFrame(int pNum) {
+  int pAdr = pNum*PAGESIZ/2;
   for(int i=0;i<PAGESIZ/2;i=i+1) {
     WMEM[pAdr+i] = 0;
   }
 }
 
 // スワップイン
-int swapIn(int vAdr, PCB pcb) {
+int sysSwapIn(int vAdr, PCB pcb) {
   int fd = pcb.filedsc;                             // exeファイルのfd
   int pNum = vAdr/PAGESIZ;
-  int pAdr = allocFrame(vAdr,pcb);
+  int pAdr = allocFrame(vAdr,pcb)*PAGESIZ;
   int r = 0;
   if (vAdr < pcb.textSiz+pcb.dataSiz) {
-    r = seek(fd, 0, pNum*PAGESIZ+PAGESIZ);        // 指定のアドレスまでSeek
-    if (r>=0) {                                       // Seekできたら
-      r = read(fd, _ItoA(pAdr), PAGESIZ);             // exeからフレームにswap-in
+    r = seek(fd, 0, pNum*PAGESIZ+PAGESIZ);          // 指定のアドレスまでSeek
+    if (r>=0) {                                     // Seekできたら
+      r = read(fd, _ItoA(pAdr), PAGESIZ);           // exeからフレームにswap-in
     }
-    if (r!=PAGESIZ) panic("swapin");                  // readに失敗したらpanic
+    if (r!=PAGESIZ) panic("swapin");                // readに失敗したらpanic
   } else {
-    clearFrame(pAdr);
+    clearFrame(pAdr/PAGESIZ);
   }  
   return r;
 }
@@ -215,7 +227,7 @@ int swapIn(int vAdr, PCB pcb) {
 char peekB(int vAdr, PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
-    swapIn(vAdr, pcb);                              // 必要なページをswap-in
+    sysSwapIn(vAdr, pcb);                           // 必要なページをswap-in
     pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
   }
   return MEM[pAdr];                                 // アドレスの1バイトを返す
@@ -225,7 +237,7 @@ char peekB(int vAdr, PCB pcb) {
 int peekW(int vAdr, PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
-    swapIn(vAdr, pcb);                              // 必要なページをswap-in
+    sysSwapIn(vAdr, pcb);                           // 必要なページをswap-in
     pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
   }
   return WMEM[pAdr/2];                              // アドレスの1ワードを返す
@@ -235,8 +247,9 @@ int peekW(int vAdr, PCB pcb) {
 void pokeB(int vAdr, char c, PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
-    pAdr = allocFrame(vAdr,pcb);                    // フレーム割り当て
-    clearFrame(pAdr);                               // 0でクリア
+    int pNum = allocFrame(vAdr,pcb);                // フレーム割り当て
+    clearFrame(pNum);                               // 0でクリア
+    pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
   }
   MEM[pAdr] = c;                                    // アドレスに1バイト格納
 }
@@ -245,8 +258,9 @@ void pokeB(int vAdr, char c, PCB pcb) {
 int pokeW(int vAdr, int word,PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
-    pAdr = allocFrame(vAdr,pcb);                    // フレーム割り当て
-    clearFrame(pAdr);                               // 0でクリア
+    int pNum = allocFrame(vAdr,pcb);                // フレーム割り当て
+    clearFrame(pNum);                               // 0でクリア
+    pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
   }
   WMEM[pAdr/2] = word;                              // アドレスに1ワード格納
   return 0;
@@ -383,19 +397,6 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
   return newPcb.pid;                                // PID を返す
 }
 
-// 文字列を仮想空間から読み込む
-// !使用後buf[]のfreeを忘れないこと!
-char[] peekS(int vAdr, PCB pcb) {
-  int len = 0;
-  for (;peekB(vAdr+len,pcb)!='\0';len=len+1)
-    ;
-  char[] buf = malloc(len+1);
-  for (int i=0;i<=len;i=i+1) {
-    buf[i] = peekB(vAdr+i,pcb);
-  }
-  return buf;
-}
-
 //-----------------------------------------------------------------------------
 // プロセスマネージャーの本体(ここで各システムコールを実行する)
 //-----------------------------------------------------------------------------
@@ -406,7 +407,7 @@ int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
   if (op==EXEC) { // exec(path,argv,envp,parent)
     r = sysExec(vToP(prm1, pcb), vToP(prm2, pcb), vToP(prm3, pcb), pcb);
   } else if (op==SWAPIN) {
-    r = swapIn(prm1, pcb);
+    r = sysSwapIn(prm1, pcb);
   } else if (op==POKEW) {
     r = pokeW(prm1, prm2, pcb);
   } else {
@@ -432,12 +433,19 @@ public void pmMain() {
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
+// read,write用swap-in システムコール
+//-----------------------------------------------------------------------------
+public int swapIn(int vAdr, PCB pcb) {
+  int r=sndrec(pmLink, SWAPIN, vAdr, 0, 0);
+  setSticky(vAdr/PAGESIZ, pcb);
+  return r;
+}
+
+//-----------------------------------------------------------------------------
 // exec システムコールはサーバプロセスに処理させる
 //-----------------------------------------------------------------------------
 public int exec(char[] path, char[][] argv, char[][] envp) {
-  char[] str = peekS(_AtoI(path),curProc);
-  int r=sndrec(pmLink,EXEC, _AtoI(str), _AtoI(argv), _AtoI(envp));
-  free(str);
+  int r=sndrec(pmLink,EXEC, _AtoI(path), _AtoI(argv), _AtoI(envp));
   return r;                                         // 新しい子の PID を返す
 }
 
