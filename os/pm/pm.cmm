@@ -206,10 +206,11 @@ void clearFrame(int pNum) {
 }
 
 // スワップイン
-int sysSwapIn(int vAdr, PCB pcb) {
+int swapIn(int vAdr, PCB pcb) {
   int fd = pcb.filedsc;                             // exeファイルのfd
   int pNum = vAdr/PAGESIZ;
-  int pAdr = allocFrame(vAdr,pcb)*PAGESIZ;
+  int fNum = allocFrame(vAdr,pcb);
+  int pAdr = fNum*PAGESIZ;
   int r = 0;
   if (vAdr < pcb.textSiz+pcb.dataSiz) {
     r = seek(fd, 0, pNum*PAGESIZ+PAGESIZ);          // 指定のアドレスまでSeek
@@ -217,8 +218,10 @@ int sysSwapIn(int vAdr, PCB pcb) {
       r = read(fd, _ItoA(pAdr), PAGESIZ);           // exeからフレームにswap-in
     }
     if (r!=PAGESIZ) panic("swapin");                // readに失敗したらpanic
+    r = fNum;                                       // フレーム番号を返すため
   } else {
-    clearFrame(pAdr/PAGESIZ);
+    r = fNum;
+    clearFrame(fNum);
   }  
   return r;
 }
@@ -227,7 +230,7 @@ int sysSwapIn(int vAdr, PCB pcb) {
 char peekB(int vAdr, PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
-    sysSwapIn(vAdr, pcb);                           // 必要なページをswap-in
+    swapIn(vAdr, pcb);                              // 必要なページをswap-in
     pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
   }
   return MEM[pAdr];                                 // アドレスの1バイトを返す
@@ -237,7 +240,7 @@ char peekB(int vAdr, PCB pcb) {
 int peekW(int vAdr, PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
-    sysSwapIn(vAdr, pcb);                           // 必要なページをswap-in
+    swapIn(vAdr, pcb);                              // 必要なページをswap-in
     pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
   }
   return WMEM[pAdr/2];                              // アドレスの1ワードを返す
@@ -397,6 +400,31 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
   return newPcb.pid;                                // PID を返す
 }
 
+ //文字列を仮想空間から読み込む
+ // !使用後buf[]のfreeを忘れないこと!
+public char[] peekS(int vAdr, PCB pcb) {
+   int len = 0;
+   for (;peekB(vAdr+len,pcb)!='\0';len=len+1)
+     ;
+   char[] buf = malloc(len+1);
+   for (int i=0;i<=len;i=i+1) {
+     buf[i] = peekB(vAdr+i,pcb);
+   }
+   return buf;
+ }
+
+// 物理メモリからユーザブロセスにnバイト書き込むルーチン
+public int pokeM(int uAdr, char[] pAdr, int size) {
+  // 呼び出した側が書き込みたいユーザプロセス内のアドレス:uAdr
+  // 書き込むデータの入った物理アドレス
+  // 書き込みたいサイズを渡して、物理メモリのデータをユーザプロセス空間に書く
+  char[] userAdr = _ItoA(uAdr);
+  for (int i=0;i<size;i=i+1) {
+    userAdr[i] = pAdr[i];
+  }
+  return 0;
+}
+
 //-----------------------------------------------------------------------------
 // プロセスマネージャーの本体(ここで各システムコールを実行する)
 //-----------------------------------------------------------------------------
@@ -407,9 +435,11 @@ int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
   if (op==EXEC) { // exec(path,argv,envp,parent)
     r = sysExec(vToP(prm1, pcb), vToP(prm2, pcb), vToP(prm3, pcb), pcb);
   } else if (op==SWAPIN) {
-    r = sysSwapIn(prm1, pcb);
+    r = swapIn(prm1, pcb);
   } else if (op==POKEW) {
     r = pokeW(prm1, prm2, pcb);
+  } else if (op==POKEM) {
+    r = pokeM(prm1, _ItoA(prm2), prm3);
   } else {
     r = -1;                                         // どれでもなければエラー
   }
@@ -433,19 +463,12 @@ public void pmMain() {
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
-// read,write用swap-in システムコール
-//-----------------------------------------------------------------------------
-public int swapIn(int vAdr, PCB pcb) {
-  int r=sndrec(pmLink, SWAPIN, vAdr, 0, 0);
-  setSticky(vAdr/PAGESIZ, pcb);
-  return r;
-}
-
-//-----------------------------------------------------------------------------
 // exec システムコールはサーバプロセスに処理させる
 //-----------------------------------------------------------------------------
 public int exec(char[] path, char[][] argv, char[][] envp) {
-  int r=sndrec(pmLink,EXEC, _AtoI(path), _AtoI(argv), _AtoI(envp));
+  char[] str = peekS(_AtoI(path),curProc);
+  int r=sndrec(pmLink,EXEC, _AtoI(str), _AtoI(argv), _AtoI(envp));
+  free(str);
   return r;                                         // 新しい子の PID を返す
 }
 

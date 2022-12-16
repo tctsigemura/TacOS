@@ -81,5 +81,6 @@
 #define FREE            18
 #define SWAPIN          19
 #define POKEW           20
+#define POKEM           21
 
 #endif
