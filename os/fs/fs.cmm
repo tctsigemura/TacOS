@@ -175,12 +175,12 @@ public int close(int fd) {
 
 // read システムコール
 public int read(int fd, void[] buf, int len) {
-  int pNum = _AtoI(buf)/PAGESIZ;                    // 最初のページ番号
+  int pNum = _AtoI(buf)/PAGESIZ;
   int num = len/PAGESIZ;                            // ページ数
   if((len%PAGESIZ)!=0) num=num+1;
   int r=0;
   for(int i=0;i<num;i=i+1) {                        // ページ数分繰り返す
-    int fNum = sndrec(fsLink, LOAD, pNum+1, 0, 0);
+    int fNum = load(_AtoI(buf)+(PAGESIZ*i));
     r = sndrec(fsLink, READ, fd, fNum*PAGESIZ, PAGESIZ);
   }
   for(int i=0;i<num;i=i+1) {
