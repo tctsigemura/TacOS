@@ -39,6 +39,8 @@
 public int pmLink;
 public void pmMain();
 
+public void release(int pNum, PCB pcb);
+
 /*----------------------------------------------------------------------------
  *   名前   : peekS
  *   戻り値 : char[]  文字列配列
@@ -46,7 +48,7 @@ public void pmMain();
  *         : PCB pcb   現在のPCB
  *   解説   : 仮想アドレスの場所にある文字列を配列に入れて返す
  */
-public char[] peekS(int vAdr, PCB pcb);
+public char[] peekS(int vAdr);
 
 /*----------------------------------------------------------------------------
  *   名前   : pokeM

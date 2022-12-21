@@ -112,7 +112,7 @@ public int creat(char[] path) {
 #ifdef EMBEDDED
  int r = sndrec(fsLink, CREAT, _AtoI(path), 0, 0);
 #else
- char[] str = peekS(_AtoI(path), curProc);
+ char[] str = peekS(_AtoI(path));
  int r = sndrec(fsLink, CREAT, _AtoI(str), 0, 0);
  free(str);
 #endif
@@ -124,7 +124,7 @@ public int remove(char[] path) {
 #ifdef EMBEDDED
  int r = sndrec(fsLink, REMOVE, _AtoI(path), 0, 0);
 #else
- char[] str = peekS(_AtoI(path), curProc);
+ char[] str = peekS(_AtoI(path));
  int r = sndrec(fsLink, REMOVE, _AtoI(str), 0, 0);
  free(str);
 #endif
@@ -136,7 +136,7 @@ public int mkDir(char[] path) {
 #ifdef EMBEDDED
  int r = sndrec(fsLink, MKDIR, _AtoI(path), 0, 0);
 #else
- char[] str = peekS(_AtoI(path), curProc);
+ char[] str = peekS(_AtoI(path));
  int r = sndrec(fsLink, MKDIR, _AtoI(str), 0, 0);
  free(str);
 #endif
@@ -148,7 +148,7 @@ public int rmDir(char[] path) {
 #ifdef EMBEDDED
  int r = sndrec(fsLink, RMDIR, _AtoI(path), 0, 0);
 #else
- char[] str = peekS(_AtoI(path), curProc);
+ char[] str = peekS(_AtoI(path));
  int r = sndrec(fsLink, RMDIR, _AtoI(str), 0, 0);
  free(str);
 #endif
@@ -160,7 +160,7 @@ public int open(char[] path, int mode) {
 #ifdef EMBEDDED
   int fd = sndrec(fsLink, OPEN, _AtoI(path), mode, 0);
 #else
-  char[] str = peekS(_AtoI(path), curProc);
+  char[] str = peekS(_AtoI(path));
   int fd = sndrec(fsLink, OPEN, _AtoI(str), mode, 0);
   free(str);
 #endif
@@ -175,14 +175,30 @@ public int close(int fd) {
 
 // read システムコール
 public int read(int fd, void[] buf, int len) {
-  int r = sndrec(fsLink, SWAPIN, _AtoI(buf), 0, 0);
-  r = sndrec(fsLink, READ, fd, _AtoI(buf), len);
+  int pNum = _AtoI(buf)/PAGESIZ;                    // 最初のページ番号
+  int num = len/PAGESIZ;                            // ページ数
+  if((len%PAGESIZ)!=0) num=num+1;
+  int r=0;
+  for(int i=0;i<num;i=i+1) {                        // ページ数分繰り返す
+    int fNum = sndrec(fsLink, LOAD, pNum+1, 0, 0);
+    r = sndrec(fsLink, READ, fd, fNum*PAGESIZ, PAGESIZ);
+  }
+  for(int i=0;i<num;i=i+1) {
+    release(pNum+i, curProc);                       // S=0
+  }
   return r;
 }
 
 // write システムコール
 public int write(int fd, void[] buf, int len) {
-  int r = sndrec(fsLink, WRITE, fd, _AtoI(buf), len);
+  int pNum = _AtoI(buf)/PAGESIZ;                    // 最初のページ番号
+  int num = len/PAGESIZ;                            // ページ数
+  if((len%PAGESIZ)!=0) num=num+1;
+  int r=0;
+  for(int i=0;i<num;i=i+1) {                        // ページ数分繰り返す
+  int pAdr = curProc.pageTable[pNum+i] * PAGESIZ;
+  r = sndrec(fsLink, WRITE, fd, pAdr, PAGESIZ);
+  }
   return r;
 }
 
@@ -197,7 +213,7 @@ public int stat(char[] path, Stat stat) {
 #ifdef EMBEDDED
   int r = sndrec(fsLink, STAT, _AtoI(path), _AtoI(stat), 0);
 #else
-  char[] str = peekS(_AtoI(path), curProc);
+  char[] str = peekS(_AtoI(path));
   char[] sbuf = malloc(sizeof(Stat));
   int r = sndrec(fsLink, STAT, _AtoI(str), _AtoI(sbuf), 0);
   int result = pokeM(_AtoI(stat), sbuf, sizeof(Stat));
