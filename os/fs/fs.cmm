@@ -173,32 +173,43 @@ public int close(int fd) {
   return r;
 }
 
+int readWrite(int fd, void[] buf, int len, int com){
+  int vAdr = _AtoI(buf);
+  int total = 0;
+  int r=0;
+  for(int i=vAdr;i<vAdr+len;i=i+PAGESIZ) {
+    int vLen = PAGESIZ;
+    if(vAdr%PAGESIZ==0) {
+      if(len<PAGESIZ) vLen = len;
+    } else {
+      vLen = vAdr%PAGESIZ;
+      if(vLen+len<PAGESIZ) {
+        vLen = len;
+      } else {
+        vLen = PAGESIZ-vLen;
+      }
+    }
+    int fNum = load(i);
+    r = sndrec(fsLink, com, fd, fNum*PAGESIZ, vLen);
+    release(vAdr/PAGESIZ);
+    if(r<0) panic("readWirte");
+    vAdr=vAdr+r;
+    len=len-r;
+    total = total+r;
+    if(r!=vLen) break; // EOF
+  }
+  return total;
+}
+
 // read システムコール
 public int read(int fd, void[] buf, int len) {
-  int pNum = _AtoI(buf)/PAGESIZ;
-  int num = len/PAGESIZ;                            // ページ数
-  if((len%PAGESIZ)!=0) num=num+1;
-  int r=0;
-  for(int i=0;i<num;i=i+1) {                        // ページ数分繰り返す
-    int fNum = load(_AtoI(buf)+(PAGESIZ*i));
-    r = sndrec(fsLink, READ, fd, fNum*PAGESIZ, PAGESIZ);
-  }
-  for(int i=0;i<num;i=i+1) {
-    release(pNum+i, curProc);                       // S=0
-  }
+  int r = readWrite(fd,buf,len,READ);
   return r;
 }
 
 // write システムコール
 public int write(int fd, void[] buf, int len) {
-  int pNum = _AtoI(buf)/PAGESIZ;                    // 最初のページ番号
-  int num = len/PAGESIZ;                            // ページ数
-  if((len%PAGESIZ)!=0) num=num+1;
-  int r=0;
-  for(int i=0;i<num;i=i+1) {                        // ページ数分繰り返す
-  int pAdr = curProc.pageTable[pNum+i] * PAGESIZ;
-  r = sndrec(fsLink, WRITE, fd, pAdr, PAGESIZ);
-  }
+  int r = readWrite(fd,buf,len,WRITE);
   return r;
 }
 
