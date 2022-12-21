@@ -39,7 +39,7 @@
 public int pmLink;
 public void pmMain();
 
-public void release(int pNum, PCB pcb);
+public void release(int pNum);
 
 /*----------------------------------------------------------------------------
  *   名前   : peekS

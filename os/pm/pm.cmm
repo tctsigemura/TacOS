@@ -412,18 +412,18 @@ int sysPeekS(int vAdr, PCB pcb) {
 // 物理メモリからユーザブロセスにnバイト書き込むルーチン
 int sysPokeM(int uAdr, char[] pAdr, int size, PCB pcb) {
   // 呼び出した側が書き込みたいユーザプロセス内のアドレス:uAdr
-  // 書き込むデータの入った物理アドレス
-  // 書き込みたいサイズを渡して、物理メモリのデータをユーザプロセス空間に書く
+  // 書き込むデータの入った物理アドレス:pAdr
+  // 書き込みたいサイズを渡して、物理メモリのデータをユーザプロセス空間に書きこむ
   for (int i=0;i<size;i=i+1) {
     pokeB(uAdr, pAdr[i], pcb);                      // 1バイトずつ書き込み
   }
   return 0;                                         // 正常終了
 }
 
-// Load
+// スワップイン(またはフレーム割り当て)し、入れ替え禁止ビットを1にする
 int sysLoad(int vAdr, PCB pcb) {
-  int r = swapIn(vAdr, pcb);
-  setSticky(vAdr/PAGESIZ, pcb);
+  int r = swapIn(vAdr, pcb);                        // swap-in
+  setSticky(vAdr/PAGESIZ, pcb);                     // S=1
   return r;
 }
 
@@ -480,7 +480,7 @@ public int pokeM(int uAdr, char[] pAdr, int size) {
 }
 
 //-----------------------------------------------------------------------------
-// load システムコール
+//  LOAD システムコール
 //-----------------------------------------------------------------------------
 public int load(int vAdr) {
   int r = sndrec(pmLink,LOAD, vAdr, 0, 0);
@@ -491,9 +491,9 @@ public int load(int vAdr) {
 // RELEASE関数 (ユーザプロセスのコンテキストで実行)
 //-----------------------------------------------------------------------------
 // StickyビットをOFFにする
-public void release(int pNum, PCB pcb){
-  int entry = pcb.pageTable[pNum]&0xdfff;
-  pcb.pageTable[pNum] = entry;
+public void release(int pNum){
+  int entry = curProc.pageTable[pNum]&0xdfff;
+  curProc.pageTable[pNum] = entry;
 } 
 
 //-----------------------------------------------------------------------------
@@ -618,17 +618,18 @@ interrupt tlbMiss() {
   int pNum = in(0xA6);                              // ページ番号
   if (!V(curProc, pNum)) {                          // V=0ならページフォールト
     // pmプロセスにswap-inさせる
-    int r=sndrec(pmLink, LOAD, pNum*PAGESIZ, 0, 0);
-    if (r<0) panic("tlbMiss");                      // 失敗したら
+    int fNum=load(pNum*PAGESIZ);
+    if (fNum<0) panic("tlbMiss");                   // 失敗したら
+    release(pNum);                                  //stickyビットを0にする
   }
   int entry = pageTable[pNum];                      // エントリの取り出し
   int tlbAdr = emptyTlb();                          // V=0のエントリを探す
   if (tlbAdr<0) tlbAdr = quietTlb();                // V=1,R=0のエントリを探す
   if (tlbAdr<0) {                                   // 見つからなかったら
     tlbAdr = 0x80 + (rand() & 0xe);                 // 乱数で選ぶ
-    pageTable[in(tlbAdr)] = in(tlbAdr+2);           // ページテーブルに書き戻す
+    int sBit = pageTable[in(tlbAdr)]&0x20;
+    pageTable[in(tlbAdr)] = in(tlbAdr+2)|sBit;      // ページテーブルに書き戻す
   }
   out(tlbAdr, pNum);                                // TLBを設定する
   out(tlbAdr+2, entry);
-  release(pNum, curProc);//stickyビットを0にする
 }
