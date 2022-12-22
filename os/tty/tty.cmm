@@ -46,6 +46,8 @@
 #include <util.hmm>
 #include <kernel.hmm>
 #include <syscall.hmm>
+#include <pm.hmm>
+#include <mm.hmm>
 
 // --------------------------
 #include <sio.hmm>
@@ -64,19 +66,24 @@ int readSem, writeSem;
 // ttyRead システムコール
 public int ttyRead(void[] buf, int len) {
   if (len<0) return -1;                                 // len<0 ならエラー
+  char[] pAdr = malloc(len);
   semP(readSem);
-  int r = getStr(_AtoP(buf, curProc), len);             // 物理アドレスで操作
+  int r = getStr(pAdr, len);                            // 物理アドレスで操作
   semV(readSem);
+  pokeM(_AtoI(buf), pAdr, len);                         // 仮想空間にコピー       
+  free(pAdr);
   return r;
 }
 
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
-  buf = _AtoP(buf, curProc);                            // 物理アドレスに変換
   if (len<0) return -1;                                 // len<0 ならエラー
+  char[] pAdr = malloc(len);
+  peekM(_AtoI(buf), pAdr, len);
   semP(writeSem);
-  int r = putStr(buf, len);
+  int r = putStr(pAdr, len);
   semV(writeSem);
+  free(pAdr);
   return r;
 }
 

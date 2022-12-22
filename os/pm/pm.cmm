@@ -409,13 +409,21 @@ int sysPeekS(int vAdr, PCB pcb) {
    return _AtoI(buf);
  }
 
-// 物理メモリからユーザブロセスにnバイト書き込むルーチン
-int sysPokeM(int uAdr, char[] pAdr, int size, PCB pcb) {
-  // 呼び出した側が書き込みたいユーザプロセス内のアドレス:uAdr
-  // 書き込むデータの入った物理アドレス:pAdr
-  // 書き込みたいサイズを渡して、物理メモリのデータをユーザプロセス空間に書きこむ
+// 仮想メモリから物理メモリにnバイト書き込む
+int sysPeekM(int vAdr, char[] pAdr, int size, PCB pcb) {
   for (int i=0;i<size;i=i+1) {
-    pokeB(uAdr, pAdr[i], pcb);                      // 1バイトずつ書き込み
+    pAdr[i] = peekB(vAdr+i,pcb);                    // 1バイトずつコピー
+  }
+  return 0;
+}
+
+// 物理メモリから仮想メモリにnバイト書き込む
+int sysPokeM(int vAdr, char[] pAdr, int size, PCB pcb) {
+  // 呼び出した側が書き込みたい仮想アドレス:vAdr
+  // 書き込むデータの入った物理アドレス:pAdr
+  // 書き込みたいサイズを渡して、物理メモリのデータをユーザ空間に書きこむ
+  for (int i=0;i<size;i=i+1) {
+    pokeB(vAdr+i, pAdr[i], pcb);                    // 1バイトずつ書き込み
   }
   return 0;                                         // 正常終了
 }
@@ -440,6 +448,8 @@ int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
     r = sysLoad(prm1, pcb);
   } else if (op==PEEKS) {
     r = sysPeekS(prm1, pcb);
+  } else if (op==PEEKM) {
+    r = sysPeekM(prm1, _ItoA(prm2), prm3, pcb);
   } else if (op==POKEW) {
     r = pokeW(prm1, prm2, pcb);
   } else if (op==POKEM) {
@@ -467,15 +477,20 @@ public void pmMain() {
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
-// peekS, pokeM システムコール
+// peekS, peekM, pokeM システムコール
 //-----------------------------------------------------------------------------
 public char[] peekS(int vAdr) {
    int str = sndrec(pmLink,PEEKS, vAdr, 0, 0);
    return _ItoA(str);
 }
 
-public int pokeM(int uAdr, char[] pAdr, int size) {
-  int r = sndrec(pmLink,POKEM, uAdr, _AtoI(pAdr), size);
+public int peekM(int vAdr, char[] pAdr, int size) {
+  int r = sndrec(pmLink,PEEKM, vAdr, _AtoI(pAdr), size);
+  return r;
+}
+
+public int pokeM(int vAdr, char[] pAdr, int size) {
+  int r = sndrec(pmLink,POKEM, vAdr, _AtoI(pAdr), size);
   return r;
 }
 

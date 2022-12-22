@@ -81,7 +81,8 @@
 #define FREE            18
 #define LOAD            19
 #define PEEKS           20
-#define POKEW           21
-#define POKEM           22
+#define PEEKM           21
+#define POKEW           22
+#define POKEM           23
 
 #endif

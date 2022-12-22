@@ -51,14 +51,25 @@ public void release(int pNum);
 public char[] peekS(int vAdr);
 
 /*----------------------------------------------------------------------------
+ *   名前   : peekM
+ *   戻り値 : int  結果
+ *   引数   : int vAdr  書き込みたい値が入っている仮想アドレス
+ *         : char[] pAdr  値を書き込みたい場所の物理アドレス
+ *         : int size  書き込みたい値のサイズ
+ *   解説   : 仮想アドレスのデータをサイズ分物理アドレスにコピーする
+ */
+public int peekM(int vAdr, char[] pAdr, int size);
+
+
+/*----------------------------------------------------------------------------
  *   名前   : pokeM
  *   戻り値 : int  結果
- *   引数   : int uAdr  値を書き込みたい場所の仮想アドレス
+ *   引数   : int vAdr  値を書き込みたい場所の仮想アドレス
  *         : char[] pAdr  書き込みたい値が入っている物理アドレス
  *         : int size  書き込みたい値のサイズ
  *   解説   : 物理アドレスのデータをサイズ分仮想アドレスにコピーする
  */
-public int pokeM(int uAdr, char[] pAdr, int size);
+public int pokeM(int vAdr, char[] pAdr, int size);
 
 /*----------------------------------------------------------------------------
  *   名前   : load
