@@ -85,7 +85,8 @@
         dw      _ttyRead    ; 14 ttyRead
         dw      _ttyWrite   ; 15 ttyWrite
         dw      _ttyCtl     ; 16 ttyCtl
-; MM の malloc(#17), free(#18) と PM の swapin(#19) は
+; MM の malloc(#17), free(#18) と 
+; PM の load(#19), peeks(#20), peekM(#21), pokeW(#22), pokeM(#23)は
 ; OS 内部専用システムコールなので SVC で扱わない
 
 ; ---------------------------- SVC ハンドラ(トラップ) -------------------------
