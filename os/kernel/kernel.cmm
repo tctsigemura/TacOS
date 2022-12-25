@@ -590,6 +590,9 @@ public void main() {
 #ifdef DEBUG
   printF("Starting system...\n");
 #endif
+#ifndef EMBEDDED
+  maxSrvPid = lastPid;                              // サーバプロセスPID最大値
+#endif
   dispatch();                                       // プロセス実行開始
   panic("main");                                    // ここは実行されないはず
 }
