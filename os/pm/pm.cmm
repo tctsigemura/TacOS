@@ -116,28 +116,12 @@ int readHeader() {
   return 0;                                         // 正常終了
 }
 
-// プロセスのメモリ空間の仮想アドレス
-int pText;                                          // TEXTセグメントのアドレス
-int pData;                                          // DATAセグメントのアドレス
-int pBss;                                           // BSS セグメントのアドレス
-int pUsp;                                           // ユーザスタックの底
-int pEnd;                                           // 空間最後のアドレス
-
-// プロセスのセグメント配置を決める
-void locateSeg() {
-  pText = 0;                                        // TEXTセグメントのアドレス
-  pData = pText + textSiz;                          // DATAセグメントのアドレス
-  pBss  = pData + dataSiz;                          // BSS セグメントのアドレス
-  pUsp  = 0xffff;                                   // ユーザスタックの底
-  pEnd  = pBss + bssSiz;                            // 空間最後のアドレス
-}
-
 // ページテーブルのVビット
-#define V(pcb, pNum) ((pcb.pageTable[pNum]&0x8000)!=0)
+#define V(pcb, pNum) (((pcb).pageTable[pNum]&0x8000)!=0)
 // ページテーブルのSビット
-#define S(pdb, pNum) ((pcb.pageTable[pNum]&0x2000)!=0)
+#define S(pdb, pNum) (((pcb).pageTable[pNum]&0x2000)!=0)
 // フレーム番号の取り出し
-#define FRAME(pcb,pNum) (pcb.pageTable[pNum]&0x00ff)
+#define FRAME(pcb,pNum) ((pcb).pageTable[pNum]&0x00ff)
 
 // ページ入れ替え禁止ビット(Sticky bit)の設定
 void setSticky(int pNum, PCB pcb){
@@ -280,7 +264,7 @@ int copyCA(int[] USP, int index, int strAdr, char[][] ary,
   for (int i=0; i<size; i=i+1) {                    // すべての要素について
     USP[index + i] = strAdr;                        //   参照配列位置格納
     int str = vToP(_AtoI(ary[i]), pPcb);            //   文字列の実体を取得
-    strCpyVP(pText+strAdr, cPcb, str, pPcb);        //   文字列をコピー
+    strCpyVP(strAdr, cPcb, str, pPcb);              //   文字列をコピー
     strAdr = strAdr + strLen(_ItoA(str)) + 1;       //   文字列格納位置を進める
   }
   USP[index + size] = 0x0000;                       // null を格納
@@ -288,7 +272,7 @@ int copyCA(int[] USP, int index, int strAdr, char[][] ary,
 }
 
 // スタックの底に argc, argv, envp, argv[0], ... を格納する
-void copyArgsEnvp(char[][] argv, char[][] envp, PCB pPcb, PCB cPcb) {
+int copyArgsEnvp(char[][] argv, char[][] envp, PCB pPcb, PCB cPcb) {
   // 注意: argv, envp は論理アドレスの配列
   // スタックの底に確保する領域のサイズを計算する
   int st = 2 + 2 + 2 + 2 + 2;                       // 文字列以外
@@ -304,11 +288,11 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pPcb, PCB cPcb) {
     st = st + strLen(_ItoA(vToP(_AtoI(envp[envs]),pPcb)))+1+2;
     envs = envs + 1;                                //   サイズを合計していく
   }
-  pUsp = pUsp - ((st+1) & ~1);                      // スタックの終了位置調整
+  int usp = 0x0000 - ((st+1) & ~1);                 // スタックの終了位置調整
 
   // スタックの底に確保した領域に argc, argv, envp, ... を書込む
-  int[] USP = _ItoA(pUsp);                          // スタックを表現する配列
-  int argvAdr = pUsp - pText + 2 + 2 + 2;           // argv 配列の論理アドレス
+  int[] USP = _ItoA(usp);                           // スタックを表現する配列
+  int argvAdr = usp + 2 + 2 + 2;                    // argv 配列の論理アドレス
   int envpAdr = argvAdr + 2*argc + 2;               // envp 配列の論理アドレス
   int strAdr  = envpAdr + 2*envs + 2;               // 文字列の論理アドレス
 
@@ -323,6 +307,8 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pPcb, PCB cPcb) {
   index = index + argc + 1;
   // envp の格納
   strAdr = copyCA(USP, index, strAdr, envp, envs, pPcb, cPcb);
+
+  return usp;
 }
 
 // ページテーブルと参照しているフレームを解放する
@@ -380,16 +366,14 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
     pageTable[pNum] = 0;
   }
 
-  locateSeg();                                      // 各セグメントアドレス計算
-
   // コマンド行引数を親プロセスから子プロセスのユーザスタックにコピーする
-  copyArgsEnvp(_ItoA(argv), _ItoA(envp), pcb, newPcb);
+  int usp = copyArgsEnvp(_ItoA(argv), _ItoA(envp), pcb, newPcb);
 
   int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
 
   int priv = EI|USER;                               // 普通はユーザモード
   if (magic==IMAGIC) priv = EI|IPRV;                // I/O特権モード
-  newProc(0,pcb.enice,pUsp-pText,priv,newPcb,fds);  // PCB 等初期化
+  newProc(0, pcb.enice, usp, priv, newPcb, fds);    // PCB 等初期化
 
   newPcb.parent  = pcb;                             // 親プロセスを設定
   schProc(newPcb);                                  // プロセスを実行可能に
@@ -484,12 +468,12 @@ public char[] peekS(int vAdr) {
    return _ItoA(str);
 }
 
-public int peekM(int vAdr, char[] pAdr, int size) {
+public int peekM(int vAdr, void[] pAdr, int size) {
   int r = sndrec(pmLink,PEEKM, vAdr, _AtoI(pAdr), size);
   return r;
 }
 
-public int pokeM(int vAdr, char[] pAdr, int size) {
+public int pokeM(int vAdr, void[] pAdr, int size) {
   int r = sndrec(pmLink,POKEM, vAdr, _AtoI(pAdr), size);
   return r;
 }
