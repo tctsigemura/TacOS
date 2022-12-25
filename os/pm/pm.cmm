@@ -132,16 +132,21 @@ void locateSeg() {
   pEnd  = pBss + bssSiz;                            // 空間最後のアドレス
 }
 
+// ページテーブルのRビット
+#define RBIT 0x1000
 // ページテーブルのVビット
-#define V(pcb, pNum) ((pcb.pageTable[pNum]&0x8000)!=0)
+#define VBIT 0x8000
+#define V(pcb, pNum) ((pcb.pageTable[pNum]&VBIT)!=0)
 // ページテーブルのSビット
-#define S(pdb, pNum) ((pcb.pageTable[pNum]&0x2000)!=0)
+#define SBIT 0x2000
+#define S(pdb, pNum) ((pcb.pageTable[pNum]&SBIT)!=0)
 // フレーム番号の取り出し
-#define FRAME(pcb,pNum) (pcb.pageTable[pNum]&0x00ff)
+#define FBITS 0x00ff
+#define FRAME(pcb,pNum) (pcb.pageTable[pNum]&FBITS)
 
 // ページ入れ替え禁止ビット(Sticky bit)の設定
 void setSticky(int pNum, PCB pcb){
-  int entry = pcb.pageTable[pNum]|0x2000;
+  int entry = pcb.pageTable[pNum]|SBIT;
   pcb.pageTable[pNum] = entry;
 } 
 
@@ -155,7 +160,7 @@ int vToP(int vAdr, PCB pcb) {
 
 // 解放できるフレームを探す
 int searchFrame(PCB pcb) {
-  int fNum = 0;
+  int fNum = -1;
   // Textセグメントの全てのページについて
   for(int pNum=0; (pNum*PAGESIZ)<pcb.textSiz; pNum=pNum+1) {
     // V=1,S=0のフレームを入れ替える
@@ -166,36 +171,35 @@ int searchFrame(PCB pcb) {
     } 
   }
   return fNum;                                      // フレーム番号を返す
-}                                                   // 見つからなかったら0を返す
+}                                                   // 見つからなかったら-1を返す
 
 //  フレームの空きが無い時にフレームを入れ替える
 int changeFrame() {
-  int fNum = 0;                                     // フレーム番号
+  int fNum = -1;                                    // フレーム番号
   for(int i=0; i<PRC_MAX; i=i+1) {                  // 全てのプロセスについて
     PCB pcb = procTbl[i];                           // PCBを取り出し
     if(pcb != null) {                               // PCBが入っていれば
       fNum = searchFrame(pcb);                      // 解放できるフレームを探す 
-      if(fNum != 0) break;                          // フレームが見つかったらbreak
+      if(fNum >= 0) break;                          // フレームが見つかったらbreak
     }
   }
   return fNum;                                      // フレーム番号を返す
 }
 
 // フレームを割り当てページテーブルに記憶する
-int allocFrame(int vAdr, PCB pcb) {
-  int pNum = vAdr/PAGESIZ;                          // ページ番号取り出し
+int allocFrame(int pNum, PCB pcb) {
   int fNum = getFrame();                            // フレームを割り当て
   if (fNum < 0) {                                   // 空きフレームがなかったら
     fNum = changeFrame();                           // フレームを入れ替え
-    if (fNum == 0) panic("no text segment frame");  // 入れ替えられなかったら
+    if (fNum < 0) panic("no text segment frame");   // 入れ替えられなかったら
   }
-  pcb.pageTable[pNum] = 0x8700|fNum;                // V=1,RWX=111,フレーム番号
+  pcb.pageTable[pNum] = VBIT|0x0700|fNum;           // V=1,RWX=111,フレーム番号
   return fNum;                                      // 物理アドレスを返す
 }
 
 // 1フレームを0でクリアする
-void clearFrame(int pNum) {
-  int pAdr = pNum*PAGESIZ/2;
+void clearFrame(int fNum) {
+  int pAdr = fNum*PAGESIZ/2;
   for(int i=0;i<PAGESIZ/2;i=i+1) {
     WMEM[pAdr+i] = 0;
   }
@@ -205,29 +209,25 @@ void clearFrame(int pNum) {
 int swapIn(int vAdr, PCB pcb) {
   int fd = pcb.filedsc;                             // exeファイルのfd
   int pNum = vAdr/PAGESIZ;
-  int fNum = allocFrame(vAdr,pcb);
+  int fNum = allocFrame(pNum,pcb);
   int pAdr = fNum*PAGESIZ;
-  int r = 0;
   if (vAdr < pcb.textSiz+pcb.dataSiz) {
-    r = seek(fd, 0, pNum*PAGESIZ+PAGESIZ);          // 指定のアドレスまでSeek
+    int r = seek(fd, 0, pNum*PAGESIZ+PAGESIZ);      // 指定アドレス(64KB未満)までSeek
     if (r>=0) {                                     // Seekできたら
       r = read(fd, _ItoA(pAdr), PAGESIZ);           // exeからフレームにswap-in
     }
     if (r!=PAGESIZ) panic("swapin");                // readに失敗したらpanic
-    r = fNum;                                       // フレーム番号を返すため
   } else {
-    r = fNum;
     clearFrame(fNum);                               // フレームをクリア
-  }  
-  return r;
+  }
+  return fNum*PAGESIZ+vAdr%PAGESIZ;                 // 物理アドレスを返す
 }
 
 // 指定したアドレスの1バイトを返す
 char peekB(int vAdr, PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
-    swapIn(vAdr, pcb);                              // 必要なページをswap-in
-    pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
+    pAdr = swapIn(vAdr, pcb);                       // 必要なページをswap-in
   }
   return MEM[pAdr];                                 // アドレスの1バイトを返す
 }
@@ -236,8 +236,7 @@ char peekB(int vAdr, PCB pcb) {
 int peekW(int vAdr, PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
-    swapIn(vAdr, pcb);                              // 必要なページをswap-in
-    pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
+    pAdr = swapIn(vAdr, pcb);                       // 必要なページをswap-in
   }
   return WMEM[pAdr/2];                              // アドレスの1ワードを返す
 }
@@ -247,8 +246,7 @@ void pokeB(int vAdr, char c, PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
     if(vAdr<pcb.textSiz) panic("poke");             // textセグメントならpanic
-    swapIn(vAdr, pcb);                              // フレーム割り当てとクリア
-    pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
+    pAdr = swapIn(vAdr, pcb);                       // フレーム割り当てとクリア
   }
   MEM[pAdr] = c;                                    // アドレスに1バイト格納
 }
@@ -258,11 +256,42 @@ int pokeW(int vAdr, int word,PCB pcb) {
   int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
   if (pAdr==0) {                                    // 変換できなかった
     if(vAdr<pcb.textSiz) panic("poke");             // textセグメントならpanic
-    swapIn(vAdr, pcb);                              // フレーム割り当てとクリア
-    pAdr = vToP(vAdr,pcb);                          // 物理アドレスに変換
+    pAdr = swapIn(vAdr, pcb);                       // フレーム割り当てとクリア
   }
   WMEM[pAdr/2] = word;                              // アドレスに1ワード格納
   return 0;
+}
+
+ //文字列を仮想空間から読み込む
+ // !使用後buf[]のfreeを忘れないこと!
+int sysPeekS(int vAdr, PCB pcb) {
+   int len = 0;
+   for (;peekB(vAdr+len,pcb)!='\0';len=len+1)       // 文字列の長さ
+     ;
+   char[] buf = malloc(len+1);                      // 領域を確保
+   for (int i=0;i<=len;i=i+1) {
+     buf[i] = peekB(vAdr+i,pcb);                    // bufに文字列コピー
+   }
+   return _AtoI(buf);
+ }
+
+// 仮想メモリから物理メモリにnバイト書き込む
+int sysPeekM(int vAdr, char[] pAdr, int size, PCB pcb) {
+  for (int i=0;i<size;i=i+1) {
+    pAdr[i] = peekB(vAdr+i,pcb);                    // 1バイトずつコピー
+  }
+  return 0;
+}
+
+// 物理メモリから仮想メモリにnバイト書き込む
+int sysPokeM(int vAdr, char[] pAdr, int size, PCB pcb) {
+  // 呼び出した側が書き込みたい仮想アドレス:vAdr
+  // 書き込むデータの入った物理アドレス:pAdr
+  // 書き込みたいサイズを渡して、物理メモリのデータをユーザ空間に書きこむ
+  for (int i=0;i<size;i=i+1) {
+    pokeB(vAdr+i, pAdr[i], pcb);                    // 1バイトずつ書き込み
+  }
+  return 0;                                         // 正常終了
 }
 
 // 親プロセスから子プロセスに文字列をコピーする
@@ -294,13 +323,13 @@ void copyArgsEnvp(char[][] argv, char[][] envp, PCB pPcb, PCB cPcb) {
   int st = 2 + 2 + 2 + 2 + 2;                       // 文字列以外
   int argc = 0;                                     // コマンド行引数の個数
   while (argv!=null && argv[argc]!=null) {          // コマンド行引数について
-    //  argv 配列と文字列の領域
+    // 親の argv 配列と文字列の領域
     st = st + strLen(_ItoA(vToP(_AtoI(argv[argc]),pPcb)))+1+2;
-    argc = argc + 1;                                //   サイズを合計していく
+    argc = argc + 1;                                 //   サイズを合計していく
   }
   int envs = 0;                                     // 環境変数の個数
   while (envp!=null && envp[envs]!=null) {          // 環境変数について
-    //  envp 配列と文字列の領域
+    // 親のP envp 配列と文字列の領域
     st = st + strLen(_ItoA(vToP(_AtoI(envp[envs]),pPcb)))+1+2;
     envs = envs + 1;                                //   サイズを合計していく
   }
@@ -331,7 +360,7 @@ void freePageTable(PCB pcb) {
   // フレームの解放
   for(int pNum=0; pNum<TOTALPAGE; pNum=pNum+1) {    // ページテーブルのidx
     if(V(pcb, pNum)){                               // Vビットが1なら
-      freeFrame(pageTable[pNum]&0x00ff);            // フレーム解放
+      freeFrame(pageTable[pNum]&FBITS);            // フレーム解放
     }
   }
   // ページテーブルの解放
@@ -396,43 +425,11 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
   return newPcb.pid;                                // PID を返す
 }
 
- //文字列を仮想空間から読み込む
- // !使用後buf[]のfreeを忘れないこと!
-int sysPeekS(int vAdr, PCB pcb) {
-   int len = 0;
-   for (;peekB(vAdr+len,pcb)!='\0';len=len+1)       // 文字列の長さ
-     ;
-   char[] buf = malloc(len+1);                      // 領域を確保
-   for (int i=0;i<=len;i=i+1) {
-     buf[i] = peekB(vAdr+i,pcb);                    // bufに文字列コピー
-   }
-   return _AtoI(buf);
- }
-
-// 仮想メモリから物理メモリにnバイト書き込む
-int sysPeekM(int vAdr, char[] pAdr, int size, PCB pcb) {
-  for (int i=0;i<size;i=i+1) {
-    pAdr[i] = peekB(vAdr+i,pcb);                    // 1バイトずつコピー
-  }
-  return 0;
-}
-
-// 物理メモリから仮想メモリにnバイト書き込む
-int sysPokeM(int vAdr, char[] pAdr, int size, PCB pcb) {
-  // 呼び出した側が書き込みたい仮想アドレス:vAdr
-  // 書き込むデータの入った物理アドレス:pAdr
-  // 書き込みたいサイズを渡して、物理メモリのデータをユーザ空間に書きこむ
-  for (int i=0;i<size;i=i+1) {
-    pokeB(vAdr+i, pAdr[i], pcb);                    // 1バイトずつ書き込み
-  }
-  return 0;                                         // 正常終了
-}
-
 // スワップイン(またはフレーム割り当て)し、入れ替え禁止ビットを1にする
 int sysLoad(int vAdr, PCB pcb) {
-  int r = swapIn(vAdr, pcb);                        // swap-in
+  int pAdr = swapIn(vAdr, pcb);                     // swap-in
   setSticky(vAdr/PAGESIZ, pcb);                     // S=1
-  return r;
+  return pAdr;                                      // 物理アドレス
 }
 
 //-----------------------------------------------------------------------------
@@ -497,6 +494,7 @@ public int pokeM(int vAdr, char[] pAdr, int size) {
 //-----------------------------------------------------------------------------
 //  LOAD システムコール
 //-----------------------------------------------------------------------------
+// swap-inを行い,StickyビットをONにする
 public int load(int vAdr) {
   int r = sndrec(pmLink,LOAD, vAdr, 0, 0);
   return r;
@@ -614,14 +612,14 @@ public int wait(int[] sta) {
 //-----------------------------------------------------------------------------
 int emptyTlb() {
   for (int i=0x82;i<=0x9E;i=i+2) {
-    if ((in(i)&0x8000)==0) return i-2;              // 0x8000はV=1
+    if ((in(i)&VBIT)==0) return i-2;                // V=1
   }
   return -1;
 }
 
 int quietTlb() {
   for (int i=0x82;i<=0x9E;i=i+2) {
-    if ((in(i)&0x9000)==0x8000) return i-2;         // 0x9000はV=1,R=1
+    if ((in(i)&(VBIT|RBIT))==VBIT) return i-2;      // V=1,R=0を探す
   }
   return -1;
 }
