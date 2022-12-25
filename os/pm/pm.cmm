@@ -116,23 +116,6 @@ int readHeader() {
   return 0;                                         // 正常終了
 }
 
-<<<<<<< HEAD
-// プロセスのメモリ空間の仮想アドレス
-int pText;                                          // TEXTセグメントのアドレス
-int pData;                                          // DATAセグメントのアドレス
-int pBss;                                           // BSS セグメントのアドレス
-int pUsp;                                           // ユーザスタックの底
-int pEnd;                                           // 空間最後のアドレス
-
-// プロセスのセグメント配置を決める
-void locateSeg() {
-  pText = 0;                                        // TEXTセグメントのアドレス
-  pData = pText + textSiz;                          // DATAセグメントのアドレス
-  pBss  = pData + dataSiz;                          // BSS セグメントのアドレス
-  pUsp  = 0xffff;                                   // ユーザスタックの底
-  pEnd  = pBss + bssSiz;                            // 空間最後のアドレス
-}
-
 // ページテーブルのRビット
 #define RBIT 0x1000
 // ページテーブルのVビット
