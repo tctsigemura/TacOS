@@ -73,6 +73,18 @@
 #include "pm.hmm"
 #include "exeFile.hmm"
 
+//
+// ページテーブルの構造に関係する定数やマクロ
+//
+#define DBIT 0x0800                                     // Dirty(D)ビット
+#define RBIT 0x1000                                     // Reference(R)ビット
+#define SBIT 0x2000                                     // Sticky(S)ビット
+#define VBIT 0x8000                                     // Valid(V)ビット
+#define RWXBITS 0x0700                                  // Read/Write/Execビット
+#define FBITS 0x00ff                                    // Frame番号
+#define V(pcb, pNum) (((pcb).pageTable[pNum]&VBIT)!=0)  // Vビットのテスト
+#define S(pdb, pNum) (((pcb).pageTable[pNum]&SBIT)!=0)  // Sビットのテスト
+#define FRAME(pcb,pNum) ((pcb).pageTable[pNum]&FBITS)   // フレーム番号
 
 // PM は単一プロセスで実行されるので、ほとんどのグローバル変数アクセスで
 // 排他を気にしなくて良い
@@ -116,18 +128,6 @@ int readHeader() {
   return 0;                                         // 正常終了
 }
 
-// ページテーブルのRビット
-#define RBIT 0x1000
-// ページテーブルのVビット
-#define VBIT 0x8000
-#define V(pcb, pNum) (((pcb).pageTable[pNum]&VBIT)!=0)
-// ページテーブルのSビット
-#define SBIT 0x2000
-#define S(pdb, pNum) (((pcb).pageTable[pNum]&SBIT)!=0)
-// フレーム番号の取り出し
-#define FBITS 0x00ff
-#define FRAME(pcb,pNum) ((pcb).pageTable[pNum]&FBITS)
-
 // ページ入れ替え禁止ビット(Sticky bit)の設定
 void setSticky(int pNum, PCB pcb){
   int entry = pcb.pageTable[pNum]|SBIT;
@@ -138,126 +138,120 @@ void setSticky(int pNum, PCB pcb){
 int vToP(int vAdr, PCB pcb) {                   
   int pNum = vAdr / PAGESIZ;                        // ページ番号
   int adr  = vAdr % PAGESIZ;                        // ページ内アドレス
-  if (!(V(pcb, pNum))) return 0;                    // 変換できなかった
-  return  (FRAME(pcb, pNum)*PAGESIZ)|adr;           // 物理アドレスに変換して返す
+  if (!V(pcb, pNum)) return 0;                      // 変換できなかった
+  return (FRAME(pcb, pNum)*PAGESIZ)|adr;            // 物理アドレスを返す
 }
 
-// 解放できるフレームを探す
+// プロセス内で解放できるフレームを探す
 int searchFrame(PCB pcb) {
   int fNum = -1;
-  // Textセグメントの全てのページについて
-  for(int pNum=0; (pNum*PAGESIZ)<pcb.textSiz; pNum=pNum+1) {
-    // V=1,S=0のフレームを入れ替える
-    if (V(pcb,pNum) && !S(pcb, pNum)) {             // V=1,S=0
-      fNum = FRAME(pcb,pNum);                       // フレーム番号
-      pcb.pageTable[pNum] = 0x0000;                 // エントリをクリア
-      break;
+  int lastPage = (pcb.textSiz-1)/PAGESIZ;           // Text Segの最終ページ
+  for(int pNum=0; pNum<=lastPage; pNum=pNum+1) {    // Text Segの全ページにつき
+    if (V(pcb, pNum) && !S(pcb, pNum)) {            //   V=1,S=0 のページを探す
+      fNum = FRAME(pcb, pNum);                      //     解放できるフレーム
+      pcb.pageTable[pNum] = 0x0000;                 //     エントリをクリアし
+      break;                                        //       フレームを解放する
     } 
   }
   return fNum;                                      // フレーム番号を返す
-}                                                   // 見つからなかったら-1を返す
+}                                                   // 見つからなかった場合は-1
 
-//  フレームの空きが無い時にフレームを入れ替える
-int changeFrame() {
+// 全プロセスについて解放できるフレームを探す
+int searchAllFrame() {
   int fNum = -1;                                    // フレーム番号
   for(int i=0; i<PRC_MAX; i=i+1) {                  // 全てのプロセスについて
     PCB pcb = procTbl[i];                           // PCBを取り出し
-    if(pcb != null) {                               // PCBが入っていれば
+    if(pcb != null) {                               // PCBが存在すれば
       fNum = searchFrame(pcb);                      // 解放できるフレームを探す 
-      if(fNum >= 0) break;                          // フレームが見つかったらbreak
+      if(fNum >= 0) break;                          // フレームが見つかった
     }
   }
   return fNum;                                      // フレーム番号を返す
-}
+}                                                   // 見つからない場合は-1
 
 // フレームを割り当てページテーブルに記憶する
 int allocFrame(int pNum, PCB pcb) {
   int fNum = getFrame();                            // フレームを割り当て
   if (fNum < 0) {                                   // 空きフレームがなかったら
-    fNum = changeFrame();                           // フレームを入れ替え
-    if (fNum < 0) panic("no text segment frame");   // 入れ替えられなかったら
+    fNum = searchAllFrame();                        // 解放できるフレームを探す
+    if (fNum < 0) panic("allocFrame");              // 解放できなかった
   }
-  pcb.pageTable[pNum] = VBIT|0x0700|fNum;           // V=1,RWX=111,フレーム番号
+  pcb.pageTable[pNum] = VBIT|RWXBITS|fNum;          // V=1,RWX=111,フレーム番号
   return fNum;                                      // 物理アドレスを返す
 }
 
 // 1フレームを0でクリアする
 void clearFrame(int fNum) {
-  int pAdr = fNum*PAGESIZ/2;
-  for(int i=0;i<PAGESIZ/2;i=i+1) {
-    WMEM[pAdr+i] = 0;
+  int pAdr = (fNum*PAGESIZ)/2;
+  for(int i=0; i<PAGESIZ/2; i=i+1) {
+    WMEM[pAdr+i] = 0;                               // 物理メモリ(ワード単位)
   }
 }
 
-// スワップイン
-int swapIn(int vAdr, PCB pcb) {
+// 該当ページをexeファイルから読み込む
+void swapIn(int pNum, int fNum, PCB pcb) {
   int fd = pcb.filedsc;                             // exeファイルのfd
-  int pNum = vAdr/PAGESIZ;
-  int fNum = allocFrame(pNum,pcb);
-  int pAdr = fNum*PAGESIZ;
-  if (vAdr < pcb.textSiz+pcb.dataSiz) {
-    int r = seek(fd, 0, pNum*PAGESIZ+PAGESIZ);      // 指定アドレス(64KB未満)までSeek
-    if (r>=0) {                                     // Seekできたら
-      r = read(fd, _ItoA(pAdr), PAGESIZ);           // exeからフレームにswap-in
+  int r = seek(fd, 0, pNum*PAGESIZ+PAGESIZ);        // ページ位置にseek
+  if (r<0) panic("swapIn-seek");                    // seekでエラー
+  r = read(fd, _ItoA(fNum*PAGESIZ), PAGESIZ);       // フレームにswap-in
+  if (r!=PAGESIZ) panic("swapin-read");             // readに失敗
+}
+
+// フレームを配置し物理アドレスを返す
+int locateFrame(int vAdr, PCB pcb) {
+  int pAdr = vToP(vAdr, pcb);                       // 物理アドレスに変換
+  if (pAdr==0) {                                    // フレームない
+    int pNum = vAdr/PAGESIZ;                        //  ページ番号を計算
+    int fNum = allocFrame(pNum, pcb);               //  フレームを割り当てる
+    if (vAdr < pcb.textSiz+pcb.dataSiz) {           //  exeファイルに該当する
+      swapIn(pNum, fNum, pcb);                      //   exeファイルを読む
+    } else {                                        //  exeファイルに該当しない
+      clearFrame(fNum);                             //   フレームをクリア
     }
-    if (r!=PAGESIZ) panic("swapin");                // readに失敗したらpanic
-  } else {
-    clearFrame(fNum);                               // フレームをクリア
+    pAdr = fNum*PAGESIZ+vAdr%PAGESIZ;               //  物理アドレスを求める
   }
-  return fNum*PAGESIZ+vAdr%PAGESIZ;                 // 物理アドレスを返す
+  return pAdr;                                      // 物理アドレスを返す
 }
 
 // 指定したアドレスの1バイトを返す
 char peekB(int vAdr, PCB pcb) {
-  int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
-  if (pAdr==0) {                                    // 変換できなかった
-    pAdr = swapIn(vAdr, pcb);                       // 必要なページをswap-in
-  }
+  int pAdr = locateFrame(vAdr, pcb);                // vAdrのフレームを準備する
   return MEM[pAdr];                                 // アドレスの1バイトを返す
 }
 
 // 指定したアドレスの1ワードを返す
 int peekW(int vAdr, PCB pcb) {
-  int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
-  if (pAdr==0) {                                    // 変換できなかった
-    pAdr = swapIn(vAdr, pcb);                       // 必要なページをswap-in
-  }
+  int pAdr = locateFrame(vAdr, pcb);                // vAdrのフレームを準備する
   return WMEM[pAdr/2];                              // アドレスの1ワードを返す
 }
 
 // 指定したアドレスに1バイト書き込む
 void pokeB(int vAdr, char c, PCB pcb) {
-  int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
-  if (pAdr==0) {                                    // 変換できなかった
-    if(vAdr<pcb.textSiz) panic("poke");             // textセグメントならpanic
-    pAdr = swapIn(vAdr, pcb);                       // フレーム割り当てとクリア
-  }
+  if(vAdr<pcb.textSiz) panic("pokeB");              // textセグメントならpanic
+  int pAdr = locateFrame(vAdr, pcb);                // vAdrのフレームを準備する
   MEM[pAdr] = c;                                    // アドレスに1バイト格納
 }
 
 // 指定したアドレスに1ワード書き込む
-int pokeW(int vAdr, int word,PCB pcb) {
-  int pAdr = vToP(vAdr,pcb);                        // 物理アドレスに変換
-  if (pAdr==0) {                                    // 変換できなかった
-    if(vAdr<pcb.textSiz) panic("poke");             // textセグメントならpanic
-    pAdr = swapIn(vAdr, pcb);                       // フレーム割り当てとクリア
-  }
+int pokeW(int vAdr, int word, PCB pcb) {
+  if(vAdr<pcb.textSiz) panic("pokeW");              // textセグメントならpanic
+  int pAdr = locateFrame(vAdr, pcb);                // vAdrのフレームを準備する
   WMEM[pAdr/2] = word;                              // アドレスに1ワード格納
   return 0;
 }
 
- //文字列を仮想空間から読み込む
- // !使用後buf[]のfreeを忘れないこと!
+//文字列を仮想空間から読み込む
+// !使用後buf[]のfreeを忘れないこと!
 int sysPeekS(int vAdr, PCB pcb) {
-   int len = 0;
-   for (;peekB(vAdr+len,pcb)!='\0';len=len+1)       // 文字列の長さ
-     ;
-   char[] buf = malloc(len+1);                      // 領域を確保
-   for (int i=0;i<=len;i=i+1) {
-     buf[i] = peekB(vAdr+i,pcb);                    // bufに文字列コピー
-   }
-   return _AtoI(buf);
- }
+  int len = 0;
+  for (;peekB(vAdr+len,pcb)!='\0';len=len+1)        // 文字列の長さ
+    ;
+  char[] buf = malloc(len+1);                       // 領域を確保
+  for (int i=0;i<=len;i=i+1) {
+    buf[i] = peekB(vAdr+i,pcb);                     // bufに文字列コピー
+  }
+  return _AtoI(buf);
+}
 
 // 仮想メモリから物理メモリにnバイト書き込む
 int sysPeekM(int vAdr, char[] pAdr, int size, PCB pcb) {
@@ -411,7 +405,7 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
 
 // スワップイン(またはフレーム割り当て)し、入れ替え禁止ビットを1にする
 int sysLoad(int vAdr, PCB pcb) {
-  int pAdr = swapIn(vAdr, pcb);                     // swap-in
+  int pAdr = locateFrame(vAdr, pcb);                // vAdrのフレームを準備する
   setSticky(vAdr/PAGESIZ, pcb);                     // S=1
   return pAdr;                                      // 物理アドレス
 }
@@ -424,7 +418,7 @@ int sysLoad(int vAdr, PCB pcb) {
 int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
   int r = -1;
   if (op==EXEC) { // exec(path,argv,envp,parent)
-    r = sysExec(vToP(prm1, pcb), vToP(prm2, pcb), vToP(prm3, pcb), pcb);
+    r = sysExec(prm1, prm2, prm3, pcb);
   } else if (op==LOAD) {
     r = sysLoad(prm1, pcb);
   } else if (op==PEEKS) {
