@@ -296,6 +296,49 @@ int copyCA(int[] USP, int index, int strAdr, char[][] ary,
 
 // スタックの底に argc, argv, envp, argv[0], ... を格納する
 int copyArgsEnvp(char[][] argv, char[][] envp, PCB pPcb, PCB cPcb) {
+
+  // 読み出し用のフレーム確保
+  int readFrame = getFrame();
+  char[][] argvAdr = _ItoA(readFrame*PAGESIZ); 
+  // 文字列読み出し
+  int i = 0;
+  // argvの文字列読み出し
+  int argc = 0;
+  while (argv!=null && argv[argc]!=null) {
+    int point = i;
+    i = i + 2;                                // ポインタ用の1ワード
+    char[] buf = _ItoA(sysPeekS(_AtoI(argv[argc]), pPcb));
+    argvAdr[i] = buf;
+    free(buf);
+    i = i + strLen(argv[argc]);
+    argvAdr[point] = _ItoA(i);
+    argc = argc + 1;
+  }
+  argvAdr[i] = null;
+  i = i + 2;
+  // envpの文字列読み出し
+  int envs = 0;
+  char[][] envpAdr = _ItoA(_AtoI(argvAdr[i]));
+  i = 0;
+  while (envp!=null && envp[envs]!=null) {
+    int point = i;
+    i = i + 2;
+    char[] buf = _ItoA(sysPeekS(_AtoI(envp[envs]), pPcb));
+    envpAdr[i] = buf;
+    free(buf);
+    i = i + strLen(envp[envs]);
+    envpAdr[point] = _ItoA(i);
+    envs = envs + 1;
+  }
+  envpAdr[i] = null;
+  i = i + 2;
+  // 文字列の長さがPAGESIZを超えたらpanic
+  if (i>PAGESIZ) panic("copyArgsEnvp");
+  // 子プロセスのff00のフレーム割り付け
+  int fNum = allocFrame(0xff00, cPcb);
+  int fAdr = fNum*PAGESIZ;
+
+/*
   // 注意: argv, envp は論理アドレスの配列
   // スタックの底に確保する領域のサイズを計算する
   int st = 2 + 2 + 2 + 2 + 2;                       // 文字列以外
@@ -330,8 +373,8 @@ int copyArgsEnvp(char[][] argv, char[][] envp, PCB pPcb, PCB cPcb) {
   index = index + argc + 1;
   // envp の格納
   strAdr = copyCA(USP, index, strAdr, envp, envs, pPcb, cPcb);
-
   return usp;
+*/
 }
 
 // ページテーブルと参照しているフレームを解放する
