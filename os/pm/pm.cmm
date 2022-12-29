@@ -191,7 +191,7 @@ void clearFrame(int fNum) {
 // 該当ページをexeファイルから読み込む
 void swapIn(int pNum, int fNum, PCB pcb) {
   int fd = pcb.filedsc;                             // exeファイルのfd
-  int r = seek(fd, 0, pNum*PAGESIZ+PAGESIZ);        // ページ位置にseek
+  int r = seek(fd, 0, HDRSIZ+pNum*PAGESIZ);         // ページ位置にseek
   if (r<0) panic("swapIn-seek");                    // seekでエラー
   r = read(fd, _ItoA(fNum*PAGESIZ), PAGESIZ);       // フレームにswap-in
   if (r!=PAGESIZ) panic("swapin-read");             // readに失敗
@@ -254,93 +254,128 @@ int sysPeekS(int vAdr, PCB pcb) {
 }
 
 // 仮想メモリから物理メモリにnバイト書き込む
-int sysPeekM(int vAdr, char[] pAdr, int size, PCB pcb) {
+int sysPeekM(int vAdr, int pAdr, int size, PCB pcb) {
   for (int i=0;i<size;i=i+1) {
-    pAdr[i] = peekB(vAdr+i,pcb);                    // 1バイトずつコピー
+    MEM[pAdr+i] = peekB(vAdr+i,pcb);                // 1バイトずつコピー
   }
   return 0;
 }
 
 // 物理メモリから仮想メモリにnバイト書き込む
-int sysPokeM(int vAdr, char[] pAdr, int size, PCB pcb) {
+int sysPokeM(int vAdr, int pAdr, int size, PCB pcb) {
   // 呼び出した側が書き込みたい仮想アドレス:vAdr
   // 書き込むデータの入った物理アドレス:pAdr
   // 書き込みたいサイズを渡して、物理メモリのデータをユーザ空間に書きこむ
   for (int i=0;i<size;i=i+1) {
-    pokeB(vAdr+i, pAdr[i], pcb);                    // 1バイトずつ書き込み
+    pokeB(vAdr+i, MEM[pAdr+i], pcb);                // 1バイトずつ書き込み
   }
   return 0;                                         // 正常終了
 }
 
-// 親プロセスから子プロセスに文字列をコピーする
-//   pPcb:親プロセスのPCB、cPcb:子プロセスのPCB
-void strCpyVP(int dst, PCB cPcb, int src, PCB pPcb) {
-  char c;
-  for(int i=0;(c=peekB(src+i,pPcb))!='\0';i=i+1){   // '\0'になるまでコピーする
-    pokeB(dst+i,c,cPcb);
+// 親プロセスのアドレス空間から物理メモリに文字列を取り出す
+//  vAdr:文字列の仮想アドレス, pAdr:物理アドレス, pLim:領域後端物理アドレス
+int getStr(int vAdr, int pAdr, int pLim, PCB pcb) {
+  int limit = pLim - pAdr;                          // 物理領域サイズ
+  for (int i=0; i<limit; i=i+1) {                   // 領域内で
+    char c = peekB(vAdr+i, pcb);                    //   仮想空間から読み出し
+    MEM[pAdr+i] = c;                                //   物理空間に書き込む
+    if (c=='\0') return i+1;                        //   バイト数を返す
   }
+  panic("getStr");                                  // 文字列が長すぎる
+  return -1;                                        // エラー
 }
 
-// スタックに文字列の配列をコピーする (返り値: strAdr)
-int copyCA(int[] USP, int index, int strAdr, char[][] ary,
-           int size, PCB pPcb, PCB cPcb) {
-  for (int i=0; i<size; i=i+1) {                    // すべての要素について
-    USP[index + i] = strAdr;                        //   参照配列位置格納
-    int str = vToP(_AtoI(ary[i]), pPcb);            //   文字列の実体を取得
-    strCpyVP(strAdr, cPcb, str, pPcb);              //   文字列をコピー
-    strAdr = strAdr + strLen(_ItoA(str)) + 1;       //   文字列格納位置を進める
+// 仮想空間の文字列配列を物理空間の逆順文字列リストに作りかえる
+// arry:仮想空間の文字列配列, pAdr:物理アドレス, pLim:領域後端物理アドレス
+int arryToList(int arry, int pAdr, int pLim, PCB pcb) {
+  int adr = pAdr;                                   // 物理空間のアドレス
+  int prev = 0;                                     // リストの前の要素(null)
+  while (adr+2<=pLim) {                             // 領域の最後に達しない間
+    WMEM[adr/2] = prev;                             //   前の要素へのポインタ
+    prev = adr;                                     //   現在の要素を記憶
+    adr = adr + 2;                                  //   文字列領域
+    int str = peekW(arry, pcb);                     //   文字列の仮想アドレス
+    arry = arry + 2;                                //   次の配列要素に進める
+    if (str==0) return adr;                         //   終端を見つけた
+    int n = getStr(str, adr, pLim, pcb);            //   文字列読み出す
+    adr = adr + (n+1)&~1;                           //   ポインタの位置(切上げ)
   }
-  USP[index + size] = 0x0000;                       // null を格納
-  return strAdr;
+  panic("arryToList");                              // 領域が足らない
+  return -1;
+}
+
+// 物理空間で文字列を後方に移動
+//   pDstは文字列格納領域の後端物理アドレス
+//   pDstはpSrcより後ろの物理アドレス
+int moveStr(int pSrc, int pDst) {
+  int i = 0;                                        // 文字配列の添字
+  while (MEM[pSrc+i]!='\0') i = i + 1;              // 文字列の終端を探す
+  pDst = pDst - i - 1;                              // コピー先の先頭アドレス
+  for ( ; i>=0; i=i-1) {                            // 文字列の後端から前に
+    MEM[pDst+i] = MEM[pSrc+i];                      //   一文字ずつコピー
+  }
+  return pDst;                                      // 使用した領域の先端
+}
+
+// 物理空間上で逆順文字列リストを仮想アドレスで表現した文字列配列に変換する
+#define LASTPADR (LASTPAGE*PAGESIZ)                 // 最終ページのアドレス
+#define STKVADR(adr) (LASTPADR+(adr)%PAGESIZ)       // スタック上の仮想アドレス
+int argc;                                           // listToArryの文字列数
+int listToArry(int pLst, int pLim) {
+  // まず全ての文字列を後ろに集める
+  int limit = pLim;                                 // 領域の最後
+  int next = WMEM[pLst/2];                          // リストの先頭ノード
+  int cnt = 0;                                      // 文字列の個数
+  while (next!=0) {                                 // リストの最後で
+    limit = moveStr(next+2, limit);                 //   文字列を後ろに詰める
+    next = WMEM[next/2];                            //   リストの次ノード
+    cnt = cnt + 1;                                  //   文字列の個数をカウント
+  }
+  // 次に文字列の配列を作る
+  int arry = limit/2 - cnt - 1;                     // 文字列配列の位置(ワード)
+  for (int i=0; i<cnt; i=i+1) {                     // 全ての文字列について
+    WMEM[arry+i] = STKVADR(limit);                  //   仮想アドレスを記録
+    while (MEM[limit]!='\0') limit = limit + 1;     //   文字列の最後を探す
+    limit = limit + 1;                              //   次の文字列の先頭
+  }
+  WMEM[arry+cnt] = 0;                               // 配列の終端
+  argc = cnt;                                       // 文字列の個数を記録
+  return arry*2;                                    // 配列のアドレスを返す
 }
 
 // スタックの底に argc, argv, envp, argv[0], ... を格納する
-int copyArgsEnvp(char[][] argv, char[][] envp, PCB pPcb, PCB cPcb) {
-  // 注意: argv, envp は論理アドレスの配列
-  // スタックの底に確保する領域のサイズを計算する
-  int st = 2 + 2 + 2 + 2 + 2;                       // 文字列以外
-  int argc = 0;                                     // コマンド行引数の個数
-  while (argv!=null && argv[argc]!=null) {          // コマンド行引数について
-    // 親の argv 配列と文字列の領域
-    st = st + strLen(_ItoA(vToP(_AtoI(argv[argc]),pPcb)))+1+2;
-    argc = argc + 1;                                 //   サイズを合計していく
-  }
-  int envs = 0;                                     // 環境変数の個数
-  while (envp!=null && envp[envs]!=null) {          // 環境変数について
-    // 親のP envp 配列と文字列の領域
-    st = st + strLen(_ItoA(vToP(_AtoI(envp[envs]),pPcb)))+1+2;
-    envs = envs + 1;                                //   サイズを合計していく
-  }
-  int usp = 0x0000 - ((st+1) & ~1);                 // スタックの終了位置調整
+//   ただし，1ページに全て収まらないとエラーになる
+int copyArgsEnvp(int argv, int envp, PCB pPcb, PCB cPcb) {
+  int fNum = allocFrame(LASTPAGE, cPcb);            // スタック領域
+  int pAdr = fNum * PAGESIZ;                        // 物理アドレス
+  int pLim = pAdr + PAGESIZ;                        // 領域の最後
 
-  // スタックの底に確保した領域に argc, argv, envp, ... を書込む
-  int[] USP = _ItoA(usp);                           // スタックを表現する配列
-  int argvAdr = usp + 2 + 2 + 2;                    // argv 配列の論理アドレス
-  int envpAdr = argvAdr + 2*argc + 2;               // envp 配列の論理アドレス
-  int strAdr  = envpAdr + 2*envs + 2;               // 文字列の論理アドレス
+  // argv, envp の順でページ先頭から配置する
+  int pArg = arryToList(argv, pAdr, pLim, cPcb);    // argvをリストにして読む
+  int pEnv = arryToList(envp, pArg, pLim, cPcb);    // envpをリストにして読む
 
-  USP[0] = argc;                                    // argc 格納
-  USP[1] = argvAdr;                                 // argv 参照配列の位置
-  USP[2] = envpAdr;                                 // envp 参照配列の位置
+  // envp, argv の順でページ後端に移動する
+  pEnv = listToArry(pEnv-2, pLim);                  // envpリストを配列に変換
+  pArg = listToArry(pArg-2, pEnv);                  // argvリストを配列に変換
 
-  int index = 3;                                    // 配列のインデックス
+  // スタックにmainの引数 argc, argv, envp を書き込む
+  int wArgc = pArg/2 - 3;                           // argcの位置(ワード単位)
+  if (wArgc < pAdr/2) panic("copyArgsEnvp");        // 1ページに収まらない
+  WMEM[wArgc] = argc;                               // argv文字列の個数
+  WMEM[wArgc+1] = STKVADR(pArg);                    // argv配列の仮想アドレス
+  WMEM[wArgc+2] = STKVADR(pEnv);                    // envp配列の仮想アドレス
 
-  // argv の格納
-  strAdr = copyCA(USP, index, strAdr, argv, argc, pPcb, cPcb);
-  index = index + argc + 1;
-  // envp の格納
-  strAdr = copyCA(USP, index, strAdr, envp, envs, pPcb, cPcb);
-
-  return usp;
+  return wArgc*2;                                   // argcの位置
 }
 
 // ページテーブルと参照しているフレームを解放する
 void freePageTable(PCB pcb) {
   int[] pageTable = pcb.pageTable;                  // ページテーブルのアドレス
   // フレームの解放
-  for(int pNum=0; pNum<TOTALPAGE; pNum=pNum+1) {    // ページテーブルのidx
-    if(V(pcb, pNum)){                               // Vビットが1なら
-      freeFrame(pageTable[pNum]&FBITS);            // フレーム解放
+  for (int pNum=0; pNum<TOTALPAGE; pNum=pNum+1) {   // ページテーブルのidx
+    int entry = pageTable[pNum];
+    if ((entry&VBIT)!=0) {                          // Vビットが1なら
+      freeFrame(entry & FBITS);                     // フレーム解放
     }
   }
   // ページテーブルの解放
@@ -390,7 +425,7 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
   }
 
   // コマンド行引数を親プロセスから子プロセスのユーザスタックにコピーする
-  int usp = copyArgsEnvp(_ItoA(argv), _ItoA(envp), pcb, newPcb);
+  int usp = copyArgsEnvp(argv, envp, pcb, newPcb);
 
   int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
 
@@ -424,11 +459,11 @@ int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
   } else if (op==PEEKS) {
     r = sysPeekS(prm1, pcb);
   } else if (op==PEEKM) {
-    r = sysPeekM(prm1, _ItoA(prm2), prm3, pcb);
+    r = sysPeekM(prm1, prm2, prm3, pcb);
   } else if (op==POKEW) {
     r = pokeW(prm1, prm2, pcb);
   } else if (op==POKEM) {
-    r = sysPokeM(prm1, _ItoA(prm2), prm3, pcb);
+    r = sysPokeM(prm1, prm2, prm3, pcb);
   } else {
     r = -1;                                         // どれでもなければエラー
   }
