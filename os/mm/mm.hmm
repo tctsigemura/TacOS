@@ -61,6 +61,7 @@ public void[] malloc(int s);
  */
 public void free(void[] mem);
 
+#ifndef EMBEDDED
 /*----------------------------------------------------------------------------
  *   名前   : getFrame
  *   戻り値 : int
@@ -84,3 +85,13 @@ public int get2Frame();
  *   解説   : フレームを解放する
  */
 public void freeFrame(int num);
+
+/*----------------------------------------------------------------------------
+ *   名前   : frameInit
+ *   戻り値 : なし
+ *   引数   : なし
+ *   解説   : フレームプールの初期化
+ */
+public void frameInit();
+
+#endif

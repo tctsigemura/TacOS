@@ -183,32 +183,31 @@ public int close(int fd) {
 #ifndef EMBEDDED
 int readWrite(int fd, void[] buf, int len, int com){
   int total = 0;                                    // 結果のバイト数の合計
+  int vAdr = _AtoI(buf);
   if (curProc.pid > maxSrvPid) {                    // ユーザプロセスなら
-    int vAdr = _AtoI(buf);
     while (len>0) {                                 // lenは32k以下
       int vLen = PAGESIZ;                           // 今回の長さ
-      int offs = vAdr%PAGESIZ;                      // ページ内オフセット
+      int offs = vAdr % PAGESIZ;                    // ページ内オフセット
       if(offs==0) {                                 // 開始がページ境界
         if(len<PAGESIZ) vLen = len;                 // ページサイズより小
       } else {                                      // 開始がページ境界でない
         if(offs+len<PAGESIZ) {
           vLen = len;                               // 残りの長さ
         } else {                                    // ページサイズより大きい
-          vLen = PAGESIZ-offs;                      // ページ境界まで
+          vLen = PAGESIZ - offs;                    // ページ境界まで
         }
       }
-      int fNum = load(vAdr);                        // フレーム番号
-      int pAdr = fNum*PAGESIZ+offs;                 // 物理アドレレス
+      int pAdr = load(vAdr);                        // 物理アドレス
       int r = sndrec(fsLink, com, fd, pAdr, vLen);  // ファイル <=> フレーム
-      release(vAdr/PAGESIZ);                        // フレームのsビットをOFF
+      release(vAdr);                                // フレームのsビットをOFF
       if(r<0) return r;                             // エラー発生
-      total = total+r;                              // rは正の値
+      total = total + r;                            // rは正の値
       if(r!=vLen) break;                            // EOF
-      vAdr=vAdr+vLen;                               // 次の開始アドレス
-      len=len-vLen;                                 // 残りの長さ
+      vAdr = vAdr + vLen;                           // 次の開始アドレス
+      len = len - vLen;                             // 残りの長さ
     }
   } else {                                          // カーネルプロセスなら
-    total = sndrec(fsLink, com, fd, _AtoI(buf), len); // ファイル <=> フレーム
+    total = sndrec(fsLink, com, fd, vAdr, len);     // ファイル <=> フレーム
   }
   return total;
 }
