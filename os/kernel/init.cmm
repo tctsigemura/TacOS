@@ -37,6 +37,7 @@
  *
  */
 
+#include <util.hmm>
 #include <tty.hmm>
 #include <pm.hmm>
 int[] sta = array(1);                           // ステータス格納領域の確保

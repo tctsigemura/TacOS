@@ -68,22 +68,23 @@
 .nSys   equ     17          ; システムコール数を定義
 
 ; .sysTbl ラベルは dw と同じ行に書くこと(同じセグメントのラベルにするため)
-.sysTbl dw      _exec       ; 0  exec
+; "__"で始まるものはユーザ用のラッパ(カーネル用のシステムコールを内部で呼ぶ)
+.sysTbl dw      __exec      ; 0  exec
         dw      _exit       ; 1  exit
         dw      _wait       ; 2  wait
         dw      _sleep      ; 3  sleep
-        dw      _creat      ; 4  creat
-        dw      _remove     ; 5  remove
-        dw      _mkDir      ; 6  mkDir
-        dw      _rmDir      ; 7  rmDIr
-        dw      _open       ; 8  open
+        dw      __creat     ; 4  creat
+        dw      __remove    ; 5  remove
+        dw      __mkDir     ; 6  mkDir
+        dw      __rmDir     ; 7  rmDIr
+        dw      __open      ; 8  open
         dw      _close      ; 9  close
-        dw      _read       ; 10 read
-        dw      _write      ; 11 write
+        dw      __read      ; 10 read
+        dw      __write     ; 11 write
         dw      _seek       ; 12 seek
-        dw      _stat       ; 13 stat
-        dw      _ttyRead    ; 14 ttyRead
-        dw      _ttyWrite   ; 15 ttyWrite
+        dw      __stat      ; 13 stat
+        dw      __ttyRead    ; 14 ttyRead
+        dw      __ttyWrite   ; 15 ttyWrite
         dw      _ttyCtl     ; 16 ttyCtl
 ; MM の malloc(#17), free(#18) と 
 ; PM の load(#19), peeks(#20), peekM(#21), pokeW(#22), pokeM(#23)は

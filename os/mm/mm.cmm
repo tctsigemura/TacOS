@@ -250,5 +250,6 @@ public void frameInit() {                           // 初期化ルーチン
   for(int cnt=0; cnt<kPage; cnt=cnt+1) {            // カーネルの使用している
     _writeMap(bitmap, cnt, 1);                      //   フレームは使用中に
   }
+  _writeMap(bitmap, 0xff, 1);                       // ベクタ領域
 }
 #endif

@@ -33,7 +33,7 @@ SRCS=${NAME}.cmm buffer.cmm screen.cmm
 all : clean ${NAME}.exe # ${NAME}
 
 ${NAME}.exe : ${SRCS}
-	cm2e -o ${NAME} -s 14000 ${SRCS}
+	cm2e -o ${NAME} ${SRCS}
 
 ${NAME} : ${SRCS}
 	cm2c -o ${NAME} ${SRCS}
