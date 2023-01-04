@@ -110,126 +110,71 @@ public void fsMain() {
 //   クライアントプロセスが以下のルーチンを呼出しサーバと IPC する
 //----------------------------------------------------------------------------
 
-// パス名を引数とするシステムコールの発行ルーチン
-#ifndef EMBEDDED
-int peekSndrec(int com, char[] path, int prm3, int prm4) {
-  if (curProc.pid > maxSrvPid) {                        // ユーザプロセスなら
-    path = peekS(_AtoI(path));                          //   仮想空間から
-  }                                                     //     パスを読み出す
-  int r = sndrec(fsLink, com, _AtoI(path), prm3, prm4); // システムコール実行
-  if (curProc.pid > maxSrvPid) {                        // ユーザプロセスなら
-    free(path);                                         //   パスを解放する
-  }
-  return r;
-}
-#endif
+//
+// 組み込みアプリだけに公開しているシステムコール
+//
+#ifdef EMBEDDED
 
 // creat システムコール
 public int creat(char[] path) {
-#ifdef EMBEDDED
  int r = sndrec(fsLink, CREAT, _AtoI(path), 0, 0);
-#else
- int r = peekSndrec(CREAT, path, 0, 0);
-#endif
  return r;
 }
 
 // remove システムコール
 public int remove(char[] path) {
-#ifdef EMBEDDED
  int r = sndrec(fsLink, REMOVE, _AtoI(path), 0, 0);
-#else
- int r = peekSndrec(REMOVE, path, 0, 0);
-#endif
  return r;
 }
 
 // mkDir システムコール
 public int mkDir(char[] path) {
-#ifdef EMBEDDED
  int r = sndrec(fsLink, MKDIR, _AtoI(path), 0, 0);
-#else
- int r = peekSndrec(MKDIR, path, 0, 0);
-#endif
  return r;
 }
 
 // rmDir システムコール
 public int rmDir(char[] path) {
-#ifdef EMBEDDED
  int r = sndrec(fsLink, RMDIR, _AtoI(path), 0, 0);
-#else
- int r = peekSndrec(RMDIR, path, 0, 0);
-#endif
  return r;
-}
-
-// open システムコール
-public int open(char[] path, int mode) {
-#ifdef EMBEDDED
-  int fd = sndrec(fsLink, OPEN, _AtoI(path), mode, 0);
-#else
-  int fd = peekSndrec(OPEN, path, mode, 0);
-#endif
-  return fd;
-}
-
-// close システムコール
-public int close(int fd) {
-  int r = sndrec(fsLink, CLOSE, fd, 0, 0);
-  return r;
-}
-
-#ifndef EMBEDDED
-int readWrite(int fd, void[] buf, int len, int com){
-  int total = 0;                                    // 結果のバイト数の合計
-  int vAdr = _AtoI(buf);
-  if (curProc.pid > maxSrvPid) {                    // ユーザプロセスなら
-    while (len>0) {                                 // lenは32k以下
-      int vLen = PAGESIZ;                           // 今回の長さ
-      int offs = vAdr % PAGESIZ;                    // ページ内オフセット
-      if(offs==0) {                                 // 開始がページ境界
-        if(len<PAGESIZ) vLen = len;                 // ページサイズより小
-      } else {                                      // 開始がページ境界でない
-        if(offs+len<PAGESIZ) {
-          vLen = len;                               // 残りの長さ
-        } else {                                    // ページサイズより大きい
-          vLen = PAGESIZ - offs;                    // ページ境界まで
-        }
-      }
-      int pAdr = load(vAdr);                        // 物理アドレス
-      int r = sndrec(fsLink, com, fd, pAdr, vLen);  // ファイル <=> フレーム
-      release(vAdr);                                // フレームのsビットをOFF
-      if(r<0) return r;                             // エラー発生
-      total = total + r;                            // rは正の値
-      if(r!=vLen) break;                            // EOF
-      vAdr = vAdr + vLen;                           // 次の開始アドレス
-      len = len - vLen;                             // 残りの長さ
-    }
-  } else {                                          // カーネルプロセスなら
-    total = sndrec(fsLink, com, fd, vAdr, len);     // ファイル <=> フレーム
-  }
-  return total;
-}
-#endif
-
-// read システムコール
-public int read(int fd, void[] buf, int len) {
-#ifdef EMBEDDED
-  int r = sndrec(fsLink, READ, fd, _AtoI(buf), len);
-#else
-  int r = readWrite(fd, buf, len, READ);
-#endif
-  return r;
 }
 
 // write システムコール
 public int write(int fd, void[] buf, int len) {
-#ifdef EMBEDDED
   int r = sndrec(fsLink, WRITE, fd, _AtoI(buf), len);
-#else
-  int r = readWrite(fd, buf, len, WRITE);
+  return r;
+}
+
+// stat システムコール
+public int stat(char[] path, Stat stat) {
+  int r = sndrec(fsLink, STAT, _AtoI(path), _AtoI(stat), 0);
+  return r;
+}
 #endif
+
+//
+// 組込みアプリとサーバプロセスで共通に使用しているシステムコール
+//
+
+// open システムコール
+public int open(char[] path, int mode) {
+  int fd = sndrec(fsLink, OPEN, _AtoI(path), mode, 0);
+  return fd;
+}
+
+// read システムコール
+public int read(int fd, void[] buf, int len) {
+  int r = sndrec(fsLink, READ, fd, _AtoI(buf), len);
+  return r;
+}
+
+//
+// 組込みアプリ，サーバプロセス，ユーザプロセスで共通に使用できるシステムコール
+//
+
+// close システムコール
+public int close(int fd) {
+  int r = sndrec(fsLink, CLOSE, fd, 0, 0);
   return r;
 }
 
@@ -239,20 +184,96 @@ public int seek(int fd, int ptrh, int ptrl) {
   return r;
 }
 
-// stat システムコール
-public int stat(char[] path, Stat stat) {
-#ifdef EMBEDDED
-  int r = sndrec(fsLink, STAT, _AtoI(path), _AtoI(stat), 0);
-#else
-  Stat stmp = stat;
-  if (curProc.pid > maxSrvPid) {                    // ユーザプロセスなら
-    stat = malloc(sizeof(Stat));                    //   結果を書き込む領域を
-  }                                                 //     物理空間に確保
-  int r = peekSndrec(STAT, path, _AtoI(stat), 0);
-  if (curProc.pid > maxSrvPid) {                    // ユーザプロセスなら
-    pokeM(_AtoI(stmp), stat, sizeof(Stat));         //   仮想空間に書き込み
-    free(stat);                                     //     物理メモリを解放
-  }
-#endif
+//
+// ユーザプロセスが使用するために工夫が必要なシステムコール
+//
+#ifndef EMBEDDED
+
+// 仮想空間のパス名を引数とするシステムコールの発行ルーチン
+int _peekSndrec(int com, char[] path, int prm3, int prm4) {
+  path = peekS(_AtoI(path));                            // パスを読む
+  int r = sndrec(fsLink, com, _AtoI(path), prm3, prm4); // システムコール実行
+  free(path);                                           // パスを解放する
   return r;
 }
+
+// ユーザプロセス用の creat の入り口
+public int _creat(char[] path) {
+ int r = _peekSndrec(CREAT, path, 0, 0);
+ return r;
+}
+
+// ユーザプロセス用の remove の入り口
+public int _remove(char[] path) {
+ int r = _peekSndrec(REMOVE, path, 0, 0);
+ return r;
+}
+
+// ユーザプロセス用の rmDir の入り口
+public int _mkDir(char[] path) {
+ int r = _peekSndrec(MKDIR, path, 0, 0);
+ return r;
+}
+
+// ユーザプロセス用の rmDir の入り口
+public int _rmDir(char[] path) {
+ int r = _peekSndrec(RMDIR, path, 0, 0);
+ return r;
+}
+
+// ユーザプロセス用の open の入り口
+public int _open(char[] path, int mode) {
+  int fd = _peekSndrec(OPEN, path, mode, 0);
+  return fd;
+}
+
+// ページサイズより大きいデータを読み書きする
+int _readWrite(int fd, void[] buf, int len, int com){
+  int total = 0;                                    // 結果のバイト数の合計
+  int vAdr = _AtoI(buf);
+  while (len>0) {                                   // lenは32k以下
+    int vLen = PAGESIZ;                             // 今回の長さ
+    int offs = vAdr % PAGESIZ;                      // ページ内オフセット
+    if(offs==0) {                                   // 開始がページ境界
+      if(len<PAGESIZ) vLen = len;                   // ページサイズより小
+    } else {                                        // 開始がページ境界でない
+      if(offs+len<PAGESIZ) {
+        vLen = len;                                 // 残りの長さ
+      } else {                                      // ページサイズより大きい
+        vLen = PAGESIZ - offs;                      // ページ境界まで
+      }
+    }
+    int pAdr = load(vAdr);                          // 物理アドレス
+    int r = sndrec(fsLink, com, fd, pAdr, vLen);    // ファイル <=> フレーム
+    release(vAdr);                                  // フレームのsビットをOFF
+    if(r<0) return r;                               // エラー発生
+    total = total + r;                              // rは正の値
+    if(r!=vLen) break;                              // EOF
+    vAdr = vAdr + vLen;                             // 次の開始アドレス
+    len = len - vLen;                               // 残りの長さ
+  }
+  return total;
+}
+
+// ユーザプロセス用の read の入り口
+public int _read(int fd, void[] buf, int len) {
+  int r = _readWrite(fd, buf, len, READ);
+  return r;
+}
+
+// ユーザプロセス用の write の入り口
+public int _write(int fd, void[] buf, int len) {
+  int r = _readWrite(fd, buf, len, WRITE);
+  return r;
+}
+
+// ユーザプロセス用の stat の入り口
+public int _stat(char[] path, Stat stat) {
+  Stat tmp = malloc(sizeof(Stat));                  // 結果を書き込む物理メモリ
+  int r = _peekSndrec(STAT, path, _AtoI(tmp), 0);   // pathを読出した上でsndrec
+  pokeM(_AtoI(tmp), stat, sizeof(Stat));            // 結果を仮想空間に書き込む
+  free(tmp);                                        // 物理メモリを解放
+  return r;
+}
+
+#endif

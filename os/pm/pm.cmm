@@ -90,11 +90,10 @@
 // ワード単位の read (EXE ファイル用なのでビッグエンディアンとして処理する)
 //-----------------------------------------------------------------------------
 int[] buf = array(1);                               // 1ワードの読込みバッファ
-int fd      = -1;                                   // FS で使用する FD
 boolean eof = true;                                 // EOF に達したか
 
-int getWord() {
-  eof = read(fd, buf, 2)<=0;
+int getWord(int fd) {
+  eof = read(fd, buf, 2)<2;
   return buf[0];
 }
 
@@ -109,13 +108,13 @@ int dataSiz;                                        // DATA セグメントサ�
 int bssSiz;                                         // BSS  セグメントサイズ
 
 // EXE ファイルのヘッダから上記のデータを読み出す
-int readHeader() {
-  magic   = getWord();                              // マジック番号
+int readHeader(int fd) {
+  magic   = getWord(fd);                            // マジック番号
   if (magic!=UMAGIC && magic!=IMAGIC)               // マジック番号をチェック
     return EMAGIC;                                  //   不正なマジック番号
-  textSiz     = getWord();                          // TEXT セグメントサイズ
-  dataSiz     = getWord();                          // DATA セグメントサイズ
-  bssSiz      = getWord();                          // BSS  セグメントサイズ
+  textSiz     = getWord(fd);                        // TEXT セグメントサイズ
+  dataSiz     = getWord(fd);                        // DATA セグメントサイズ
+  bssSiz      = getWord(fd);                        // BSS  セグメントサイズ
   if (eof) return ENOEXEC;                          // ファイルが短い
   return 0;                                         // 正常終了
 }
@@ -392,7 +391,7 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
   int fd = open(_ItoA(path), READ_MODE);            // exeファイルをオープン
   if(fd<0) return ENOEXEC;                          //   オープン失敗
 
-  int r = readHeader();                             // exeのヘッダを読む
+  int r = readHeader(fd);                           // exeのヘッダを読む
   if (r!=0) {                                       // エラーなら
     close(fd);                                      //   exeファイルを閉じて
     return r;                                       //   エラー番号を返す
@@ -424,7 +423,10 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
 
   // argv, envpを親から子のユーザスタックの底にコピーする
   // (uspはスタックトップの仮想アドレス)
-  int usp = copyArgsEnvp(argv, envp, pcb, newPcb);
+  int usp = 0x0000;                                 // スタックの最後は 0xffff
+  if (argv!=0) {                                    // 親がinit以外なら
+    usp = copyArgsEnvp(argv, envp, pcb, newPcb);    //  argvなどをコピーする
+  }
 
   // PCBの基本要素の初期化(サーバプロセスとの共通部分)
   int priv = EI|USER;                               // 普通はユーザモード
@@ -467,7 +469,11 @@ int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
 }
 
 // プロセスマネージャサーバのメインルーチン
+interrupt tlbMiss();                                // TLBミス例外ハンドラ
+
 public void pmMain() {
+  int[] VECTOR = _ItoA(0xffe0);
+  VECTOR[10] = addrof(tlbMiss);                     // TLBmiss ハンドラ登録
   pmLink = newLink();                               // リンクを生成する
   while (true) {                                    // システムコールを待つ
     Link l = receive(pmLink);                       // システムコールを受信
@@ -520,9 +526,16 @@ public int pokeM(int vAdr, void[] pAdr, int size) {
 //-----------------------------------------------------------------------------
 // exec システムコールはサーバプロセスに処理させる
 //-----------------------------------------------------------------------------
+// init が呼び出す exec システムコール
 public int exec(char[] path, char[][] argv, char[][] envp) {
+  int r=sndrec(pmLink, EXEC, _AtoI(path), _AtoI(argv), _AtoI(envp));
+  return r;
+}
+
+// ユーザ用の exec システムコール
+public int _exec(char[] path, char[][] argv, char[][] envp) {
   char[] str = peekS(_AtoI(path));                  // pmのシステムコール
-  int r=sndrec(pmLink, EXEC, _AtoI(str), _AtoI(argv), _AtoI(envp));
+  int r=exec(str, argv, envp);
   free(str);
   return r;                                         // 新しい子の PID を返す
 }
@@ -639,6 +652,7 @@ int quietTlb() {                                    // 低使用率TLBエント�
 interrupt tlbMiss() {                               // TLBミス例外ハンドラ
   int[] pageTable = curProc.pageTable;              // ページテーブルのアドレス
   int pNum = in(0xA6);                              // 原因ページの番号
+  printF("tlbMiss(pNum=%d)\n", pNum);
 
   // 1. 該当ページが不在ならswap-inする
   if ((pageTable[pNum] & VBIT)==0) {                // V=0ならページ不在

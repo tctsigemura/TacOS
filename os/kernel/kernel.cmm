@@ -521,6 +521,9 @@ void lnkInit() {
 // 例外がユーザモードで発生したならユーザプロセスを終了させる
 // カーネルモードで発生したならカーネルのバグなので panic()
 void exception(int errno, char[] msg) {
+#ifdef DEBUG
+  printF("exception(%d, \"%s\")\n", errno, msg);
+#endif
 #ifndef EMBEDDED
   if (isUser()) exit(errno);
   else          panic(msg);
@@ -584,7 +587,6 @@ public void main() {
   printF("Starting system...\n");
 #endif
 #ifndef EMBEDDED
-  maxSrvPid = lastPid;                              // サーバプロセスPID最大値
   out(0xa2, 0x0001);                                // MMU を有効にする
 #endif
   dispatch();                                       // プロセス実行開始

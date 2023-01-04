@@ -131,7 +131,6 @@ public PCB curProc;                                 // 実行中プロセス
 public PCB readyQueue;                              // 実行可能列
 #ifndef EMBEDDED
 public PCB initProc;                                // INITプロセス
-public int maxSrvPid;                               // サーバプロセスPID最大値
 #endif
 
 // プロセスキュー(実行可能列やセマフォの待ち行列)で p を削除する
