@@ -325,6 +325,7 @@ int newStk(int sp, int start, int flag, int usp) {
 
 // 予め領域を確保された PCB を受け取り、PCB とカーネルスタックを初期化する
 public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
+  printF("newProc(%x,%x,%x,%x)\n",start,nice,usp,flag);
   int pid = nextPid();                              // PID を決定する
   int idx = regProcTbl(pcb);                        // PCB を一覧に登録する
   // カーネルスタックポインタ(SP)の決定とカーネルスタックの初期化
@@ -521,9 +522,9 @@ void lnkInit() {
 // 例外がユーザモードで発生したならユーザプロセスを終了させる
 // カーネルモードで発生したならカーネルのバグなので panic()
 void exception(int errno, char[] msg) {
-#ifdef DEBUG
-  printF("exception(%d, \"%s\")\n", errno, msg);
-#endif
+//#ifdef DEBUG
+//  panic("exception(%d, \"%s\")\n", errno, msg);
+//#endif
 #ifndef EMBEDDED
   if (isUser()) exit(errno);
   else          panic(msg);

@@ -49,8 +49,6 @@
 #include <kernel.hmm>
 #include <syscall.hmm>
 #include "mm.hmm"
-#include <fsDef.hmm>
-#include <file.hmm>
 
 #define MBSIZE sizeof(MemBlk)                   // MemBlk のバイト数
 #define MAGIC  (memPool)                        // 番兵のアドレスを使用する
@@ -67,19 +65,13 @@ struct MemBlk {                                 // 空き領域管理用の構�
 
 // メモリ管理の初期化
 MemBlk memPool = {null, 0};                     // 空き領域リストの番兵
-public int _end();                              // カーネルの BBS 領域の最後
 
-int framePoolAdr;                               // フレームプールのアドレス
-
+// _memSiz はcrt0.sが設定するベクタ領域の開始アドレス
+// または，frameInitが設定するページプールの開始アドレス
+// ！！！frameInitを先に実行しておく必要がある！！！
 void mmInit() {                                 // プログラム起動前の初期化
   memPool.next = _ItoA(addrof(_end));           // 空き領域
-#ifdef EMBEDDED
   memPool.next.size = _memSiz - addrof(_end);   // 空きメモリサイズ
- #else
-  //　フレームプールのアドレス
-  framePoolAdr = (addrof(_end)+HEPSIZ+PAGESIZ-1) & ~(PAGESIZ-1);
-  memPool.next.size = framePoolAdr-addrof(_end);//空きメモリサイズ
- #endif
   memPool.next.next = null;
 }
 
@@ -198,58 +190,3 @@ public void free(void[] mem) {
   sndrec(mmLink, FREE, _AtoI(mem), 0, 0);       // 領域の先頭アドレスを渡す
   return;
 }
-
-//-----------------------------------------------------------------------------
-// フレームプール関係
-//-----------------------------------------------------------------------------
-// mm プロセス以外から呼ばれるので排他が必要
-
-#ifndef EMBEDDED
-char[] bitmap = array(32);                          // 32バイトのビットマップ
-
-public int getFrame() {                             // 空きフレームを割り当て
-  int r = setPri(DI|KERN);                          // 排他のため
-  for(int num=0; num<TOTALPAGE; num=num+1) {        // 全フレームについて
-    if(_readMap(bitmap, num)==0) {                  //   空きが見つかったら
-        _writeMap(bitmap, num, 1);                  //     使用中に変更
-        setPri(r);
-        return num;                                 //     フレーム番号を返す
-    }
-  }
-  setPri(r);
-  return -1;                                        // 見つからなかったらエラー
-}
-
-public int get2Frame() {                            // 2連続フレームの割り当て
-  int r = setPri(DI|KERN);                          // 排他のため
-  for(int num=0; num<TOTALPAGE; num=num+1){         // 全フレームについて
-    if(_readMap(bitmap, num)==0 &&                  //　 2フレーム連続した
-       _readMap(bitmap, num+1)==0) {                //    空きを探す
-        _writeMap(bitmap, num, 1);                  //      見つかったら
-        _writeMap(bitmap, num+1, 1);                //        使用中に変更
-        setPri(r);
-        return num;                                 // 1フレーム目の番号を返す
-    }
-  }
-  setPri(r);
-  return -1;                                        // 見つからなかったらエラー
-}
-
-public void freeFrame(int num) {                    // 指定したフレームを開放
-  int r = setPri(DI|KERN);                          // 排他のため
-  if(_readMap(bitmap, num)==1) {                    // 指定した場所が1なら
-    _writeMap(bitmap, num, 0);                      // ビットマップに0を書き込み
-  }else{                                            // 指定した場所が0だったら
-    panic("freeFrame");                             // パニックを起こす
-  }
-  setPri(r);
-}
-
-public void frameInit() {                           // 初期化ルーチン
-  int kPage = framePoolAdr/PAGESIZ;                 // カーネルのページ数
-  for(int cnt=0; cnt<kPage; cnt=cnt+1) {            // カーネルの使用している
-    _writeMap(bitmap, cnt, 1);                      //   フレームは使用中に
-  }
-  _writeMap(bitmap, 0xff, 1);                       // ベクタ領域
-}
-#endif
