@@ -227,13 +227,15 @@ public int _open(char[] path, int mode) {
   return fd;
 }
 
+#define adrToOffs(adr) ((adr) & 0x00ff)
+
 // ページサイズより大きいデータを読み書きする
 int _readWrite(int fd, void[] buf, int len, int com){
   int total = 0;                                    // 結果のバイト数の合計
   int vAdr = _AtoI(buf);
   while (len>0) {                                   // lenは32k以下
     int vLen = PAGESIZ;                             // 今回の長さ
-    int offs = vAdr % PAGESIZ;                      // ページ内オフセット
+    int offs = adrToOffs(vAdr);                     // ページ内オフセット
     if(offs==0) {                                   // 開始がページ境界
       if(len<PAGESIZ) vLen = len;                   // ページサイズより小
     } else {                                        // 開始がページ境界でない
