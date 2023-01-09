@@ -325,8 +325,13 @@ int newStk(int sp, int start, int flag, int usp) {
 
 // 予め領域を確保された PCB を受け取り、PCB とカーネルスタックを初期化する
 public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
-  printF("newProc(%x,%x,%x,%x)\n",start,nice,usp,flag);
   int pid = nextPid();                              // PID を決定する
+
+#ifdef DEBUG
+  printF("newProc(start=%x,nice=%x,usp=%x,flag=%x),pid=%d\n",
+         start, nice, usp, flag, pid);
+#endif
+
   int idx = regProcTbl(pcb);                        // PCB を一覧に登録する
   // カーネルスタックポインタ(SP)の決定とカーネルスタックの初期化
   int sp=_AtoI(pcb) + (sizeof(PCB)+P_KERN_STKSIZ+1)&~1; // スタック底のアドレス
@@ -459,7 +464,7 @@ public int newLink() {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   linkID = linkID + 1;                              // 通し番号を進める
 #ifdef DEBUG
-  printF("newLink:ID=%d,SERVER=%d\n",linkID,curProc.pid);
+  printF("newLink:linkid=%d,pid=%d\n",linkID,curProc.pid);
 #endif
   if (linkID >= LINK_MAX)                           // リンクが多すぎる
     panic("newLink");
@@ -522,9 +527,9 @@ void lnkInit() {
 // 例外がユーザモードで発生したならユーザプロセスを終了させる
 // カーネルモードで発生したならカーネルのバグなので panic()
 void exception(int errno, char[] msg) {
-//#ifdef DEBUG
-//  panic("exception(%d, \"%s\")\n", errno, msg);
-//#endif
+#ifdef DEBUG
+  panic("exception(%d, \"%s\")\n", errno, msg);
+#endif
 #ifndef EMBEDDED
   if (isUser()) exit(errno);
   else          panic(msg);

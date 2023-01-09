@@ -56,7 +56,11 @@
 
 // ------------------------------ プロセス関連 --------------------------------
 #define PRC_MAX 10        // プロセスは最大 10 個
+#ifdef DEBUG
+#define P_KERN_STKSIZ 300 // プロセス毎のカーネルスタックのサイズ
+#else
 #define P_KERN_STKSIZ 200 // プロセス毎のカーネルスタックのサイズ
+#endif
 #define P_LOW_PRI 30000   // プロセスの最低優先度
 #define P_RUN    1        // プロセスは実行可能または実行中
 #define P_WAIT   2        // プロセスは待ち状態

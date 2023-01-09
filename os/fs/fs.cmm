@@ -227,8 +227,6 @@ public int _open(char[] path, int mode) {
   return fd;
 }
 
-#define adrToOffs(adr) ((adr) & 0x00ff)
-
 // ページサイズより大きいデータを読み書きする
 int _readWrite(int fd, void[] buf, int len, int com){
   int total = 0;                                    // 結果のバイト数の合計
@@ -273,7 +271,7 @@ public int _write(int fd, void[] buf, int len) {
 public int _stat(char[] path, Stat stat) {
   Stat tmp = malloc(sizeof(Stat));                  // 結果を書き込む物理メモリ
   int r = _peekSndrec(STAT, path, _AtoI(tmp), 0);   // pathを読出した上でsndrec
-  pokeM(_AtoI(tmp), stat, sizeof(Stat));            // 結果を仮想空間に書き込む
+  pokeM(_AtoI(stat), tmp, sizeof(Stat));            // 結果を仮想空間に書き込む
   free(tmp);                                        // 物理メモリを解放
   return r;
 }

@@ -44,6 +44,7 @@
 #define SIO_Ctrl 0x0a                         // FT232 制御用のI/Oポート
 #define RN4_Data 0x28                         // RN4020 送受信データのI/Oポート
 #define RN4_Ctrl 0x2a                         // RN4020 制御用のI/Oポート
+#define RN4_Cmd  0x2c                         // RN4020 コマンド用のI/Oポート
 
 RingBuf rcvBuf={"12345678901234567890123456789012345678901234567890123456789012345678901234567890",80,0,0,0}; // 受信バッファ
 RingBuf trsBuf={"12345678901234567890123456789012345678901234567890123456789012345678901234567890",80,0,0,0}; // 送信バッファ
@@ -69,7 +70,9 @@ interrupt sioTrs() {
   } else {                                    // 送信すべきデータがあれば
     char c = getBuf(trsBuf);                  //   次の文字をバッファから取出し
     out(SIO_Data,ord(c));                     //     送信する
+#ifndef DEBUG
     if (mldpOn) out(RN4_Data,ord(c));         //   同じデータをRN4020にも送信
+#endif
     if (trsWait&&trsBuf.cnt<=trsBuf.size/2) { //   待ちプロセスがありバッファに
       trsWait=false;                          //     十分な空きがあれば
       semV(trsSem);                           //       フラグを下ろして起こす
@@ -83,7 +86,9 @@ void put(char c) {
   if (trsIdle) {                              // トランスミッタがアイドルなら
     out(SIO_Data,ord(c));                     //   送信を開始する
     out(SIO_Ctrl,0x00c0);                     //   割込みを許可する
+#ifndef DEBUG
     if (mldpOn) out(RN4_Data,ord(c));         //   同じデータをRN4020にも送信
+#endif
     trsIdle = false;                          //   トランスミッタは動作中
   } else {                                    // トランスミッタが動作中なら
     if (ISFull(trsBuf)) {                     //   送信バッファに空きが無いなら
@@ -231,6 +236,7 @@ public void sioInit() {
   in(RN4_Data);                               // 受信バッファのゴミをとる
   out(SIO_Ctrl,0x0040);                       // 受信割込み許可、送信割込み禁止
   out(RN4_Ctrl,0x0040);                       // 受信割込み許可、送信割込み禁止
+  out(RN4_Cmd, 0x0009);                       // ハードウェアフロー制御ON
   trsSem = newSem(0);                         // 送信用セマフォ
   rcvSem = newSem(0);                         // 受信用セマフォ
 }

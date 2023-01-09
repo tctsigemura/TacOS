@@ -83,12 +83,6 @@
 #define PCBSIZ (sizeof(PCB)+P_KERN_STKSIZ+P_FILE_MAX*sizeof(int)) // PCBサイズ
 #define HEPSIZ (PRC_MAX*PCBSIZ+(FILEMAX*(sizeof(File)+BLKSIZ)))   // ヒープ
 
-// アドレスからページ番号やページ内アドレスに
-// (C--のint型が符号付きなのでPAGESIZでアドレスを割り算すると結果要注意)
-#define adrToPage(adr) (((adr)>>8) & 0x00ff)        // マクロの方がコード小
-#define adrToFrame(adr) adrToPage(adr)              // 内容はadrToPageと同じ
-#define adrToOffs(adr) ((adr) & 0x00ff)
-
 char[] bitmap = array(32);                          // 32バイトのビットマップ
 
 int getFrame() {                                    // 空きフレームを割り当て
@@ -97,7 +91,6 @@ int getFrame() {                                    // 空きフレームを割�
     if(_readMap(bitmap, num)==0) {                  //   空きが見つかったら
         _writeMap(bitmap, num, 1);                  //     使用中に変更
         setPri(r);
-     printF("getFrame=%x\n", num);
         return num;                                 //     フレーム番号を返す
     }
   }
@@ -122,7 +115,9 @@ int get2Frame() {                                   // 2連続フレームの割
 
 void freeFrame(int num) {                           // 指定したフレームを開放
   int r = setPri(DI|KERN);                          // 排他のため
-printF("freeFrame(%x)\n", num);
+#ifdef DEBUG
+  printF("freeFrame(%x)\n", num);
+#endif
   if(_readMap(bitmap, num)==1) {                    // 指定した場所が1なら
     _writeMap(bitmap, num, 0);                      // ビットマップに0を書き込み
   }else{                                            // 指定した場所が0だったら
@@ -162,34 +157,11 @@ int getWord(int fd) {
   return buf[0];
 }
 
-//-----------------------------------------------------------------------------
-// exec システムコール(プロセスを生成しプログラムの実行を開始する)
-//-----------------------------------------------------------------------------
-
-// EXE ファイルのヘッダから読みだしたデータ
-int magic;                                          // マジック番号
-int textSiz;                                        // TEXT セグメントサイズ
-int dataSiz;                                        // DATA セグメントサイズ
-int bssSiz;                                         // BSS  セグメントサイズ
-
-// EXE ファイルのヘッダから上記のデータを読み出す
-int readHeader(int fd) {
-  magic   = getWord(fd);                            // マジック番号
-  if (magic!=UMAGIC && magic!=IMAGIC)               // マジック番号をチェック
-    return EMAGIC;                                  //   不正なマジック番号
-  textSiz     = getWord(fd);                        // TEXT セグメントサイズ
-  dataSiz     = getWord(fd);                        // DATA セグメントサイズ
-  bssSiz      = getWord(fd);                        // BSS  セグメントサイズ
-  if (eof) return ENOEXEC;                          // ファイルが短い
-  return 0;                                         // 正常終了
-}
-
 // 仮想アドレスを物理アドレスに変換する
 int vToP(int vAdr, PCB pcb) {                   
-  int offs = adrToOffs(vAdr);                       // ページ内アドレス
   int entry = pcb.pageTable[adrToPage(vAdr)];       // ページテーブルエントリ
   if ((entry & VBIT)==0) return 0;                  // 変換できなかった
-  return ((entry & FBITS) * PAGESIZ) | offs;        // 物理アドレスを返す
+  return ((entry&FBITS)*PAGESIZ) | adrToOffs(vAdr); // 物理アドレスを返す
 }
 
 // プロセス内で解放できるフレームを探す
@@ -224,6 +196,9 @@ int searchAllFrame() {
 // フレームを割り当てページテーブルに記憶する
 int allocFrame(int pNum, PCB pcb) {
   int fNum = getFrame();                            // フレームを割り当て
+#ifdef DEBUG
+  printF("allocFrame(pNum=%x,fNum=%x,pid=%d)\n", pNum, fNum, pcb.pid);
+#endif
   if (fNum < 0) {                                   // 空きフレームがなかったら
     fNum = searchAllFrame();                        // 解放できるフレームを探す
     if (fNum < 0) panic("allocFrame");              // 解放できなかった
@@ -234,15 +209,17 @@ int allocFrame(int pNum, PCB pcb) {
 
 // 1フレームを0でクリアする
 void clearFrame(int fNum) {
-  int pAdr = fNum*(PAGESIZ/2);
-  for(int i=0; i<PAGESIZ/2; i=i+1) {
-    WMEM[pAdr+i] = 0;                               // 物理メモリ(ワード単位)
+  int pAdr = fNum*PAGESIZ;                          // フレームのアドレス
+  for(int i=0; i<PAGESIZ; i=i+2) {
+    WMEM[adrToWadr(pAdr+i)] = 0;                    // 物理メモリ(ワード単位)
   }
 }
 
 // 該当ページをexeファイルから読み込む
 void swapIn(int pNum, int fNum, PCB pcb) {
-  printF("swapIn(%x,%x)\n", pNum, fNum);
+#ifdef DEBUG
+  printF("swapIn(pNum=%x,fNum=%x,pid=%d)\n", pNum, fNum, pcb.pid);
+#endif
   int fd = pcb.filedsc;                             // exeファイルのfd
   int r = seek(fd, 0, HDRSIZ+pNum*PAGESIZ);         // ページ位置にseek
   if (r<0) panic("swapIn-seek");                    // seekでエラー
@@ -266,7 +243,9 @@ int locateFrame(int vAdr, PCB pcb) {
   return pAdr;                                      // 物理アドレスを返す
 }
 
+//-----------------------------------------------------------------------------
 // スワップイン(またはフレーム割り当て)し、入れ替え禁止ビットを1にする
+//-----------------------------------------------------------------------------
 int sysLoad(int vAdr, PCB pcb) {
   int pNum = adrToPage(vAdr);                       // 該当ページ
   int[] pageTable = pcb.pageTable;                  // プロセスのページテーブル
@@ -284,7 +263,7 @@ char peekB(int vAdr, PCB pcb) {
 // 仮想メモリの1ワードを読む
 int peekW(int vAdr, PCB pcb) {
   int pAdr = locateFrame(vAdr, pcb);                // vAdrのフレームを準備する
-  return WMEM[pAdr/2];                              // アドレスの1ワードを返す
+  return WMEM[adrToWadr(pAdr)];                     // アドレスの1ワードを返す
 }
 
 // 仮想メモリに1バイト書き込む
@@ -298,24 +277,28 @@ void pokeB(int vAdr, char c, PCB pcb) {
 int pokeW(int vAdr, int word, PCB pcb) {
   if(vAdr<pcb.textSiz) panic("pokeW");              // textセグメントならpanic
   int pAdr = locateFrame(vAdr, pcb);                // vAdrのフレームを準備する
-  WMEM[pAdr/2] = word;                              // アドレスに1ワード格納
+  WMEM[adrToWadr(pAdr)] = word;                     // アドレスに1ワード格納
   return 0;
 }
 
+//-----------------------------------------------------------------------------
 //文字列を仮想空間から読み込む
 // !使用後buf[]のfreeを忘れないこと!
+//-----------------------------------------------------------------------------
 int sysPeekS(int vAdr, PCB pcb) {
   int len = 0;
-  for (;peekB(vAdr+len,pcb)!='\0'; len=len+1) {     // 文字列の長さ
+  for ( ;peekB(vAdr+len, pcb)!='\0'; len=len+1) {   // 文字列の長さ
   }
   char[] buf = malloc(len+1);                       // 領域を確保
   for (int i=0; i<=len; i=i+1) {
-    buf[i] = peekB(vAdr+i,pcb);                     // bufに文字列コピー
+    buf[i] = peekB(vAdr+i, pcb);                    // bufに文字列コピー
   }
   return _AtoI(buf);
 }
 
+//-----------------------------------------------------------------------------
 // 仮想メモリから物理メモリにnバイト書き込む
+//-----------------------------------------------------------------------------
 int sysPeekM(int vAdr, int pAdr, int size, PCB pcb) {
   for (int i=0; i<size; i=i+1) {
     MEM[pAdr+i] = peekB(vAdr+i,pcb);                // 1バイトずつコピー
@@ -323,17 +306,43 @@ int sysPeekM(int vAdr, int pAdr, int size, PCB pcb) {
   return 0;
 }
 
+//-----------------------------------------------------------------------------
 // 仮想メモリに1ワード書き込む
+//-----------------------------------------------------------------------------
 int sysPokeW(int vAdr, int word, PCB pcb) {
   pokeW(vAdr, word, pcb);
   return 0;
 }
 
+//-----------------------------------------------------------------------------
 // 物理メモリから仮想メモリにnバイト書き込む
+//-----------------------------------------------------------------------------
 int sysPokeM(int vAdr, int pAdr, int size, PCB pcb) {
   for (int i=0; i<size; i=i+1) {
     pokeB(vAdr+i, MEM[pAdr+i], pcb);                // 1バイトずつ書き込み
   }
+  return 0;                                         // 正常終了
+}
+
+//-----------------------------------------------------------------------------
+// exec システムコール(プロセスを生成しプログラムの実行を開始する)
+//-----------------------------------------------------------------------------
+
+// EXE ファイルのヘッダから読みだしたデータ
+int magic;                                          // マジック番号
+int textSiz;                                        // TEXT セグメントサイズ
+int dataSiz;                                        // DATA セグメントサイズ
+int bssSiz;                                         // BSS  セグメントサイズ
+
+// EXE ファイルのヘッダから上記のデータを読み出す
+int readHeader(int fd) {
+  magic   = getWord(fd);                            // マジック番号
+  if (magic!=UMAGIC && magic!=IMAGIC)               // マジック番号をチェック
+    return EMAGIC;                                  //   不正なマジック番号
+  textSiz     = getWord(fd);                        // TEXT セグメントサイズ
+  dataSiz     = getWord(fd);                        // DATA セグメントサイズ
+  bssSiz      = getWord(fd);                        // BSS  セグメントサイズ
+  if (eof) return ENOEXEC;                          // ファイルが短い
   return 0;                                         // 正常終了
 }
 
@@ -356,7 +365,7 @@ int arryToList(int arry, int pAdr, int pLim, PCB pcb) {
   int adr = pAdr;                                   // 物理空間のアドレス
   int prev = 0;                                     // リストの前の要素(null)
   while (adr+2<=pLim) {                             // 領域の最後に達しない間
-    WMEM[adr/2] = prev;                             //   前の要素へのポインタ
+    WMEM[adrToWadr(adr)] = prev;                    //   前の要素へのポインタ
     prev = adr;                                     //   現在の要素を記憶
     adr = adr + 2;                                  //   文字列領域
     int str = peekW(arry, pcb);                     //   文字列の仮想アドレス
@@ -372,7 +381,7 @@ int arryToList(int arry, int pAdr, int pLim, PCB pcb) {
 // 物理空間で文字列を後方に移動
 //   pDstは文字列格納領域の後端物理アドレス
 //   pDstはpSrcより後ろの物理アドレス
-int moveStr(int pSrc, int pDst) {
+int moveStr(int pDst, int pSrc) {
   int i = 0;                                        // 文字配列の添字
   while (MEM[pSrc+i]!='\0') i = i + 1;              // 文字列の終端を探す
   pDst = pDst - i - 1;                              // コピー先の先頭アドレス
@@ -386,84 +395,82 @@ int moveStr(int pSrc, int pDst) {
 #define LASTPADR (LASTPAGE*PAGESIZ)                 // 最終ページのアドレス
 #define STKVADR(adr) (LASTPADR+adrToOffs(adr))      // スタック上の仮想アドレス
 int argc;                                           // listToArryの文字列数
+
 int listToArry(int pLst, int pLim) {
   // まず全ての文字列を後ろに集める
   int limit = pLim;                                 // 領域の最後
-  int next = WMEM[pLst/2];                          // リストの先頭ノード
+  int next = WMEM[adrToWadr(pLst)];                 // リストの先頭ノード
   int cnt = 0;                                      // 文字列の個数
   while (next!=0) {                                 // リストの最後で
-    limit = moveStr(next+2, limit);                 //   文字列を後ろに詰める
-    next = WMEM[next/2];                            //   リストの次ノード
+    limit = moveStr(limit, next+2);                 //   文字列を後ろに詰める
+    next = WMEM[adrToWadr(next)];                   //   リストの次ノード
     cnt = cnt + 1;                                  //   文字列の個数をカウント
   }
   // 次に文字列の配列を作る
-  int arry = limit/2 - cnt - 1;                     // 文字列配列の位置(ワード)
+  int arry = (limit - cnt*2 - 2) & 0xfffe;          // 文字列配列の位置(ワード)
   for (int i=0; i<cnt; i=i+1) {                     // 全ての文字列について
-    WMEM[arry+i] = STKVADR(limit);                  //   仮想アドレスを記録
+    WMEM[adrToWadr(arry+i*2)] = STKVADR(limit);     //   仮想アドレスを記録
     while (MEM[limit]!='\0') limit = limit + 1;     //   文字列の最後を探す
     limit = limit + 1;                              //   次の文字列の先頭
   }
-  WMEM[arry+cnt] = 0;                               // 配列の終端
+  WMEM[adrToWadr(arry+cnt*2)] = 0;                  // 配列の終端
   argc = cnt;                                       // 文字列の個数を記録
-  return arry*2;                                    // 配列のアドレスを返す
+  return arry;                                      // 配列のアドレスを返す
 }
 
-// スタックの底に argc, argv, envp, argv[0], ... を格納する
+// 子プロセスのスタックの底に argc, argv, envp, argv[0], ... を格納する
 //   ただし，1ページに全て収まらないとエラーになる
+//   argv, envp は親プロセス(pPcb)の仮想空間
+//   スタックは子プロセス(cPcb)の仮想空間に割付
 int copyArgsEnvp(int argv, int envp, PCB pPcb, PCB cPcb) {
-  int fNum = allocFrame(LASTPAGE, cPcb);            // スタック領域
+  int fNum = allocFrame(LASTPAGE, cPcb);            // 子プロセスのスタック領域
   int pAdr = fNum * PAGESIZ;                        // 物理アドレス
   int pLim = pAdr + PAGESIZ;                        // 領域の最後
 
   // argv, envp の順でページ先頭から配置する
-  int pArg = arryToList(argv, pAdr, pLim, cPcb);    // argvをリストにして読む
-  int pEnv = arryToList(envp, pArg, pLim, cPcb);    // envpをリストにして読む
+  int pArg = arryToList(argv, pAdr, pLim, pPcb);    // argvをリストにして読む
+  int pEnv = arryToList(envp, pArg, pLim, pPcb);    // envpをリストにして読む
 
   // envp, argv の順でページ後端に移動する
   pEnv = listToArry(pEnv-2, pLim);                  // envpリストを配列に変換
   pArg = listToArry(pArg-2, pEnv);                  // argvリストを配列に変換
 
   // スタックにmainの引数 argc, argv, envp を書き込む
-  int wArgc = pArg/2 - 3;                           // argcの位置(ワード単位)
-  if (wArgc < pAdr/2) panic("copyArgsEnvp");        // 1ページに収まらない
-  WMEM[wArgc] = argc;                               // argv文字列の個数
+  int pArgc = pArg - 6;                             // argcの位置(バイト単位)
+  int wArgc = adrToWadr(pArgc);                     // argcの位置(ワード単位)
+  if (pArgc < pAdr) panic("copyArgsEnvp");          // 1ページに収まらない
+  WMEM[wArgc]   = argc;                             // argv文字列の個数
   WMEM[wArgc+1] = STKVADR(pArg);                    // argv配列の仮想アドレス
   WMEM[wArgc+2] = STKVADR(pEnv);                    // envp配列の仮想アドレス
 
-  return STKVADR(wArgc*2);                          // argcの仮想アドレス
+  return STKVADR(pArgc);                            // argcの仮想アドレス
 }
 
 // exec システムコールの処理をする
 int sysExec(int path, int argv, int envp, PCB pcb) {
-  // PCB を確保・初期化し新しいプロセスを実行可能にする
+  // exeファイルをオープンしヘッダを読む
   int fd = open(_ItoA(path), READ_MODE);            // exeファイルをオープン
-  if(fd<0) return ENOEXEC;                          //   オープン失敗
-
- printF("1\n");
+  if(fd<0) return fd;                               //   オープン失敗
   int r = readHeader(fd);                           // exeのヘッダを読む
   if (r!=0) {                                       // エラーなら
     close(fd);                                      //   exeファイルを閉じて
     return r;                                       //   エラー番号を返す
   }
 
- printF("2\n");
   // ページテーブルを確保し初期化する
   int fNum = get2Frame();                           // 連続した2フレームを確保
- printF("2.1 %d\n", fNum);
+#ifdef DEBUG
+  printF("pageTable=%02x,%02x\n", fNum, fNum+1);
+#endif
   if(fNum < 0){                                     // 空きフレームが無かったら
- printF("2.2\n");
     close(fd);                                      //   exeファイルを閉じて
- printF("2.3\n");
     return ENOMEM;                                  //   エラー番号を返す
   }
- printF("2.4\n");
   int[] pageTable = _ItoA(fNum*PAGESIZ);            // ページテーブル配列
- printF("2.5 %x\n", pageTable);
   for(int pNum=0; pNum<TOTALPAGE; pNum=pNum+1){     // ページテーブルを
     pageTable[pNum] = 0;                            //   クリアする
   }
 
- printF("3\n");
   // PCB領域を確保する
   PCB newPcb = malloc(PCBSIZ);                      // PCB領域を確保
   if (newPcb==null) {                               //   エラー発生
@@ -473,10 +480,12 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
     return ENOMEM;                                  //   エラー番号を返す
   }
 
- printF("4\n");
   // PCBにページテーブルを登録する
   // (copyArgsEnvpより前にやる必要がある)
   newPcb.pageTable = pageTable;                     // PCBにページテーブル登録
+#ifdef DEBUG
+  newPcb.pid = -1;        // デバッグ表示のpid部分を未定を表す-1にするため
+#endif
 
   // argv, envpを親から子のユーザスタックの底にコピーする
   // (uspはスタックトップの仮想アドレス)
@@ -485,14 +494,12 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
     usp = copyArgsEnvp(argv, envp, pcb, newPcb);    //  argvなどをコピーする
   }
 
- printF("5\n");
   // PCBの基本要素の初期化(サーバプロセスとの共通部分)
   int priv = EI|USER;                               // 普通はユーザモード
   if (magic==IMAGIC) priv = EI|IPRV;                // I/O特権モード
   int[] fds = _ItoA(_AtoI(newPcb)+sizeof(PCB)+P_KERN_STKSIZ);
   newProc(0, pcb.enice, usp, priv, newPcb, fds);    // PCB 等初期化
 
- printF("6\n");
   // PCBのユーザプロセスだけに必要な初期化
   newPcb.filedsc = fd;                              // exeファイルのFD
   newPcb.textSiz = textSiz;                         // テキストセグメントサイズ
@@ -502,6 +509,14 @@ int sysExec(int path, int argv, int envp, PCB pcb) {
 
   schProc(newPcb);                                  // プロセスを実行可能に
   return newPcb.pid;                                // PID を返す
+}
+
+//-----------------------------------------------------------------------------
+// .exeファイルをクローズする
+// （PMのコンテキストで行う必要がある）
+//-----------------------------------------------------------------------------
+int sysCloseExe(int fd) {
+  return close(fd);
 }
 
 //-----------------------------------------------------------------------------
@@ -521,6 +536,8 @@ int pmSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
     r = sysPokeW(prm1, prm2, pcb);            // pokeW(vAdr, word, pcb)
   } else if (op==POKEM) {
     r = sysPokeM(prm1, prm2, prm3, pcb);      // pokeM(vAdr, pAdr, size, pcb)
+  } else if (op==CLOSEEXE) {
+    r = sysCloseExe(prm1);                    // closeExe(fd)
   } else {
     r = -1;                                   // どれでもなければエラー
   }
@@ -594,6 +611,9 @@ public int exec(char[] path, char[][] argv, char[][] envp) {
 // ユーザ用の exec システムコール
 public int _exec(char[] path, char[][] argv, char[][] envp) {
   char[] str = peekS(_AtoI(path));                  // pmのシステムコール
+#ifdef DEBUG
+  printF("_exec(path=%s)\n", str);
+#endif
   int r=exec(str, argv, envp);
   free(str);
   return r;                                         // 新しい子の PID を返す
@@ -648,7 +668,10 @@ void zmbProc() {
 public void exit(int status) {
   for (int i=0; i<P_FILE_MAX; i=i+1)                // クローズ忘れがあれば
     if (curProc.fds[i]!=-1) close(i);               //   クローズする
-  close(curProc.filedsc);                           // exeファイルをクローズする
+  sndrec(pmLink, CLOSEEXE, curProc.filedsc, 0, 0);  // exeファイルを閉じる
+#ifdef DEBUG
+  printF("exit(closeFD=%d)\n", curProc.filedsc);
+#endif
   freePageTable(curProc);                           // ページテーブルを捨てる
   curProc.exitStat = status;                        // 終了ステータスを格納
   zmbProc();                                        // 自身をゾンビにする
@@ -698,11 +721,20 @@ public int wait(int[] sta) {
   int r = ECHILD;                                   // 一旦、エラー番号を設定
   PCB child = waitChild();                          // 子プロセスの終了を待つ
   if (child!=null) {                                // 子プロセスが終了した
-    //   終了ステータスをコピー
-    sndrec(pmLink, POKEW, _AtoI(sta), child.exitStat, 0);
+    sta[0] = child.exitStat;                        //   終了ステータスをコピー
     r = child.pid;                                  //   free する前に記録
     free(child);                                    //   PCB 領域を解放する
   }
+  return r;                                         // 終了したプロセスの PID
+}
+
+public int _wait(int[] sta) {                       // ユーザプロセス用の入り口
+  int[] buf = malloc(sizeof(int));                  // 物理メモリを確保
+  int r = wait(buf);                                // システムコール本体を実行
+  if (r>=0) {                                       // エラーでなければ
+    sndrec(pmLink, POKEW, _AtoI(sta), buf[0], 0);   //   ステータスを書き込む
+  }
+  free(buf);                                        // 物理メモリを解放
   return r;                                         // 終了したプロセスの PID
 }
 
@@ -727,7 +759,9 @@ int quietTlb() {                                    // 低使用率TLBエント�
 interrupt tlbMiss() {                               // TLBミス例外ハンドラ
   int[] pageTable = curProc.pageTable;              // ページテーブルのアドレス
   int pNum = in(0xA6);                              // 原因ページの番号
-  printF("tlbMiss(pNum=%x)\n", pNum);
+#ifdef DEBUG
+  printF("tlbMiss(pNum=%x,pid=%d)\n", pNum, curProc.pid);
+#endif
 
   // 1. 該当ページが不在ならswap-inする
   if ((pageTable[pNum] & VBIT)==0) {                // V=0ならページ不在
@@ -744,6 +778,9 @@ interrupt tlbMiss() {                               // TLBミス例外ハンド�
       tlbAdr = 0x80 + (rand() & 0x1c);              //    乱数(80〜9c)で決める
     }                                               //  TLBエントリの追い出し
     int outPage = in(tlbAdr);                       //   追い出すページの番号
+#ifdef DEBUG
+    printF("tlbFlush(pNum=%x)\n", outPage);
+#endif
     int bits = pageTable[outPage]&(DBIT|RBIT|SBIT); //   これらのビットは累積
     pageTable[outPage] = in(tlbAdr+2) | bits;       //   ページテーブルに戻す
   }                                                 // TLBを更新する

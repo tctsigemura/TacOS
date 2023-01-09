@@ -84,5 +84,6 @@
 #define PEEKM           21
 #define POKEW           22
 #define POKEM           23
+#define CLOSEEXE        24
 
 #endif

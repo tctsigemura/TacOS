@@ -75,6 +75,20 @@
 
 #include <process.hmm>
 
+// グローバル変数
+public int _memSiz;                                 // 主記憶のサイズ
+public char[] MEM;       // 主記憶を意味する配列 utilInit() で 0x0000 に初期化
+public int[] WMEM;       // ワード単位でアクセスする主記憶配列
+public int _end();                                  // カーネルのBSS領域の最後
+public void utilInit();
+
+// アドレスからページ番号やページ内アドレスに       
+// (C--のint型が符号付きなのでPAGESIZでアドレスを割り算すると結果要注意)
+#define adrToPage(adr) (((adr)>>8) & 0x00ff)        // マクロの方がコード小
+#define adrToFrame(adr) adrToPage(adr)              // 内容はadrToPageと同じ
+#define adrToOffs(adr) ((adr) & 0x00ff)             // ページ内アドレス
+#define adrToWadr(adr) (((adr)>>1) & 0x7fff)        // ワード単位アドレス
+
 //*****************************************************************************
 // 特権命令など:
 //   TaCの特殊な命令を呼び出す関数
@@ -262,13 +276,6 @@ public int _uCmp32(int[] a, int[] b);
  *             l <- dst[1]
  */
 #define st32(h,l,src) ((h)=(src)[0],(l)=(src)[1])   // 32bit のデータのストア
-
-// グローバル変数
-public int _memSiz;                                 // 主記憶のサイズ
-public char[] MEM;       // 主記憶を意味する配列 utilInit() で 0x0000 に初期化
-public int[] WMEM;       // ワード単位でアクセスする主記憶配列
-public int _end();                                  // カーネルのBSS領域の最後
-public void utilInit();
 
 /*-----------------------------------------------------------------------------
  *   名前    : toUpper

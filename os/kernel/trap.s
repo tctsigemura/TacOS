@@ -71,7 +71,7 @@
 ; "__"で始まるものはユーザ用のラッパ(カーネル用のシステムコールを内部で呼ぶ)
 .sysTbl dw      __exec      ; 0  exec
         dw      _exit       ; 1  exit
-        dw      _wait       ; 2  wait
+        dw      __wait      ; 2  wait
         dw      _sleep      ; 3  sleep
         dw      __creat     ; 4  creat
         dw      __remove    ; 5  remove
