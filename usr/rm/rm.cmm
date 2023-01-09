@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2016 by
+ * Copyright (C) 2016-2023 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * rm/rm.cmm : rm プログラム
  *
+ * 2023.01.09 : Usage 表示のバグ訂正
  * 2016.03.07 : 新規作成
  *
  * $Id$
@@ -34,7 +35,7 @@
 // ファイルを削除する
 public int main(int argc, char[][] argv) {
   if (argc<2) {
-    printf("Usage: %s <fileName>...\n");
+    printf("Usage: %s <fileName>...\n", argv[0]);
     return 1;
   }
 
