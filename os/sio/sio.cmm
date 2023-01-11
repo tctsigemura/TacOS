@@ -50,7 +50,7 @@ RingBuf rcvBuf={"123456789012345678901234567890123456789012345678901234567890123
 RingBuf trsBuf={"12345678901234567890123456789012345678901234567890123456789012345678901234567890",80,0,0,0}; // 送信バッファ
 
 // RN4020
-#define mldpOn ((in(0x2e) & 1)!=0)            // RN4020 の接続状況
+#define mldpOn ((in(0x2e) & 3)!=0)            // RN4020 の接続状況
 
 // 送信関係
 boolean trsIdle=true;                         // トランスミッタがアイドル状態
@@ -190,13 +190,13 @@ interrupt rn4Rcv()  {
   char c = chr(in(RN4_Data));                 // 受信データを入力する
   if (mldpOn) {                               // 接続中なら
     if (sigFsm(errSig, c)) {                  //   切断時によく出るメッセージ？
-      out(0x2e, in(0x2e)&~1);                 //     切断を RN4020-RAMに記録
+      out(0x2e, in(0x2e)&~2);                 //     切断を RN4020-RAMに記録
       return;
     }
     rcvProc(c);                               //   受信処理
   } else {                                    // 切断中なら
     if (sigFsm(mldpSig, c)) {                 //   接続時メッセージ？
-      out(0x2e, in(0x2e)|1);                  //     接続を RN4020-RAMに記録
+      out(0x2e, in(0x2e)|2);                  //     接続を RN4020-RAMに記録
     }
   }
 }
