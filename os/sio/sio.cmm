@@ -132,7 +132,9 @@ boolean sigFsm(char[] sig, char c) {
       mldpCnt = 0;                            //     次回の使用に備えて
       return true;                            //     マッチした
     }
-  } else {                                    // マッチしない
+  } else if (c==sig[0]){                      // マッチしない
+    mldpCnt = 1;
+  } else {
     mldpCnt = 0;                              //   ステートを最初に戻す
   }
   return false;                               // まだマッチしない
@@ -185,9 +187,12 @@ void rcvProc(char c) {
   }
 }
 
+int x = 0;
 // RN4020 受信割込み処理ルーチン
 interrupt rn4Rcv()  {
   char c = chr(in(RN4_Data));                 // 受信データを入力する
+  MEM[0xff00+x] = c;
+  x = x + 1;
   if (mldpOn) {                               // 接続中なら
     if (sigFsm(errSig, c)) {                  //   切断時によく出るメッセージ？
       out(0x2e, in(0x2e)&~2);                 //     切断を RN4020-RAMに記録
