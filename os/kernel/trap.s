@@ -83,8 +83,8 @@
         dw      __write     ; 11 write
         dw      _seek       ; 12 seek
         dw      __stat      ; 13 stat
-        dw      __ttyRead    ; 14 ttyRead
-        dw      __ttyWrite   ; 15 ttyWrite
+        dw      __ttyRead   ; 14 ttyRead
+        dw      __ttyWrite  ; 15 ttyWrite
         dw      _ttyCtl     ; 16 ttyCtl
 ; MM の malloc(#17), free(#18) と 
 ; PM の load(#19), peeks(#20), peekM(#21), pokeW(#22), pokeM(#23)は

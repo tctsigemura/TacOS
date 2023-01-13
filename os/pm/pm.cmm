@@ -268,14 +268,14 @@ int peekW(int vAdr, PCB pcb) {
 
 // 仮想メモリに1バイト書き込む
 void pokeB(int vAdr, char c, PCB pcb) {
-  if(vAdr<pcb.textSiz) panic("pokeB");              // textセグメントならpanic
+  if(_uCmp(vAdr, pcb.textSiz)<0) panic("pokeB");    // textセグメントならpanic
   int pAdr = locateFrame(vAdr, pcb);                // vAdrのフレームを準備する
   MEM[pAdr] = c;                                    // アドレスに1バイト格納
 }
 
 // 仮想メモリに1ワード書き込む
 int pokeW(int vAdr, int word, PCB pcb) {
-  if(vAdr<pcb.textSiz) panic("pokeW");              // textセグメントならpanic
+  if(_uCmp(vAdr, pcb.textSiz)<0) panic("pokeW");    // textセグメントならpanic
   int pAdr = locateFrame(vAdr, pcb);                // vAdrのフレームを準備する
   WMEM[adrToWadr(pAdr)] = word;                     // アドレスに1ワード格納
   return 0;
@@ -297,7 +297,7 @@ int sysPeekS(int vAdr, PCB pcb) {
 }
 
 //-----------------------------------------------------------------------------
-// 仮想メモリから物理メモリにnバイト書き込む
+// 仮想メモリから物理メモリにsizeバイト書き込む (sizeは32Ki未満)
 //-----------------------------------------------------------------------------
 int sysPeekM(int vAdr, int pAdr, int size, PCB pcb) {
   for (int i=0; i<size; i=i+1) {
@@ -315,7 +315,7 @@ int sysPokeW(int vAdr, int word, PCB pcb) {
 }
 
 //-----------------------------------------------------------------------------
-// 物理メモリから仮想メモリにnバイト書き込む
+// 物理メモリから仮想メモリにsizeバイト書き込む (sizeは32Ki未満)
 //-----------------------------------------------------------------------------
 int sysPokeM(int vAdr, int pAdr, int size, PCB pcb) {
   for (int i=0; i<size; i=i+1) {
@@ -364,7 +364,7 @@ int getStr(int vAdr, int pAdr, int pLim, PCB pcb) {
 int arryToList(int arry, int pAdr, int pLim, PCB pcb) {
   int adr = pAdr;                                   // 物理空間のアドレス
   int prev = 0;                                     // リストの前の要素(null)
-  while (adr+2<=pLim) {                             // 領域の最後に達しない間
+  while (_uCmp(adr+2, pLim)<=0) {                   // 領域の最後に達しない間
     WMEM[adrToWadr(adr)] = prev;                    //   前の要素へのポインタ
     prev = adr;                                     //   現在の要素を記憶
     adr = adr + 2;                                  //   文字列領域
