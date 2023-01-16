@@ -126,10 +126,11 @@ void freeFrame(int num) {                           // 指定したフレーム�
   setPri(r);
 }
 
+int kPage;
 public void frameInit() {                           // 初期化ルーチン
   // フレームプールのアドレス
   _memSiz = (addrof(_end)+ HEPSIZ+ PAGESIZ-1) & ~(PAGESIZ-1);
-  int kPage = adrToPage(_memSiz);                   // カーネルのページ数
+  kPage = adrToPage(_memSiz);                       // カーネルのページ数
   for(int cnt=0; cnt<kPage; cnt=cnt+1) {            // カーネルが使用している
     _writeMap(bitmap, cnt, 1);                      //   フレームは使用中に
   }
@@ -171,9 +172,15 @@ int searchFrame(PCB pcb) {
   int[] pageTable = pcb.pageTable;                  // プロセスのページテーブル
   for(int pNum=0; pNum<=lastPage; pNum=pNum+1) {    // Text Segの全ページにつき
     int entry = pageTable[pNum];                    //   エントリーを取り出す
+  #ifdef DEBUG
+    printF("searchFrame(pageTable[%x]=%04x, pid=%d)\n", pNum, entry, pcb.pid);
+  #endif
     if ((entry & (VBIT|SBIT))==VBIT) {              //   V=1,S=0 のページを探す
       fNum = entry & FBITS;                         //     解放できるフレーム
       pageTable[pNum] = 0x0000;                     //     エントリをクリアし
+    #ifdef DEBUG
+      printF("searchFrame(fNum=%x, pageTable[%x]=%04x)\n", fNum, pNum, pageTable[pNum]);
+    #endif
       break;                                        //       フレームを解放する
     } 
   }
@@ -185,11 +192,14 @@ int searchAllFrame() {
   int fNum = -1;                                    // フレーム番号
   for(int i=0; i<PRC_MAX; i=i+1) {                  // 全てのプロセスについて
     PCB pcb = procTbl[i];                           // PCBを取り出し
-    if(pcb != null) {                               // PCBが存在すれば
-      fNum = searchFrame(pcb);                      // 解放できるフレームを探す 
+    if(pcb != null && pcb.pageTable != null) {      // PCBが存在すれば
+      fNum = searchFrame(pcb);                      // 解放できるフレームを探す
       if(fNum >= 0) break;                          // フレームが見つかった
     }
   }
+#ifdef DEBUG
+  printF("searchAllFrame(fNum=%x)\n",fNum); 
+#endif
   return fNum;                                      // フレーム番号を返す
 }                                                   // 見つからない場合は-1
 
@@ -201,9 +211,15 @@ int allocFrame(int pNum, PCB pcb) {
 #endif
   if (fNum < 0) {                                   // 空きフレームがなかったら
     fNum = searchAllFrame();                        // 解放できるフレームを探す
+  #ifdef DEBUG
+    printF("allocFrame(fNum=%x)\n",fNum);
+  #endif
     if (fNum < 0) panic("allocFrame");              // 解放できなかった
   }
   pcb.pageTable[pNum] = VBIT|RWXBITS|fNum;          // V=1,RWX=111,フレーム番号
+#ifdef DEBUG
+  printF("allocFrame(pageTable[%x]=%x)\n", pNum, pcb.pageTable[pNum]);
+#endif
   return fNum;                                      // 物理アドレスを返す
 }
 
