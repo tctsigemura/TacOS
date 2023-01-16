@@ -126,11 +126,10 @@ void freeFrame(int num) {                           // 指定したフレーム�
   setPri(r);
 }
 
-int kPage;
 public void frameInit() {                           // 初期化ルーチン
   // フレームプールのアドレス
   _memSiz = (addrof(_end)+ HEPSIZ+ PAGESIZ-1) & ~(PAGESIZ-1);
-  kPage = adrToPage(_memSiz);                       // カーネルのページ数
+  int kPage = adrToPage(_memSiz);                   // カーネルのページ数
   for(int cnt=0; cnt<kPage; cnt=cnt+1) {            // カーネルが使用している
     _writeMap(bitmap, cnt, 1);                      //   フレームは使用中に
   }
