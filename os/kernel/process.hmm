@@ -59,7 +59,7 @@
 #ifdef DEBUG
 #define P_KERN_STKSIZ 300 // プロセス毎のカーネルスタックのサイズ
 #else
-#define P_KERN_STKSIZ 200 // プロセス毎のカーネルスタックのサイズ
+#define P_KERN_STKSIZ 150 // プロセス毎のカーネルスタックのサイズ
 #endif
 #define P_LOW_PRI 30000   // プロセスの最低優先度
 #define P_RUN    1        // プロセスは実行可能または実行中

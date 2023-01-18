@@ -164,6 +164,16 @@ int vToP(int vAdr, PCB pcb) {
   return ((entry&FBITS)*PAGESIZ) | adrToOffs(vAdr); // 物理アドレスを返す
 }
 
+boolean isBusyFrame(int fNum) {
+  for (int i=0x82; i<=0x9e; i=i+4) {                // 全TLBエントリについて
+    int entry = in(i);
+    if ((entry & VBIT)!=0 && (entry&FBITS)==fNum){  // V=1,エントリとfNumが同じ
+      return true;                                  // TLBで使用中
+    }
+  }
+  return false;                                     // 使用していない
+}
+
 // プロセス内で解放できるフレームを探す
 int searchFrame(PCB pcb) {
   int fNum = -1;
@@ -171,16 +181,12 @@ int searchFrame(PCB pcb) {
   int[] pageTable = pcb.pageTable;                  // プロセスのページテーブル
   for(int pNum=0; pNum<=lastPage; pNum=pNum+1) {    // Text Segの全ページにつき
     int entry = pageTable[pNum];                    //   エントリーを取り出す
-  #ifdef DEBUG
-    printF("searchFrame(pageTable[%x]=%04x, pid=%d)\n", pNum, entry, pcb.pid);
-  #endif
     if ((entry & (VBIT|SBIT))==VBIT) {              //   V=1,S=0 のページを探す
-      fNum = entry & FBITS;                         //     解放できるフレーム
-      pageTable[pNum] = 0x0000;                     //     エントリをクリアし
-    #ifdef DEBUG
-      printF("searchFrame(fNum=%x, pageTable[%x]=%04x)\n", fNum, pNum, pageTable[pNum]);
-    #endif
-      break;                                        //       フレームを解放する
+      if (!isBusyFrame(entry & FBITS)) {            // TLBで使用していない
+        fNum = entry & FBITS;                       //     解放できるフレーム
+        pageTable[pNum] = 0x0000;                   //     エントリをクリアし
+        break;                                      //       フレームを解放する
+      }
     } 
   }
   return fNum;                                      // フレーム番号を返す
@@ -219,7 +225,7 @@ int allocFrame(int pNum, PCB pcb) {
 #ifdef DEBUG
   printF("allocFrame(pageTable[%x]=%x)\n", pNum, pcb.pageTable[pNum]);
 #endif
-  return fNum;                                      // 物理アドレスを返す
+  return fNum;                                      // フレーム番号を返す
 }
 
 // 1フレームを0でクリアする
