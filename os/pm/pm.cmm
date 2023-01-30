@@ -143,7 +143,8 @@ public void frameInit() {                           // 初期化ルーチン
 #define RBIT 0x1000                                     // Reference(R)ビット
 #define SBIT 0x2000                                     // Sticky(S)ビット
 #define VBIT 0x8000                                     // Valid(V)ビット
-#define RWXBITS 0x0700                                  // Read/Write/Execビット
+#define TEXTBITS 0x0500                                 // TEXTの保護ビット
+#define DATABITS 0x0600                                 // TEXT以外の保護ビット
 #define FBITS 0x00ff                                    // Frame番号
 
 //-----------------------------------------------------------------------------
@@ -221,7 +222,11 @@ int allocFrame(int pNum, PCB pcb) {
   #endif
     if (fNum < 0) panic("allocFrame");              // 解放できなかった
   }
-  pcb.pageTable[pNum] = VBIT|RWXBITS|fNum;          // V=1,RWX=111,フレーム番号
+  if (pNum <= adrToPage(pcb.textSiz-1)) {
+    pcb.pageTable[pNum] = VBIT|TEXTBITS|fNum;       // V=1,RWX=101,フレーム番号
+  } else {
+    pcb.pageTable[pNum] = VBIT|DATABITS|fNum;       // V=1,RWX=110,フレーム番号
+  }
 #ifdef DEBUG
   printF("allocFrame(pageTable[%x]=%x)\n", pNum, pcb.pageTable[pNum]);
 #endif
