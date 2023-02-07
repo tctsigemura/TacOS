@@ -64,7 +64,8 @@ void printLine(char[] fname, int attr, int clst, int[] fLen) {
 }
 
 // ディレクトリの一覧を表示する
-Dir dir = {"            ", 0, 0, 0, 0 };        // ディレクトリの読出しバッファ
+Dir dir = {null, 0, 0, 0, 0 };                  // ディレクトリの読出しバッファ
+char[] nbuf = array(12);
 int printDir(char[] fname) {
   int fd = open(fname, O_RDONLY);               // ディレクトリを開く
   if (fd<0) {
@@ -73,6 +74,7 @@ int printDir(char[] fname) {
   }
 
   printf("FileName.Ext Attr Clst FileLength\n");
+  dir.name = nbuf;
   while (readDir(fd, dir)>0) {                  // ファイルが続く間
     fLen[0]=dir.lenH;
     fLen[1]=dir.lenL;

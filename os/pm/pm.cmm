@@ -222,7 +222,7 @@ int allocFrame(int pNum, PCB pcb) {
   #endif
     if (fNum < 0) panic("allocFrame");              // 解放できなかった
   }
-  if (pNum <= adrToPage(pcb.textSiz-1)) {
+  if (pNum < adrToPage(pcb.textSiz)) {
     pcb.pageTable[pNum] = VBIT|TEXTBITS|fNum;       // V=1,RWX=101,フレーム番号
   } else {
     pcb.pageTable[pNum] = VBIT|DATABITS|fNum;       // V=1,RWX=110,フレーム番号
