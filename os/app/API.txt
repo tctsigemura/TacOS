@@ -458,18 +458,6 @@ public int[]  _sub32(int[] dst, int[] src);
 public int[]  _mul32(int[] dst, int src);
 
 /*-----------------------------------------------------------------------------
- *   名前    : _div32
- *   戻り値  : dstと同じアドレス
- *   引数    : int[] dst  32bit データ
- *             int src    16bit データ
- *   解説    : 32bit データ dst を 16bit データ src で割った商と余りを計算する．
- *             dst[0] <- dst / src  （商）
- *             dst[1] <- dst % src  （余）
- */
-#include <util.hmm>
-public int[]  _div32(int[] dst, int src);
-
-/*-----------------------------------------------------------------------------
  *   名前    : _ld32（マクロ）
  *   引数    : int[] dst  32bit データ
  *             int ｈ     16bit データ

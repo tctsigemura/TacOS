@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2020 by
+ * Copyright (C) 2011 - 2023 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * fs/fs.cmm : FAT16 ファイルシステム(FS)サーバの本体、ファイルを管理する
  *
+ * 2023.02.20 : ページング方式に対応
  * 2020.08.16 : stat で void[] ではなく Stat 構造体を使用するように変更
  * 2019.12.27 : システムコールの引数を論理アドレスに変更
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
@@ -57,6 +58,11 @@
 #include "fatSys.hmm"
 #include "fs.hmm"
 
+#ifndef EMBEDDED
+#include <mm.hmm>
+#include <pm.hmm>
+#endif
+
 //-----------------------------------------------------------------------------
 // FAT16 ファイルシステムサーバの本体（メインループ他）
 //-----------------------------------------------------------------------------
@@ -65,25 +71,25 @@
 int fatFsSysCall(int op, int prm1, int prm2, int prm3, PCB pcb) {
   int rs;                                             // 実行結果(返り値)
   if (op==CREAT) {
-    rs = sysCreat(_ItoP(prm1, pcb));                  // creat(path)
+    rs = sysCreat(_ItoA(prm1));                       // creat(path)
   } else if (op==REMOVE) {
-    rs = sysRemove(_ItoP(prm1, pcb));                 // remove(path)
+    rs = sysRemove(_ItoA(prm1));                      // remove(path)
   } else if (op==MKDIR) {
-    rs = sysMkDir(_ItoP(prm1, pcb));                  // mkDir(path)
+    rs = sysMkDir(_ItoA(prm1));                       // mkDir(path)
   } else if (op==RMDIR) {
-    rs = sysRmDir(_ItoP(prm1, pcb));                  // rmDir(path)
+    rs = sysRmDir(_ItoA(prm1));                       // rmDir(path)
   } else if (op==OPEN) {
-    rs = sysOpen(_ItoP(prm1, pcb), prm2, pcb);        // open(path,mode,pcb)
+    rs = sysOpen(_ItoA(prm1), prm2, pcb);             // open(path,mode,pcb)
   } else if (op==CLOSE) {
     rs = sysClose(prm1, pcb);                         // close(idx,pcb)
   } else if (op==READ) {
-    rs = sysRead(pcb, prm1, _ItoP(prm2, pcb), prm3);  // read(pcb,idx,buf,len)
+    rs = sysRead(pcb, prm1, _ItoA(prm2), prm3);       // read(pcb,idx,buf,len)
   } else if (op==WRITE) {
-    rs = sysWrite(pcb, prm1, _ItoP(prm2, pcb), prm3); // write(pcb,idx,buf,len)
+    rs = sysWrite(pcb, prm1, _ItoA(prm2), prm3);      // write(pcb,idx,buf,len)
   } else if (op==SEEK) {
     rs = sysSeek(pcb, prm1, prm2, prm3);              // seek(pcb,idx,posH,posL)
   } else if (op==STAT) {
-    rs = sysStat(_ItoP(prm1, pcb), _ItoP(prm2, pcb)); // stat(path,stat)
+    rs = sysStat(_ItoA(prm1), _ItoA(prm2));           // stat(path,stat)
   } else  rs = -1;                                    // どれでもなければエラー
   return rs;
 }
@@ -104,6 +110,11 @@ public void fsMain() {
 // システムコールインターフェイス
 //   クライアントプロセスが以下のルーチンを呼出しサーバと IPC する
 //----------------------------------------------------------------------------
+
+//
+// 組み込みアプリだけに公開しているシステムコール
+//
+#ifdef EMBEDDED
 
 // creat システムコール
 public int creat(char[] path) {
@@ -129,16 +140,27 @@ public int rmDir(char[] path) {
  return r;
 }
 
+// write システムコール
+public int write(int fd, void[] buf, int len) {
+  int r = sndrec(fsLink, WRITE, fd, _AtoI(buf), len);
+  return r;
+}
+
+// stat システムコール
+public int stat(char[] path, Stat stat) {
+  int r = sndrec(fsLink, STAT, _AtoI(path), _AtoI(stat), 0);
+  return r;
+}
+#endif
+
+//
+// 組込みアプリとサーバプロセスで共通に使用しているシステムコール
+//
+
 // open システムコール
 public int open(char[] path, int mode) {
   int fd = sndrec(fsLink, OPEN, _AtoI(path), mode, 0);
   return fd;
-}
-
-// close システムコール
-public int close(int fd) {
-  int r = sndrec(fsLink, CLOSE, fd, 0, 0);
-  return r;
 }
 
 // read システムコール
@@ -147,20 +169,112 @@ public int read(int fd, void[] buf, int len) {
   return r;
 }
 
-// write システムコール
-public int write(int fd, void[] buf, int len) {
-  int r = sndrec(fsLink, WRITE, fd, _AtoI(buf), len);
+//
+// 組込みアプリ，サーバプロセス，ユーザプロセスで共通に使用できるシステムコール
+//
+
+// close システムコール
+public int close(int fd) {
+  int r = sndrec(fsLink, CLOSE, fd, 0, 0);
   return r;
 }
 
 // seek システムコール
 public int seek(int fd, int ptrh, int ptrl) {
- int r = sndrec(fsLink, SEEK, fd, ptrh, ptrl);
+  int r = sndrec(fsLink, SEEK, fd, ptrh, ptrl);
+  return r;
+}
+
+//
+// ユーザプロセスが使用するために工夫が必要なシステムコール
+//
+#ifndef EMBEDDED
+
+// 仮想空間のパス名を引数とするシステムコールの発行ルーチン
+int _peekSndrec(int com, char[] path, int prm3, int prm4) {
+  path = peekS(_AtoI(path));                            // パスを読む
+  int r = sndrec(fsLink, com, _AtoI(path), prm3, prm4); // システムコール実行
+  free(path);                                           // パスを解放する
+  return r;
+}
+
+// ユーザプロセス用の creat の入り口
+public int _creat(char[] path) {
+ int r = _peekSndrec(CREAT, path, 0, 0);
  return r;
 }
 
-// stat システムコール
-public int stat(char[] path, Stat stat) {
- int r = sndrec(fsLink, STAT, _AtoI(path), _AtoI(stat), 0);
+// ユーザプロセス用の remove の入り口
+public int _remove(char[] path) {
+ int r = _peekSndrec(REMOVE, path, 0, 0);
  return r;
 }
+
+// ユーザプロセス用の rmDir の入り口
+public int _mkDir(char[] path) {
+ int r = _peekSndrec(MKDIR, path, 0, 0);
+ return r;
+}
+
+// ユーザプロセス用の rmDir の入り口
+public int _rmDir(char[] path) {
+ int r = _peekSndrec(RMDIR, path, 0, 0);
+ return r;
+}
+
+// ユーザプロセス用の open の入り口
+public int _open(char[] path, int mode) {
+  int fd = _peekSndrec(OPEN, path, mode, 0);
+  return fd;
+}
+
+// ページサイズより大きいデータを読み書きする
+int _readWrite(int fd, void[] buf, int len, int com){
+  int total = 0;                                    // 結果のバイト数の合計
+  int vAdr = _AtoI(buf);
+  while (len>0) {                                   // lenは32k以下
+    int vLen = PAGESIZ;                             // 今回の長さ
+    int offs = adrToOffs(vAdr);                     // ページ内オフセット
+    if(offs==0) {                                   // 開始がページ境界
+      if(len<PAGESIZ) vLen = len;                   // ページサイズより小
+    } else {                                        // 開始がページ境界でない
+      if(offs+len<PAGESIZ) {
+        vLen = len;                                 // 残りの長さ
+      } else {                                      // ページサイズより大きい
+        vLen = PAGESIZ - offs;                      // ページ境界まで
+      }
+    }
+    int pAdr = load(vAdr);                          // 物理アドレス
+    int r = sndrec(fsLink, com, fd, pAdr, vLen);    // ファイル <=> フレーム
+    release(vAdr);                                  // フレームのsビットをOFF
+    if(r<0) return r;                               // エラー発生
+    total = total + r;                              // rは正の値
+    if(r!=vLen) break;                              // EOF
+    vAdr = vAdr + vLen;                             // 次の開始アドレス
+    len = len - vLen;                               // 残りの長さ
+  }
+  return total;
+}
+
+// ユーザプロセス用の read の入り口
+public int _read(int fd, void[] buf, int len) {
+  int r = _readWrite(fd, buf, len, READ);
+  return r;
+}
+
+// ユーザプロセス用の write の入り口
+public int _write(int fd, void[] buf, int len) {
+  int r = _readWrite(fd, buf, len, WRITE);
+  return r;
+}
+
+// ユーザプロセス用の stat の入り口
+public int _stat(char[] path, Stat stat) {
+  Stat tmp = malloc(sizeof(Stat));                  // 結果を書き込む物理メモリ
+  int r = _peekSndrec(STAT, path, _AtoI(tmp), 0);   // pathを読出した上でsndrec
+  pokeM(_AtoI(stat), tmp, sizeof(Stat));            // 結果を仮想空間に書き込む
+  free(tmp);                                        // 物理メモリを解放
+  return r;
+}
+
+#endif

@@ -44,12 +44,13 @@
 #define SIO_Ctrl 0x0a                         // FT232 制御用のI/Oポート
 #define RN4_Data 0x28                         // RN4020 送受信データのI/Oポート
 #define RN4_Ctrl 0x2a                         // RN4020 制御用のI/Oポート
+#define RN4_Cmd  0x2c                         // RN4020 コマンド用のI/Oポート
 
 RingBuf rcvBuf={"12345678901234567890123456789012345678901234567890123456789012345678901234567890",80,0,0,0}; // 受信バッファ
 RingBuf trsBuf={"12345678901234567890123456789012345678901234567890123456789012345678901234567890",80,0,0,0}; // 送信バッファ
 
 // RN4020
-#define mldpOn ((in(0x2e) & 1)!=0)            // RN4020 の接続状況
+#define mldpOn ((in(0x2e) & 3)!=0)            // RN4020 の接続状況
 
 // 送信関係
 boolean trsIdle=true;                         // トランスミッタがアイドル状態
@@ -69,7 +70,9 @@ interrupt sioTrs() {
   } else {                                    // 送信すべきデータがあれば
     char c = getBuf(trsBuf);                  //   次の文字をバッファから取出し
     out(SIO_Data,ord(c));                     //     送信する
+#ifndef DEBUG
     if (mldpOn) out(RN4_Data,ord(c));         //   同じデータをRN4020にも送信
+#endif
     if (trsWait&&trsBuf.cnt<=trsBuf.size/2) { //   待ちプロセスがありバッファに
       trsWait=false;                          //     十分な空きがあれば
       semV(trsSem);                           //       フラグを下ろして起こす
@@ -83,7 +86,9 @@ void put(char c) {
   if (trsIdle) {                              // トランスミッタがアイドルなら
     out(SIO_Data,ord(c));                     //   送信を開始する
     out(SIO_Ctrl,0x00c0);                     //   割込みを許可する
+#ifndef DEBUG
     if (mldpOn) out(RN4_Data,ord(c));         //   同じデータをRN4020にも送信
+#endif
     trsIdle = false;                          //   トランスミッタは動作中
   } else {                                    // トランスミッタが動作中なら
     if (ISFull(trsBuf)) {                     //   送信バッファに空きが無いなら
@@ -127,7 +132,9 @@ boolean sigFsm(char[] sig, char c) {
       mldpCnt = 0;                            //     次回の使用に備えて
       return true;                            //     マッチした
     }
-  } else {                                    // マッチしない
+  } else if (c==sig[0]){                      // マッチしない
+    mldpCnt = 1;
+  } else {
     mldpCnt = 0;                              //   ステートを最初に戻す
   }
   return false;                               // まだマッチしない
@@ -180,18 +187,21 @@ void rcvProc(char c) {
   }
 }
 
+int x = 0;
 // RN4020 受信割込み処理ルーチン
 interrupt rn4Rcv()  {
   char c = chr(in(RN4_Data));                 // 受信データを入力する
+  MEM[0xff00+x] = c;
+  x = x + 1;
   if (mldpOn) {                               // 接続中なら
     if (sigFsm(errSig, c)) {                  //   切断時によく出るメッセージ？
-      out(0x2e, in(0x2e)&~1);                 //     切断を RN4020-RAMに記録
+      out(0x2e, in(0x2e)&~2);                 //     切断を RN4020-RAMに記録
       return;
     }
     rcvProc(c);                               //   受信処理
   } else {                                    // 切断中なら
     if (sigFsm(mldpSig, c)) {                 //   接続時メッセージ？
-      out(0x2e, in(0x2e)|1);                  //     接続を RN4020-RAMに記録
+      out(0x2e, in(0x2e)|2);                  //     接続を RN4020-RAMに記録
     }
   }
 }
@@ -231,6 +241,7 @@ public void sioInit() {
   in(RN4_Data);                               // 受信バッファのゴミをとる
   out(SIO_Ctrl,0x0040);                       // 受信割込み許可、送信割込み禁止
   out(RN4_Ctrl,0x0040);                       // 受信割込み許可、送信割込み禁止
+  out(RN4_Cmd, 0x0009);                       // ハードウェアフロー制御ON
   trsSem = newSem(0);                         // 送信用セマフォ
   rcvSem = newSem(0);                         // 受信用セマフォ
 }

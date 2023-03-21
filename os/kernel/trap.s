@@ -2,7 +2,7 @@
 ;  TacOS Source Code
 ;     Tokuyama kousen Advanced educational Computer.
 ;
-;  Copyright (C) 2011 - 2019 by
+;  Copyright (C) 2011 - 2021 by
 ;                       Dept. of Computer Science and Electronic Engineering,
 ;                       Tokuyama College of Technology, JAPAN
 ;
@@ -20,6 +20,7 @@
 ;
 ; kernel/trap.s : SVC ハンドラ(トラップ)
 ;
+; 2021.10.15 : TaC-CPU V3 対応(レジスタインダイレクトコールができないので)
 ; 2019.06.13 : ttyCtl を追加
 ; 2016.01.11 : システムコール番号のエラーチェックを変更
 ; 2016.01.06 : .sysNumErr を修正
@@ -38,7 +39,6 @@
 ; C-- 言語では記述できない内容を書く(レジスタの指定など)
 ; 名前が.から始まる関数・変数は、プログラム内だけで参照されるローカルなラベル
 ; 名前が_から始まる関数・変数は、C-- プログラムから参照できるグローバルなラベル
-
 
 ; ----------------------------- システムコール一覧表 --------------------------
 ; システムコール一覧表にシステムコールのスタブのアドレスを登録
@@ -63,28 +63,32 @@
 ;16     ttyCtl
 ;17     malloc
 ;18     free
+;19     swapin
 
 .nSys   equ     17          ; システムコール数を定義
 
 ; .sysTbl ラベルは dw と同じ行に書くこと(同じセグメントのラベルにするため)
-.sysTbl dw      _exec       ; 0  exec
+; "__"で始まるものはユーザ用のラッパ(カーネル用のシステムコールを内部で呼ぶ)
+.sysTbl dw      __exec      ; 0  exec
         dw      _exit       ; 1  exit
-        dw      _wait       ; 2  wait
+        dw      __wait      ; 2  wait
         dw      _sleep      ; 3  sleep
-        dw      _creat      ; 4  creat
-        dw      _remove     ; 5  remove
-        dw      _mkDir      ; 6  mkDir
-        dw      _rmDir      ; 7  rmDIr
-        dw      _open       ; 8  open
+        dw      __creat     ; 4  creat
+        dw      __remove    ; 5  remove
+        dw      __mkDir     ; 6  mkDir
+        dw      __rmDir     ; 7  rmDIr
+        dw      __open      ; 8  open
         dw      _close      ; 9  close
-        dw      _read       ; 10 read
-        dw      _write      ; 11 write
+        dw      __read      ; 10 read
+        dw      __write     ; 11 write
         dw      _seek       ; 12 seek
-        dw      _stat       ; 13 stat
-        dw      _ttyRead    ; 14 ttyRead
-        dw      _ttyWrite   ; 15 ttyWrite
+        dw      __stat      ; 13 stat
+        dw      __ttyRead   ; 14 ttyRead
+        dw      __ttyWrite  ; 15 ttyWrite
         dw      _ttyCtl     ; 16 ttyCtl
-; MM の malloc(#17)と free(#18)は OS 内部専用システムコールなので SVC で扱わない
+; MM の malloc(#17), free(#18) と 
+; PM の load(#19), peeks(#20), peekM(#21), pokeW(#22), pokeM(#23)は
+; OS 内部専用システムコールなので SVC で扱わない
 
 ; ---------------------------- SVC ハンドラ(トラップ) -------------------------
 ; システムコール番号でインデックスされたシステムコールテーブル(sysTbl)から、
@@ -114,8 +118,11 @@ _svCall
 ; ---------------------- システムコールの本体を呼び出す -----------------------
         shll    g0,#1       ; システムコール番号を2倍してテーブルを引く
         ld      g1,.sysTbl,g0 ; G1 に対象システムコールの本体のアドレスをロード
-        call    0,g1        ; 対象システムコールの本体にジャンプ
-        add     sp,#6       ; SP を元に戻す
+        ld      g0,#.ret    ; call命令でインダイレクトジャンプできないので
+        push    g0          ;  帰り先アドレス
+        push    g1          ;  ジャンプ先アドレス
+        ret                 ; 対象システムコールの本体にジャンプ
+.ret    add     sp,#6       ; SP を元に戻す
         reti                ; PSW(FLAGとPC) を復元
 
 ; ----------- システムコール番号が不正だった場合、プロセスを停止する ----------

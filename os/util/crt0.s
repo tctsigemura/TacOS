@@ -2,7 +2,7 @@
 ; TacOS Source Code
 ;    Tokuyama kousen Advanced educational Computer
 ;
-; Copyright (C) 2009-2019 by
+; Copyright (C) 2009-2022 by
 ;                      Dept. of Computer Science and Electronic Engineering,
 ;                      Tokuyama College of Technology, JAPAN
 ;
@@ -20,6 +20,11 @@
 ;
 ; util/crt0.s : カーネル用スタートアップ
 ;
+; 2022.08.27 : _mul32のバグを訂正
+; 2022.07.08 : _readMap,_writeMap追加
+; 2022.07.01 : Tec7d専用(SPの位置は常に0xffe0)
+; 2021.10.15 : TaC-CPU V3 対応(mull 命令が使用できないので)
+; 2021.10.15 : _div32削除
 ; 2019.12.27 : 論理アドレスから物理アドレスの変換 _ItoP(), _AtoP() 追加
 ; 2018.11.30 : TaC7a と TaC7b を自動識別し SP の初期値を決める．
 ; 2017.12.10 : _setPri のコメントを訂正
@@ -43,19 +48,8 @@
 __memSiz ws     1           ; 主記憶の最終アドレスを格納する
 
 .start                      ; IPL からここにジャンプしてくる
-        ld      sp,#0xe000  ; TaC7a の古いファームならメモリの最後は 0xdfff
-        ld      g1,#-1      ;
-        st      g1,0,sp     ; TaC7a の古いファームなら 0xe000 から 0xeffff は
-        ld      g0,0,sp     ;  上位バイトが未実装なのでデータが化けるはず
-        cmp     g0,g1       ;
-        jnz     .l          ; データが一致しなければ TaC7a の古いファーム
-        ld      sp,#0xf000  ; 次に TaC7b-d の古いファームと仮定し 0xefff
-        st      g1,0,sp     ; TaC7b-d の古いファームなら 0xf000 はROM
-        ld      g0,0,sp     ;   化けるようなら古いファーム
-        cmp     g0,g1       ;
-        jnz     .l          ; データが一致しなければ TeC7b-d の古いファーム
         ld      sp,#0xffe0  ; 一致すれば TaC7a-d の新しいファームなので 0xffe0
-.l      st      sp,__memSiz ; TacOSに主記憶のサイズを知らせる
+        st      sp,__memSiz ; カーネルに主記憶のサイズを知らせる
         call    _main       ; カーネルのメインに飛ぶ
 .m      halt                ; 万一カーネルが終了したらここで終わる
         jmp     .m          ;
@@ -102,15 +96,6 @@ __AtoA                      ; void[] _AtoA(void[] a);
 ;; 整数からアドレスへ変換
 __ItoA
         ld      g0,2,sp     ; void[] _ItoA(int a);
-        ret
-
-;; 論理アドレスから物理アドレス（整数）へ変換
-__ItoP                      ; void[] _AtoP(int a, PCB p);
-;; 論理アドレスから物理アドレスへ変換
-__AtoP                      ; void[] _AtoP(void[] a, PCB p);
-        ld      g0,4,sp     ;   g0 = p
-        ld      g0,16,g0    ;   g0 = p.memBase
-        add     g0,2,sp     ;   g0 += a
         ret
 
 ;; アドレスと整数の加算
@@ -170,21 +155,63 @@ __sub32                     ; int[] _sub32(int[] dst, int[] src);
 
 ;; 32ビットかけ算ルーチン
 __mul32                     ; int[] _mul32(int[] dst, int src)
-        ld      g2,2,sp     ; ディスティネーション(アドレス)
-        ld      g0,2,g2     ; ディスティネーション下位ワード
-        mull    g0,4,sp     ; ソース
-        st      g1,0,g2     ; ディスティネーション上位ワード
-        st      g0,2,g2     ; ディスティネーション下位ワード
-        ld      g0,g2       ; ディスティネーションを返す
+        push    g3
+        ld      g0,4,sp     ; ディスティネーション(アドレス)
+        ld      g1,2,g0     ; ディスティネーション下位ワード(B)
+        ld      g2,#0       ; (g1,g2) <= (B,0)
+        ld      g3,#16      ; カウンタ
+.L4     ld      g0,#0       ; g0をとりあえず0にする
+        shll    g1,#1       ; g1 <<= 1
+        jnc     .L5         ; g1の最上位が1だったなら
+        ld      g0,6,sp     ;  g0にソースをロード
+.L5     shll    g2,#1       ; g2 <<= 1
+        jnc     .L6         ; キャリーがあったら
+        add     g1,#1       ;  g1 += 1
+.L6     add     g2,g0       ; g2 += g0
+        jnc     .L7         ; キャリーがあったら
+        add     g1,#1       ;  g1 += 1
+.L7     sub     g3,#1       ; 16回繰り返したか
+        jnz     .L4
+        ld      g0,4,sp     ; ディスティネーション(アドレス)
+        st      g1,0,g0     ; ディスティネーション上位ワード
+        st      g2,2,g0     ; ディスティネーション下位ワード
+        pop     g3
         ret
 
-;; 32ビット割算ルーチン
-__div32                     ; int[] _div32(int[] dst, int src)
-        ld      g2,2,sp     ; ディスティネーション(アドレス)
-        ld      g0,2,g2     ; ディスティネーション下位ワード
-        ld      g1,0,g2     ; ディスティネーション上位ワード
-        divl    g0,4,sp     ; ソース
-        st      g1,2,g2     ; ディスティネーション下位ワード(余)
-        st      g0,0,g2     ; ディスティネーション上位ワード(商)
-        ld      g0,g2       ; ディスティネーションを返す
+;;ビットマップの指定ビット読み込み
+__readMap
+        ld      g1,2,sp     ; ビットマップのアドレス
+        ld      g2,4,sp     ; 何番目のビットを読み込むか
+        push    g2          ; g2の値を待避
+        shrl    g2,#3       ; g2を3ビット右シフト
+        add     g1,g2       ; g1の値にg2の値を加算      
+        pop     g2          ; g2の値を待避させた時の状態に
+        and     g2,#7       ; g2を下位3ビットでマスク
+        ld      g0,@g1      ; g0にg1のアドレスにある値を格納
+        shrl    g0,g2       ; g0をg2の値ビット右シフト
+        and     g0,#1       ; g0の最下位ビットを取り出す
+        ret
+
+;;ビットマップの指定ビットに値を書き込み
+__writeMap
+        ld      g1,2,sp     ; ビットマップのアドレス
+        ld      g2,4,sp     ; 何番目のビットに書き込むか
+        ld      g0,6,sp     ; 0,1のどっちを書き込むか
+        push    g3
+        push    g2          ; g2の値を待避
+        shrl    g2,#3       ; g2の値を3ビット右シフト
+        add     g1,g2       ; g1にg2の値を加算
+        pop     g2
+        and     g2,#7       ; g2を下位３ビットでマスク
+        ld      g3,#1       ; g3に1を読み込み
+        shll    g3,g2       ; g3をg2ビット分左シフト
+        ld      g2,@g1      ; g2にg1のアドレスにある値を格納
+        cmp     g0,#0       ; g0の値と0を比較
+        jz      .L8         ; g0が0だったらジャンプ
+        or      g2,g3       ; g0が1の時g2とg3のor
+        jmp     .L9         ; .L8からはg0が0の命令のためジャンプ
+.L8     xor     g3,#-1      ; g3と-1(0xFFFF)をxor
+        and     g2,g3       ; g2とg3のand
+.L9     st      g2,@g1      ; g2の値をg1のアドレスに格納
+        pop     g3
         ret

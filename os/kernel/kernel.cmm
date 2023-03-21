@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2020 by
+ * Copyright (C) 2011 - 2022 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,7 @@
 /*
  * kernel/kernel.cmm : マイクロカーネル
  *
+ * 2022.07.04 : TaC-CPU V3 対応開始
  * 2020.09.06 : exit， wait の内部処理を pm へ移動（削除）
                 delProc，iSemV を public に (pm が使用)
  * 2020.09.06 : サーバプロセスの初期化を regProc.cmm に分離
@@ -109,6 +110,7 @@
 #include "kernel.hmm"
 
 #ifndef EMBEDDED
+#include <mm.hmm>
 #include <tty.hmm>
 #include <pm.hmm>                                   // exit が必要
 #endif
@@ -324,6 +326,12 @@ int newStk(int sp, int start, int flag, int usp) {
 // 予め領域を確保された PCB を受け取り、PCB とカーネルスタックを初期化する
 public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
   int pid = nextPid();                              // PID を決定する
+
+#ifdef DEBUG
+  printF("newProc(start=%x,nice=%x,usp=%x,flag=%x),pid=%d\n",
+         start, nice, usp, flag, pid);
+#endif
+
   int idx = regProcTbl(pcb);                        // PCB を一覧に登録する
   // カーネルスタックポインタ(SP)の決定とカーネルスタックの初期化
   int sp=_AtoI(pcb) + (sizeof(PCB)+P_KERN_STKSIZ+1)&~1; // スタック底のアドレス
@@ -337,12 +345,6 @@ public void newProc(int start,int nice,int usp,int flag,PCB pcb,int[] fds) {
   pcb.idx      = idx;                               // 一覧表で登録位置
   pcb.evtCnt   = 0;                                 // タイマー停止中
   pcb.evtSem   = newSem(0);                         // タイマー用のセマフォ
-  pcb.memBase  = null;                              // メモリアドレス(pmが設定)
-  pcb.memLen   = 0;                                 // メモリサイズ(pmが設定)
-#ifndef EMBEDDED
-  pcb.parent   = null;                              // 親プロセスへのポインタ
-  pcb.exitStat = -1;                                // プロセスの終了ステータス
-#endif
   if (fds!=null) {                                  // オープンファイル一覧が
     for (int i=0; i<P_FILE_MAX; i=i+1)              //   あるなら
       fds[i]   = -1;                                //     初期化する
@@ -462,7 +464,7 @@ public int newLink() {
   int r = setPri(DI|KERN);                          // 割り込み禁止、カーネル
   linkID = linkID + 1;                              // 通し番号を進める
 #ifdef DEBUG
-  printF("newLink:ID=%d,SERVER=%d\n",linkID,curProc.pid);
+  printF("newLink:linkid=%d,pid=%d\n",linkID,curProc.pid);
 #endif
   if (linkID >= LINK_MAX)                           // リンクが多すぎる
     panic("newLink");
@@ -525,6 +527,9 @@ void lnkInit() {
 // 例外がユーザモードで発生したならユーザプロセスを終了させる
 // カーネルモードで発生したならカーネルのバグなので panic()
 void exception(int errno, char[] msg) {
+#ifdef DEBUG
+  panic("exception(%d, \"%s\")\n", errno, msg);
+#endif
 #ifndef EMBEDDED
   if (isUser()) exit(errno);
   else          panic(msg);
@@ -563,13 +568,14 @@ void excpInit() {                                   // ベクタにハンドラ�
 #ifndef EMBEDDED
   VECTOR[15] = addrof(svCall);                      // svCall は trap.s に定義
 #else
-  VECTOR[15] = addrof(illInst);                     // 組み込み版ではSVCは使用禁止
+  VECTOR[15] = addrof(illInst);                     // 組み込み版はSVCは使用禁止
 #endif
 }
 
 //----------------------------------------------------------------------------
 // カーネルのメイン
 //----------------------------------------------------------------------------
+public int tlbPid;
 public void main() {
   // 初期化ルーチンの実行
   utilInit();                                       // MEM配列初期化
@@ -578,15 +584,19 @@ public void main() {
   semInit();                                        // セマフォ(semTbl)初期化
   lnkInit();                                        // リンク(lnkTbl)初期化
 #ifndef EMBEDDED
+  frameInit();                                      // フレームプールの初期化
   ttyInit();                                        // TTY初期化
 #endif
   procInit();                                       // プロセス(procTbl)初期化
-  out(0xf2, 0x0001);                                // MMU を有効にする
 
   // システムスタート
 #ifdef DEBUG
   printF("Starting system...\n");
 #endif
+#ifndef EMBEDDED
+  out(0xa2, 0x0001);                                // MMU を有効にする
+#endif
+  tlbPid = 0;
   dispatch();                                       // プロセス実行開始
   panic("main");                                    // ここは実行されないはず
 }

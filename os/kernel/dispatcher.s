@@ -2,7 +2,7 @@
 ;  TacOS Source Code
 ;     Tokuyama kousen Advanced educational Computer.
 ;
-;  Copyright (C) 2011 - 2019 by
+;  Copyright (C) 2011 - 2022 by
 ;                       Dept. of Computer Science and Electronic Engineering,
 ;                       Tokuyama College of Technology, JAPAN
 ;
@@ -21,6 +21,7 @@
 ;
 ; kernel/dispatcher.s : ディスパッチャ
 ;
+; 2022.07.04 : TaC-CPU V3 対応開始
 ; 2019.12.05 : メモリ保護を追加
 ; 2017.10.27 : ルーチン名を変更(_dispatch -> _yield, _startProc -> _dispatch)
 ; 2015.11.17 : PCB の項目を追加したため、[next]と[magic]へのポインタをずらした
@@ -49,10 +50,8 @@
 ;
 _yield
         ;--- G13(SP)以外の CPU レジスタと FLAG をカーネルスタックに退避 ---
-        push    g0              ; FLAG の保存場所を準備する
+        push    flag            ; FLAG を保存
         push    g0              ; G0 を保存
-        ld      g0,flag         ; FLAG を上で準備した位置に保存
-        st      g0,2,sp         ;
         push    g1              ; G1 を保存
         push    g2              ; G2 を保存
         push    g3              ; G3 を保存
@@ -72,22 +71,50 @@ _yield
         st      sp,0,g1         ; [G1+0] は PCB の sp フィールド
         ;
         ;------- [curProc の magic フィールド]をチェック ---------
-        ld      g0,30,g1        ; [G1+30] は PCB の magic フィールド
+        ;ld      g0,30,g1        ; [G1+30] は PCB の magic フィールド
+        ld      g0,34,g1        ; [G1+34] は PCB の magic フィールド
         cmp     g0,#0xabcd      ; P_MAGIC と比較、一致しなければ
         jnz     .stkOverFlow    ; カーネルスタックがオーバーフローしている
 
 _dispatch
         ;-------- 次に実行するプロセスの G13(SP)を復元 ----------
         ld      g0,_readyQueue  ; 実行可能列の番兵のアドレス
-        ld      g0,28,g0        ; [G0+28] は PCB の next フィールド(先頭の PCB)
+        ld      g0,32,g0        ; [G0+32] は PCB の next フィールド(先頭の PCB)
         st      g0,_curProc     ; 現在のプロセス(curProc)に設定する
         ld      sp,0,g0         ; PCB から SP を取り出す
         ;
-        ;--------------- リロケーションレジスタを設定 ------------
-        ld      g1,16,g0        ; PCB から memBase を取り出す
-        out     g1,0xf4         ; Base レジスタに格納
-        ld      g1,18,g0        ; PCB から memLen を取り出す
-        out     g1,0xf6         ; Limit レジスタに格納
+;--------------- TLB の flush --------------------------
+_tlbPid ws      1
+        ld      g1,2,g0         ; pid
+        cmp     g1,#4           ; ユーザプロセスはpid=5から
+        jle     .L3             ; カーネルプロセスなら何もしない
+        cmp     g1,_tlbPid      ; 前回のユーザプロセスと同じなら
+        jz      .L3             ; 何もしない
+        st      g1,_tlbPid      ; 今回のユーザプロセスを記録
+        ; flush開始
+        ld      g0,#0           ; 定数0
+        ld      g2,#0x82        ; TLBの下位ワードのアドレス
+.L2     out     g0,g2           ; 0をTLBの下位ワードに書き込む
+        add     g2,#4           ; アドレスは2ワード分進める
+        cmp     g2,#0xa0        ; TLB領域の次のアドレス
+        jc      .L2             ; TLB領域内部ならループ
+.L3
+        ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;  デバッグ用  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;  DEBUG フラグがONのときだけ  ;;;;;;;;;;;;;;;
+;;;;;;;;;;;;  それ以外ではコメントアウトすること ;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+        out     g1,0x38         ; シミュレータがpidを知るため
+        push    g1              ; pidをpush
+        ld      g1,#.str        ; フォーマット文字列をpush
+        push    g1
+        call    _printF         ; printF呼び出し
+        add     sp,#4           ; spを元に戻す
+.str    string  "dispatch(pid=%d)\n"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;  ここまで  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         ;
         ;-------- G13(SP)以外の CPU レジスタを復元 -----------
         pop     usp             ; ユーザモードスタックポインタ(G14)を復元

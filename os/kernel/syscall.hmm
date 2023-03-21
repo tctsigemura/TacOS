@@ -79,5 +79,11 @@
 #define TTYCTL          16
 #define MALLOC          17
 #define FREE            18
+#define LOAD            19
+#define PEEKS           20
+#define PEEKM           21
+#define POKEW           22
+#define POKEM           23
+#define CLOSEEXE        24
 
 #endif

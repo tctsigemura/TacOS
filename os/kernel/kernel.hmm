@@ -61,6 +61,10 @@
 
 #include "process.hmm"
 
+#define PAGESIZ 256
+#define TOTALPAGE 256
+#define LASTPAGE 255
+
 /*----------------------------------------------------------------------------
  * プロセスをスケジューリングする(実行可能列に登録する)
  *   名前   : schProc

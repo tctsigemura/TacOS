@@ -1,0 +1,10 @@
+//
+// version.cmm : OSのバージョンを表示する
+//
+#include <stdio.hmm>
+
+public int main() {
+  printf("TacOS Version %s\n", VER);
+  printf("(build date : %s\n", DATE);
+  return 0;
+}

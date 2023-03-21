@@ -55,14 +55,8 @@
  *
  */
 
-#include <crt0.hmm>
 #include <kernel.hmm>
 #include "util.hmm"
-
-// util の初期化ルーチン
-public void utilInit() {
-  MEM = _ItoA(0);                                   // MEMは0x0000を指すchar型
-}
 
 // 32bit の大小比較(第1引数の方が大きいとき1、等しいとき0、小さいとき-1)
 public int _uCmp32(int[] a, int[] b) {
@@ -155,12 +149,33 @@ public boolean unputBuf(RingBuf buf) {
   return true;                                      // 削除できたらtrue
 }
 
+// -------------------------------- 乱数ルーチン -------------------------
+// 擬似乱数の初期化（0で初期化はNG)
+int lfsr = 1;
+public void srand(int seed) {
+  if (seed==0) seed=1;
+  lfsr = seed;
+}
+
+// 擬似乱数（ガロアLFSR）
+public int rand() {
+  lfsr = ((lfsr >> 1) & 0x7fff) ^ (-(lfsr & 1) & 0xb400); 
+  return lfsr;
+}
+
 // --------------------------- デバッグ用表示ルーチン -------------------------
-// 1文字出力（起動時のメッセージなどを表示するための簡易版）
-void dbgPutSIO(char c) {                            // SIO への出力
-  while ((in(0x0a) & 0x80)==0)
-    ;
-  out(0x08, ord(c));
+boolean ftFlag;                                     // FT232RL へ出力するか？
+boolean rnFlag;                                     // RN4020 へ出力するか？
+
+void dbgPutPort(char c, int port) {                 // デバッグモードでは
+  while ((in(port+2) & 0x80)==0)                    //  表示の量が多いので
+    ;                                               //  デバッグメッセージは
+  out(port, ord(c));                                //  Bluetoothだけに出力する
+}
+
+void dbgPutSIO(char c) {
+  if (ftFlag) dbgPutPort(c, 0x08);                  // FT232RL への出力
+  if (rnFlag) dbgPutPort(c, 0x28);                  // RN4020 への出力
 }
 
 void dbgPutCh(char c) {                             // デバッグ用の表示ルーチン
@@ -174,29 +189,8 @@ public void dbgPutStr(char[] str) {
     dbgPutCh(str[i]);
 }
 
-// ------------------------------- エラー表示 ----------------------------
-public void panic(char[] msg, ...) {
-  setPri(DI|KERN);                                  // 割り込み禁止
-
-#ifdef DEBUG
-  int[] args = _args();
-  printF("### panic(PID=%d(", getPid());
-  int[] fp = _addrAdd(args, -6);
-  for (int i=0; i<3; i=i+1) {                       // 関数のトレースを3階層
-    printF("<-(%04x)",fp[1]);
-    fp = _ItoA(fp[0]);
-  }
-  printF(")) ###\n");
-  printF(msg, args[0], args[1], args[2]);
-#else
-  dbgPutStr(msg);
-#endif
-
-  dbgPutCh('\n');
-  while (true) halt();                              // システムを停止する
-}
-
 // --------------------------- デバッグ用簡易printf --------------------------
+// -------------------------- (割込み禁止で動作する) -------------------------
 #ifdef DEBUG
 char[] __hstr = "0123456789abcdef";
 int  __putnum_w;
@@ -220,21 +214,15 @@ void __putnum_sub(int x, int n) {
   }
 }
 
-// グローバル変数を使用するため割り込み禁止(本来なら割り込み禁止する必要はない)
 void __uputnum(int x, int w, char p, int base) {
-  int r =setPri(DI|KERN);                            // 割り込み禁止
   __putnum_b = base;
   __putnum_m = false;
   __putnum_w = w;
   __putnum_p = p;
   __putnum_sub(x,0);
-  setPri(r);                                         // 割り込み復元
 }
 
-// グローバル変数を使用するため割り込み禁止(本来なら割り込み禁止する必要はない)
 void __sputnum(int x, int w, char p, int base) {
-  int r =setPri(DI|KERN);                            // 割り込み禁止
-
   __putnum_b = base;
   __putnum_m = false;
   if (x<0) {
@@ -245,11 +233,12 @@ void __sputnum(int x, int w, char p, int base) {
   __putnum_w = w;
   __putnum_p = p;
   __putnum_sub(x,0);
-
-  setPri(r);                                         // 割り込み復元
 }
 
 public int printF(char[] fmt, ...) {
+  rnFlag = ((in(0x2e) & 3)!=0);                     // rnの状態変化を確認
+  if (!ftFlag && !rnFlag) return 0;                 // 高速化のため 
+  int r = setPri(DI|KERN);
   int[] args = _args();
   int n = 0;
   int arg = args[0];
@@ -265,6 +254,7 @@ public int printF(char[] fmt, ...) {
         c = fmt[i=i+1];
       }
       if (c=='\0') {
+        setPri(r);
         return n;
       } else if (c=='o') {
         __uputnum(arg,w,p,8);
@@ -289,6 +279,46 @@ public int printF(char[] fmt, ...) {
     } else
       dbgPutCh(c);
   }
+  setPri(r);
   return n;
 }
 #endif
+
+// ------------------------------- パニック ----------------------------
+public void panic(char[] msg, ...) {
+  setPri(DI|KERN);                                  // 割り込み禁止
+  ftFlag = true;                                    // panicの表示は
+  rnFlag = ((in(0x2e) & 3)!=0);                     //   両方に出力する
+#ifdef DEBUG
+  int[] args = _args();
+  printF("### panic(PID=%d(", getPid());            // デバッグモードでは
+  int[] fp = _addrAdd(args, -6);                    //  丁寧な表示をする
+  for (int i=0; i<3; i=i+1) {                       //  (関数のトレースを3階層)
+    printF("<-(%04x)",fp[1]);
+    fp = _ItoA(fp[0]);
+  }
+  printF(")) ###\n");
+  printF(msg, args[0], args[1], args[2]);
+#else
+  dbgPutStr("### panic:");                          // 通常モードでは
+  dbgPutStr(msg);                                   //   最小限の表示にする
+#endif
+  dbgPutCh('\n');
+  while (true) halt();                              // システムを停止する
+}
+
+// ---------------------------- util の初期化ルーチン -----------------
+public void utilInit() {
+  MEM = _ItoA(0);                                   // MEMは0x0000を指すchar型
+  WMEM = _ItoA(0);
+#ifdef DEBUG
+  ftFlag = false;                                   // デバッグモードでは
+  rnFlag = ((in(0x2e) & 3)!=0);                     //   メッセージが多いので
+                                                    //    bluetooth だけに出力
+#else
+  ftFlag = true;                                    // 通常モードでは
+  rnFlag = ((in(0x2e) & 3)!=0);                     //   メッセージが少ないので
+                                                    //    両方へ出力
+#endif
+}
+

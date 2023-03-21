@@ -46,11 +46,13 @@
 #include <util.hmm>
 #include <kernel.hmm>
 #include <syscall.hmm>
+#include <pm.hmm>
+#include <mm.hmm>
 
 // --------------------------
 #include <sio.hmm>
-#define getStr(buf, len) getSIO(buf, len)
-#define putStr(buf, len) putSIO(buf, len)
+#define getLine(buf, len) getSIO(buf, len)
+#define putLine(buf, len) putSIO(buf, len)
 
 #include "tty.hmm"
 
@@ -63,22 +65,43 @@ int readSem, writeSem;
 //----------------------------------------------------------------------------
 // ttyRead システムコール
 public int ttyRead(void[] buf, int len) {
-  if (len<0) return -1;                                 // len<0 ならエラー
   semP(readSem);
-  int r = getStr(_AtoP(buf, curProc), len);             // 物理アドレスで操作
+  int r = getLine(buf, len);                            // ドライバから読み出す
   semV(readSem);
   return r;
 }
 
+#ifndef EMBEDDED
+// ユーザプロセス用のttyReadの入り口
+public int _ttyRead(void[] buf, int len) {
+  if (len<0) return -1;                                 // len<0 ならエラー
+  char[] pBuf = malloc(len);                            // 物理空間のバッファ
+  int r = ttyRead(pBuf, len);                           // 物理アドレスで操作
+  pokeM(_AtoI(buf), pBuf, len);                         // 仮想空間にコピー
+  free(pBuf);
+  return r;
+}
+#endif
+
 // ttyWrite システムコール
 public int ttyWrite(void[] buf, int len) {
-  buf = _AtoP(buf, curProc);                            // 物理アドレスに変換
-  if (len<0) return -1;                                 // len<0 ならエラー
   semP(writeSem);
-  int r = putStr(buf, len);
+  int r = putLine(buf, len);
   semV(writeSem);
   return r;
 }
+
+#ifndef EMBEDDED
+// ユーザプロセス用のttyWriteの入り口
+public int _ttyWrite(void[] buf, int len) {
+  if (len<0) return -1;                                 // len<0 ならエラー
+  char[] pBuf = malloc(len);                            // 物理空間のバッファ
+  peekM(_AtoI(buf), pBuf, len);                         // 仮想空間から読み出す
+  int r = ttyWrite(pBuf, len);                          // 物理アドレスで操作
+  free(pBuf);
+  return r;
+}
+#endif
 
 // ttyCtl システムコール
 public int ttyCtl(int request, int mode) {

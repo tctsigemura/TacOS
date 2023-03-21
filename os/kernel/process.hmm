@@ -2,7 +2,7 @@
  * TacOS Source Code
  *    Tokuyama kousen Advanced educational Computer.
  *
- * Copyright (C) 2011 - 2018 by
+ * Copyright (C) 2011 - 2023 by
  *                      Dept. of Computer Science and Electronic Engineering,
  *                      Tokuyama College of Technology, JAPAN
  *
@@ -22,6 +22,8 @@
 /*
  * kernel/process.hmm : プロセス管理に関するデータと基本ルーチン
  *
+ * 2023.02.20 : ページング方式に対応するためPCBからmemBase,memLen削除，
+ *              pageTable，filedsc，textSiz，dataSiz追加
  * 2020.09.06 : iSemv，delProc　関数を追加
  * 2018.01.27 : インクルードファイルの拡張子を .h から .hmm に変更
  * 2017.12.08 : P_SLEEP を P_WAIT に変更
@@ -56,7 +58,11 @@
 
 // ------------------------------ プロセス関連 --------------------------------
 #define PRC_MAX 10        // プロセスは最大 10 個
-#define P_KERN_STKSIZ 200 // プロセス毎のカーネルスタックのサイズ
+#ifdef DEBUG
+#define P_KERN_STKSIZ 300 // プロセス毎のカーネルスタックのサイズ
+#else
+#define P_KERN_STKSIZ 150 // プロセス毎のカーネルスタックのサイズ
+#endif
 #define P_LOW_PRI 30000   // プロセスの最低優先度
 #define P_RUN    1        // プロセスは実行可能または実行中
 #define P_WAIT   2        // プロセスは待ち状態
@@ -78,10 +84,14 @@ struct PCB {              // PCB を表す構造体
   // プロセスのイベント用セマフォ
   int evtCnt;             // カウンタ(>0:sleep中, ==-1:wait中, ==0:未使用)
   int evtSem;             // イベント用セマフォの番号
- 
-  // プロセスのアドレス空間(text, data, bss, ...)
-  char[] memBase;         // プロセスのメモリ領域のアドレス
-  int memLen;             // プロセスのメモリ領域の長さ
+
+  // ページテーブルのフレームのアドレス
+  int[] pageTable;        // ページテーブルのフレームのアドレス
+
+  //ページング用
+  int filedsc;            // オープンしたexeファイルのファイルディスクリプタ
+  int textSiz;            // textセグメントのサイズ
+  int dataSiz;            // dataセグメントのサイズ
 
   // プロセスの親子関係の情報
   PCB parent;             // 親プロセスへのポインタ
