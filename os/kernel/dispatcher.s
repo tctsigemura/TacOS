@@ -2,7 +2,7 @@
 ;  TacOS Source Code
 ;     Tokuyama kousen Advanced educational Computer.
 ;
-;  Copyright (C) 2011 - 2022 by
+;  Copyright (C) 2011 - 2023 by
 ;                       Dept. of Computer Science and Electronic Engineering,
 ;                       Tokuyama College of Technology, JAPAN
 ;
@@ -21,6 +21,7 @@
 ;
 ; kernel/dispatcher.s : ディスパッチャ
 ;
+; 2023.03.21 : ページング方式仮想記憶版
 ; 2022.07.04 : TaC-CPU V3 対応開始
 ; 2019.12.05 : メモリ保護を追加
 ; 2017.10.27 : ルーチン名を変更(_dispatch -> _yield, _startProc -> _dispatch)
@@ -105,13 +106,13 @@ _tlbPid ws      1
 ;;;;;;;;;;;;  DEBUG フラグがONのときだけ  ;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;  それ以外ではコメントアウトすること ;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        out     g1,0x38         ; シミュレータがpidを知るため
-        push    g1              ; pidをpush
-        ld      g1,#.str        ; フォーマット文字列をpush
-        push    g1
-        call    _printF         ; printF呼び出し
-        add     sp,#4           ; spを元に戻す
-.str    string  "dispatch(pid=%d)\n"
+;        out     g1,0x38         ; シミュレータがpidを知るため
+;        push    g1              ; pidをpush
+;        ld      g1,#.str        ; フォーマット文字列をpush
+;        push    g1
+;        call    _printF         ; printF呼び出し
+;        add     sp,#4           ; spを元に戻す
+;.str    string  "dispatch(pid=%d)\n"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;  ここまで  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -33,7 +33,7 @@
 
 # デバッグモードをOFFにするときは
 #   kernel/dispatcher.s 中のprintFを呼び出す部分をコメントアウトすること
-DEBUG=DEBUG=1
+#DEBUG=DEBUG=1
 
 #　ディレクトリを移動する際のログを出力しない
 MAKEFLAGS=--no-print-directory
