@@ -1,0 +1,40 @@
+/*
+ * libMng.hmm : 条件に合ったファイルをフェッチする関数
+ *
+ * 2025.06.20 : 新規作成
+ *
+ */
+
+
+// --- 構造体 ---
+//
+struct album {
+    int song_num;
+    char[] name;
+};
+
+struct song {
+    int index;
+    char[] name;
+    boolean fav;
+    char[] artist;
+    char[] path;     
+};
+
+struct playlist {
+    int song_num;
+    char[] name;
+};
+
+
+
+
+
+
+//-----------------------------------------------------------------------------
+// 条件に合ったファイルをフェッチする操作
+//-----------------------------------------------------------------------------
+public song[] fetch_songs(char[] name, char[] sort);
+public album[] fetch_albums();
+public playlist[] fetch_playlists();
+public char[][] fetch_artists();

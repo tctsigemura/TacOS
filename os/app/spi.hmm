@@ -28,6 +28,10 @@
  *
  */
 
+
+//-----------------------------------------------------------------------------
+// 関数
+//-----------------------------------------------------------------------------
 public void spiInit();
 public void spiWriteLcdCom(char[] buf);
 public void spiWriteLcdDat(char[] buf, int len);
@@ -37,3 +41,22 @@ public int  spiReadMp3Reg(int addr);
 public void spiWriteMp3Dat(char[] dbuf, int len);
 public void spiResetMp3();
 public void spiFlushMp3();
+
+//ここから変数名変更したやつ
+public void spi_init();
+public void spi_write_lcd_com(char[] buf);
+public void spi_write_lcd_dat(char[] buf, int len);
+public void spi_reset_lcd();
+public void spi_write_mp3_reg(int addr, int arg);
+public int  spi_read_mp3_reg(int addr);
+public void spi_write_mp3_dat(char[] dbuf, int len);
+public void spi_reset_mp3();
+public void spi_flush_mp3();
+
+//ここから追加
+public void operate_volume();
+public void read_mp3(char[] path);
+
+
+
+
