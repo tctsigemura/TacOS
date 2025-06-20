@@ -1,6 +1,6 @@
-#include <screenMng.hmm>
-#include <settingMng.hmm>
-#include <streamMng.hmm>
+#include "screenMng.hmm"
+#include "settingsMng.hmm"
+#include "streamMng.hmm"
+#include "playlistMng.hmm"
+#include "libMng.hmm"
 #include <kernel.hmm>
-#include <playlistMng.hmm>
-#include <libMng.hmm>
