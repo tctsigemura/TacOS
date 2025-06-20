@@ -15,7 +15,7 @@ struct album {
 struct song {
     int index;
     char[] name;
-    Bool fav;
+    boolean fav;
     char[] artist;
     char[] path;
 };

@@ -1,0 +1,32 @@
+/*
+ * TacOS Source Code 2025 CE2実験
+ * author: i19ishihara, i19urasaki, i19oota
+*/
+
+
+// tmp
+struct song {
+    int index;
+    char[] name;
+    boolean fav;
+    char[] artist;
+    char[] path;
+};
+
+//  --- 関数 ---
+// 再生状態を操作する
+public void play(song[] songs, int idx);
+public void stop();
+public void loop(boolean is_loop);
+public void repeat(boolean is_repeat);
+public void shuffle(boolean is_shuffle);
+public void next();
+public void previous();
+
+// 状態の取得
+public void get_history();
+public char[] get_type();
+public song[] get_queue();
+public song get_song();
+public int get_now_time();
+public int get_song_length();
