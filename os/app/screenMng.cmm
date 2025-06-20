@@ -1,2 +1,2 @@
-#include"spi.hmm"
-#include"settingsMng.hmm"
+#include "settingsMng.hmm"
+#include "spi.hmm"
