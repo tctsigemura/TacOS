@@ -1,0 +1,17 @@
+//-----------------------------------------------------------------------------
+// プレイリストに編集，作成，削除．
+// プレイリスト中の編集
+//-----------------------------------------------------------------------------
+
+struct song {
+    int index;
+    char[] name;
+    boolean fav;
+    char[] artist;
+    char[] path;     
+};
+
+public void delete_playlist(char[] pltname,song[] songs);
+public char[] create_playlist(song[] songs);
+public void add_song(char[] pltname,song[] songs);
+public void remove_song(char[] pltname,song[] songs);
