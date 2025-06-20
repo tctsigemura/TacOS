@@ -1,0 +1,35 @@
+/*
+ * screenMng.hmm : 基本設定を行う関数
+ *
+ * 2025.06.20 : 新規作成
+ *
+ */
+
+
+//-----------------------------------------------------------------------------
+// 構造体
+//-----------------------------------------------------------------------------
+// SelectedItem構造体
+struct SelectedItem {
+    char[] type;
+    void[]   item;
+};
+
+
+
+
+//-----------------------------------------------------------------------------
+// ディスプレイに書き込む操作
+//-----------------------------------------------------------------------------
+public SelectedItem select();
+public void back();
+public void up_cursor();
+public void down_cursor();
+public void clear();
+
+// 位置とかの取り出し
+public void locateXY(int x, int y);
+public void putCh(char c);
+public void putStr(char[] str);
+public void putDec(int val, int width);
+public void show_psbar();
