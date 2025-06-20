@@ -1,4 +1,12 @@
-//構造体
+/*
+ * TacOS Source Code 2025 CE2実験
+ * author: i19ishihara, i19urasaki, i19oota
+*/
+
+
+//
+// --- 構造体 ---
+//
 struct album {
     int song_num;
     char[] name;
@@ -60,11 +68,23 @@ struct I_StgSt {
     int sw;
 };
 
-struct I_plistSt {
+struct I_PlistSt {
     char[] pltname;
     song[] songs;
 };
 
-struct O_plistSt {
+struct O_PlistSt {
     playlist plt;
 };
+
+
+//
+// --- 関数 ---
+//
+void main();
+int get_sw();
+O_ScrnST act_screen(I_ScrnSt input);
+O_StrmSt act_stream(I_StrmSt input);
+O_LibSt act_libracy(I_LibSt input);
+O_PlistSt act_playlist(I_PlistSt input);
+void act_settings(I_StgsSt input);

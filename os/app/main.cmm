@@ -1,6 +1,13 @@
+/*
+ * TacOS Source Code 2025 CE2実験
+ * author: i19ishihara, i19urasaki, i19oota
+*/
 #include "screenMng.hmm"
 #include "settingsMng.hmm"
 #include "streamMng.hmm"
 #include "playlistMng.hmm"
 #include "libMng.hmm"
+
 #include <kernel.hmm>
+
+
