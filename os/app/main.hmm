@@ -17,7 +17,7 @@ struct song {
     char[] name;
     Bool fav;
     char[] artist;
-    char[] path;     
+    char[] path;
 };
 
 struct playlist {
@@ -27,23 +27,23 @@ struct playlist {
 
 struct SelectedItem {
     char[] type;
-    void[] item; 
+    void[] item;
 };
 
-struct I_ScrnSt {  
+struct I_ScrnSt {
     int mode;
     int sw;
     char[][] scrndata;
     int volume;
 };
 
-struct O_ScrnSt {  
+struct O_ScrnSt {
     char[] type;
     void[] item;
 };
 
-struct I_StrmSt { 
-    int sw; 
+struct I_StrmSt {
+    int sw;
 };
 
 struct O_StrmSt {
@@ -83,7 +83,7 @@ struct O_PlistSt {
 //
 void main();
 int get_sw();
-O_ScrnST act_screen(I_ScrnSt input);
+O_ScrnSt act_screen(I_ScrnSt input);
 O_StrmSt act_stream(I_StrmSt input);
 O_LibSt act_libracy(I_LibSt input);
 O_PlistSt act_playlist(I_PlistSt input);
