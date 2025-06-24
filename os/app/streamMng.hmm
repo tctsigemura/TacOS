@@ -4,14 +4,7 @@
 */
 
 
-// tmp
-struct song {
-    int index;
-    char[] name;
-    boolean fav;
-    char[] artist;
-    char[] path;
-};
+#include "structures.hmm"
 
 //  --- 関数 ---
 // 再生状態を操作する

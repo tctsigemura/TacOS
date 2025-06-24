@@ -3,13 +3,9 @@
 // プレイリスト中の編集
 //-----------------------------------------------------------------------------
 
-struct song {
-    int index;
-    char[] name;
-    boolean fav;
-    char[] artist;
-    char[] path;     
-};
+
+#include "structures.hmm"
+
 
 public void delete_playlist(char[] pltname,song[] songs);
 public char[] create_playlist(song[] songs);
