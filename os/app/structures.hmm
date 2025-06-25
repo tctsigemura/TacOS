@@ -1,0 +1,77 @@
+//
+// --- 構造体 ---
+//
+#ifndef STRUCTURES_H
+#define STRUCTURES_H
+
+struct album {
+    int song_num;
+    char[] name;
+};
+
+struct song {
+    int index;
+    char[] name;
+    boolean fav;
+    char[] artist;
+    char[] path;
+};
+
+struct playlist {
+    int song_num;
+    char[] name;
+};
+
+struct SelectedItem {
+    char[] type;
+    void[] item;
+};
+
+struct I_ScrnSt {
+    int mode;
+    int sw;
+    char[][] scrndata;
+    int volume;
+};
+
+struct O_ScrnSt {
+    char[] type;
+    void[] item;
+};
+
+struct I_StrmSt {
+    int sw;
+};
+
+struct O_StrmSt {
+    song crt_song;
+    song[] history;
+    int type;
+    char[] super_name;
+};
+
+struct I_LibSt {
+    char[] type;
+    char[] name;
+    char[] sort;
+};
+
+struct O_LibSt {
+    char[] type;
+    void[] item;
+};
+
+struct I_StgSt {
+    int sw;
+};
+
+struct I_PlistSt {
+    char[] pltname;
+    song[] songs;
+};
+
+struct O_PlistSt {
+    playlist plt;
+};
+
+#endif

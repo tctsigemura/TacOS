@@ -6,29 +6,7 @@
  */
 
 
-// --- 構造体 ---
-//
-struct album {
-    int song_num;
-    char[] name;
-};
-
-struct song {
-    int index;
-    char[] name;
-    boolean fav;
-    char[] artist;
-    char[] path;     
-};
-
-struct playlist {
-    int song_num;
-    char[] name;
-};
-
-
-
-
+#include "structures.hmm"
 
 
 //-----------------------------------------------------------------------------
