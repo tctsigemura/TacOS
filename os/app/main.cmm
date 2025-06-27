@@ -7,7 +7,16 @@
 #include "streamMng.hmm"
 #include "playlistMng.hmm"
 #include "libMng.hmm"
+#include "stdio.hmm"
 
 #include <kernel.hmm>
 
 
+I_LibSt lib = {"type","name","sort"};
+
+void main(){
+    fetch_songs(lib.name, lib.sort);
+    fetch_albums();
+    fetch_playlist();
+    fetch_artists();
+}

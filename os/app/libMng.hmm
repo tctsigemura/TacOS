@@ -14,5 +14,5 @@
 //-----------------------------------------------------------------------------
 public song[] fetch_songs(char[] name, char[] sort);
 public album[] fetch_albums();
-public playlist[] fetch_playlists();
+public playlist[] fetch_playlist();
 public char[][] fetch_artists();
