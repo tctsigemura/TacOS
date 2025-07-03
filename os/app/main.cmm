@@ -13,10 +13,28 @@
 
 
 I_LibSt lib = {"type","name","sort"};
+song[] s = {
+    {1,"JO1",false,"URA","/urararara/ura"},
+    {2,"JO2",false,"URA","/urararara/ura"},
+    {3,"JO3",false,"URA","/urararara/ura"},
+    {4,"JO4",false,"URA","/urararara/ura"},
+    {5,"JO5",false,"SAKI","/urararara/saki"},
+    {6,"JO6",false,"SAKI","/urararara/saki"},
+    {7,"JO7",false,"SAKI","/urararara/saki"},
+    {8,"JO8",false,"SAKI","/urararara/saki"},
+    {9,"JO9",true,"SAKI","/urararara/saki"}
+};
+char[] pltname = "oota";
+
+
 
 void main(){
     fetch_songs(lib.name, lib.sort);
     fetch_albums();
     fetch_playlist();
     fetch_artists();
+    delete_playlist(pltname,s);
+    char[] test_box = create_playlist(s);
+    add_song(pltname,s);
+    remove_song(pltname,s);
 }

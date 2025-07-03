@@ -1,1 +1,38 @@
 #include "fs.hmm"
+#include "playlistMng.hmm"
+#include <string.hmm>
+#include "util.hmm"
+
+song[] s = {
+    {1,"JO1",false,"URA","/urararara/ura"},
+    {2,"JO2",false,"URA","/urararara/ura"},
+    {3,"JO3",false,"URA","/urararara/ura"},
+    {4,"JO4",false,"URA","/urararara/ura"},
+    {5,"JO5",false,"SAKI","/urararara/saki"},
+    {6,"JO6",false,"SAKI","/urararara/saki"},
+    {7,"JO7",false,"SAKI","/urararara/saki"},
+    {8,"JO8",false,"SAKI","/urararara/saki"},
+    {9,"JO9",true,"SAKI","/urararara/saki"}
+};
+
+public void delete_playlist(char[] pltname, song[] songs) {
+    s[0].index = 1;
+    s[0].name = pltname;
+    s[0].fav = true;
+    s[0].artist = "hage";
+    s[0].path = "tanaka";
+}
+
+public char[] create_playlist(song[] songs){
+    char[] char_test_create_playlist = s[0].name;
+    return char_test_create_playlist;
+}
+
+public void add_song(char[] pltname, song[] songs){
+    songs[0].name = pltname;
+
+}
+
+public void remove_song(char[] pltname, song[] songs){
+    songs[0].name = pltname;
+}

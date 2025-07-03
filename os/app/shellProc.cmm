@@ -34,6 +34,12 @@
 #include "spi.hmm"
 #include "mp3Files.hmm"
 #include "shellProc.hmm"
+#include "screenMng.hmm"
+#include "settingsMng.hmm"
+//#include "streamMng.hmm"    これはmp3Procと競合？しちゃう？maybe?
+#include "playlistMng.hmm"
+#include "libMng.hmm"
+#include "stdio.hmm"
 
 //-----------------------------------------------------------------------------
 // スイッチの読み取り
@@ -100,6 +106,22 @@ void asta(int y) {
   putCh('*');
 }
 
+
+
+I_LibSt lib = {"type","name","sort"};
+song[] s = {
+    {1,"JO1",false,"URA","/urararara/ura"},
+    {2,"JO2",false,"URA","/urararara/ura"},
+    {3,"JO3",false,"URA","/urararara/ura"},
+    {4,"JO4",false,"URA","/urararara/ura"},
+    {5,"JO5",false,"SAKI","/urararara/saki"},
+    {6,"JO6",false,"SAKI","/urararara/saki"},
+    {7,"JO7",false,"SAKI","/urararara/saki"},
+    {8,"JO8",false,"SAKI","/urararara/saki"},
+    {9,"JO9",true,"SAKI","/urararara/saki"}
+};
+char[] pltname = "oota";
+
 //-----------------------------------------------------------------------------
 // MP3 プレーヤのメインプロセス
 //-----------------------------------------------------------------------------
@@ -109,6 +131,7 @@ public void shellMain() {
   spiResetMp3();                                    //   プロセスが実行する
   mp3FilesInit();                                   // ファイル一覧を作る
   demoScreen();                                     // 画面を初期化
+
   for (;;) {
     int sw = readSw();
     int num = swToNum(sw);
