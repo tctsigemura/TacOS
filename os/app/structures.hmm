@@ -4,12 +4,24 @@
 #ifndef STRUCTURES_H
 #define STRUCTURES_H
 
+struct typeSt {
+    char[] type;
+};
+
+struct modeSt {
+    char[] type;
+    int id;
+    char[] name;
+};
+
 struct album {
+    char[] type;
     int song_num;
     char[] name;
 };
 
 struct song {
+    char[] type;
     int index;
     char[] name;
     boolean fav;
@@ -18,6 +30,7 @@ struct song {
 };
 
 struct playlist {
+    char[] type;
     int song_num;
     char[] name;
 };

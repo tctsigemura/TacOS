@@ -24,3 +24,5 @@ public void _putCh(char c);
 public void _putStr(char[] str);
 public void _putDec(int val, int width);
 public void _show_psbar();
+
+// モード|ページ遷移

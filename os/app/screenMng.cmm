@@ -4,6 +4,7 @@
  * 画面描画を担当する。基本的にたコンポーネントから見た時に直感的な使い方ができるように設計がしてある
 */
 
+#include <appUtil.hmm>
 
 #include "settingsMng.hmm"
 #include "spi.hmm"
@@ -13,10 +14,54 @@
 //
 // 変数
 //
-int cursor_x = 0;
-int cursor_y = 0;
+// --- ページ ---
+// 遷移はselect, backによって行う
+int now_page = 0;
+int page_top = 0; // 現在ページのトップはinternal_objsのどこを指すのか
+// --- ディスプレイ ---
+int display_size = 6;
+int[] cursor_x = {0, 0, 0};
+int[] cursor_y = {0, 0, 0};
 char[][] screen = {"", "", "", "", "", "", "", ""};
 
+// 一旦これにキャストしてみて、型を確認する
+void[] tmp;
+typeSt tmptype;
+modeSt tmpmode;
+song tmpsong;
+album tmpalbum;
+playlist tmpplaylist;
+
+
+// --- ディスプレイの内部 ---
+// 最大3ページのため、保持しておく
+// 曲数を表示する数が最大50のため、50個用意しておく
+void[][][] internal_objs = {
+    {
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null
+    },
+    {
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null
+    },
+    {
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null
+    }
+};
+
+
+// --- 関数の戻り値 ---
 SelectedItem item = {null, null};
 
 
@@ -28,14 +73,74 @@ public SelectedItem select() {
     return item;
 }
 
+// ディスプレイに関する初期化処理
+void display_items(void[][] items, char[] title) {
+    // ページを初期化する
+    int i;
+    for (i=0; i<50; i=i+1) {
+        internal_objs[now_page][i] = null;
+    }
 
+    // ページのタイトルをセットする
+    screen[0] = title;
+
+    // 現在のオブジェクトを保存する
+    for (i=0; i<50; i=i+1) {
+        internal_objs[0][i] = items[i];
+
+    }
+
+    // 現在のページの1番上にオブジェクトを配置する
+    // itemsの数を超えないように、6つループする
+    for (i=0; i<display_size; i=i+1) {
+        if (items[i] == null) {
+            break;
+        }
+        if (strCmp(tmptype.type, "mode") == 0) {
+            tmp = tmptype;
+            tmpmode = tmp;
+            screen[i] = tmpmode.name;
+        } else if(strCmp(tmptype.type, "song") == 0) {
+            tmp = tmptype;
+            tmpsong = tmp;
+            screen[i] = tmpsong.name;
+        } else if(strCmp(tmptype.type, "album") == 0) {
+            tmp = tmptype;
+            tmpalbum = tmp;
+            screen[i] = tmpalbum.name;
+        } else if(strCmp(tmptype.type, "playlist") == 0) {
+            tmp= tmptype;
+            tmpplaylist = tmp;
+            screen[i] = tmpplaylist.name;
+        }
+    }
+}
+
+
+
+// こんなかでページの遷移とかはやる
 public void back() {}
 
 
-public void up_cursor() {}
+// --- カーソルを1つ上に動かす ---
+public void up_cursor() {
+    if (cursor_y[now_page] == 0) {
+    } else {
+        cursor_y[now_page] = cursor_y[now_page] - 1;
+    }
+}
 
 
-public void down_cursor() {}
+// --- カーソルを1番下に動かす ---
+public void down_cursor() {
+    // カーソルが1番下にある?
+    if (cursor_y[now_page] == 5) {
+        // if (internal_objs[now_page][page_top+7] != null)
+
+    } else {
+        cursor_y[now_page] = cursor_y[now_page] + 1;
+    }
+}
 
 
 public void clear() {}
