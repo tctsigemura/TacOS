@@ -121,6 +121,8 @@ song[] s = {
     {9,"JO9",true,"SAKI","/urararara/saki"}
 };
 char[] pltname = "oota";
+playlist[] pl;
+album[] al;
 
 //-----------------------------------------------------------------------------
 // MP3 プレーヤのメインプロセス
@@ -131,9 +133,23 @@ public void shellMain() {
   spiResetMp3();                                    //   プロセスが実行する
   mp3FilesInit();                                   // ファイル一覧を作る
   demoScreen();                                     // 画面を初期化
-
-  for (;;) {
+  if(true){
+    // fetch_songs(lib.name, lib.sort);
+    // dbgPutStr(s[0].name);
+    // fetch_albums();
+    // dbgPutStr(al[0].name);
+    // fetch_playlist();
+    // dbgPutStr(pl[0].name);
+    char[][] art = fetch_artists();
+    delete_playlist(pltname,s);
+    dbgPutStr(create_playlist(s));
+    add_song(pltname,s);
+    remove_song(pltname,s);
+  }
+  for (;;) {    
+    //dbgPutStr(create_playlist(s));
     int sw = readSw();
+    //dbgPutStr(create_playlist(s));
     int num = swToNum(sw);
     if (num==6) {                                   // 6 番のスイッチが押された
       dbgPutStr("stop\n");

@@ -2,6 +2,8 @@
 #include "playlistMng.hmm"
 #include <string.hmm>
 #include "util.hmm"
+#include "mp3Files.hmm"
+#include <stdio.hmm>
 
 song[] s = {
     {1,"JO1",false,"URA","/urararara/ura"},
@@ -16,23 +18,60 @@ song[] s = {
 };
 
 public void delete_playlist(char[] pltname, song[] songs) {
-    s[0].index = 1;
-    s[0].name = pltname;
-    s[0].fav = true;
-    s[0].artist = "hage";
-    s[0].path = "tanaka";
+    //songs[0].index = 1;
+    for (int i=1; i<=5; i=i+1){
+        if(mp3FilesGetName(i) == pltname);
+            songs[i].index = 0;
+            songs[i].name = null;
+            songs[i].fav = false;
+            songs[i].artist = null;
+            songs[i].path = null;
+    }
 }
 
+char[][] fnames = array(5, 13);                     // 12345678.123
+int numFile;                                        // ファイルの個数
+char[] path = array(18);                            // /MP3/12345678.123
+char[] playlistDir = array(18);
+char[] playlistToPath(char[] fname, char[] playlistDir) {
+  strCpy(path, playlistDir);
+  strCat(path, "/");
+  strCat(path, fname);
+  return path;
+}
+
+
+
 public char[] create_playlist(song[] songs){
-    char[] char_test_create_playlist = s[0].name;
-    return char_test_create_playlist;
+    playlistDir = "/playlist1";
+    char[] playlistPath = playlistToPath(path, playlistDir);
+    //return char_test_create_playlist;
+    return playlistPath;
 }
 
 public void add_song(char[] pltname, song[] songs){
-    songs[0].name = pltname;
+    // playlistDir = pltname;
+    playlistDir = "/playlist1";
+    // fopen(playlistDir,"a");
+    // songs[0].name = pltname;
+    char[] path = "playlist1_numbers.txt";
+    path = strCat(playlistDir,path);
+    FILE file_pointer;
+    file_pointer = fopen(path, "a");
+    int i = 0;  //どの音楽を入れるのか
 
+    if (file_pointer == null) {
+        dbgPutStr("error : can not open playlist file\n");
+    }else {
+        fprintf(file_pointer, "%d\n", songs[i].index);
+    }
+    
 }
 
 public void remove_song(char[] pltname, song[] songs){
-    songs[0].name = pltname;
+    playlistDir = "/playlist1";
+    path = strCat(playlistDir,pltname);
+    FILE file_pointer;
+    file_pointer = fopen(path,"w");
+
 }
