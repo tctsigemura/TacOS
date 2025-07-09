@@ -10,10 +10,10 @@
 //
 // --- 関数 ---
 //
-void main();
-int get_sw();
-O_ScrnSt act_screen(I_ScrnSt input);
-O_StrmSt act_stream(I_StrmSt input);
-O_LibSt act_libracy(I_LibSt input);
-O_PlistSt act_playlist(I_PlistSt input);
-void act_settings(I_StgsSt input);
+// void main();
+// int get_sw();
+// O_ScrnSt act_screen(I_ScrnSt input);
+// O_StrmSt act_stream(I_StrmSt input);
+// O_LibSt act_libracy(I_LibSt input);
+// O_PlistSt act_playlist(I_PlistSt input);
+// void act_settings(I_StgsSt input);

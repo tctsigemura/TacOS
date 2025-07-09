@@ -2,44 +2,44 @@
  * TacOS Source Code 2025 CE2実験
  * author: i19ishihara, i19urasaki, i19oota
 */
-#include "screenMng.hmm"
-#include "settingsMng.hmm"
-#include "streamMng.hmm"
-#include "playlistMng.hmm"
-#include "libMng.hmm"
-#include "stdio.hmm"
-#include <kernel.hmm>
-#include "structures.hmm"
+// #include "screenMng.hmm"
+// #include "settingsMng.hmm"
+// #include "streamMng.hmm"
+// #include "playlistMng.hmm"
+// #include "libMng.hmm"
+// #include "stdio.hmm"
+// #include <kernel.hmm>
+// #include "structures.hmm"
 
 
-I_LibSt lib = {"type","name","sort"};
-song[] s = {
-    {1,"JO1",false,"URA","/urararara/ura"},
-    {2,"JO2",false,"URA","/urararara/ura"},
-    {3,"JO3",false,"URA","/urararara/ura"},
-    {4,"JO4",false,"URA","/urararara/ura"},
-    {5,"JO5",false,"SAKI","/urararara/saki"},
-    {6,"JO6",false,"SAKI","/urararara/saki"},
-    {7,"JO7",false,"SAKI","/urararara/saki"},
-    {8,"JO8",false,"SAKI","/urararara/saki"},
-    {9,"JO9",true,"SAKI","/urararara/saki"}
-};
-char[] pltname = "oota";
+// I_LibSt lib = {"type","name","sort"};
+// song[] s = {
+//     {1,"JO1",false,"URA","/urararara/ura"},
+//     {2,"JO2",false,"URA","/urararara/ura"},
+//     {3,"JO3",false,"URA","/urararara/ura"},
+//     {4,"JO4",false,"URA","/urararara/ura"},
+//     {5,"JO5",false,"SAKI","/urararara/saki"},
+//     {6,"JO6",false,"SAKI","/urararara/saki"},
+//     {7,"JO7",false,"SAKI","/urararara/saki"},
+//     {8,"JO8",false,"SAKI","/urararara/saki"},
+//     {9,"JO9",true,"SAKI","/urararara/saki"}
+// };
+// char[] pltname = "oota";
 
-O_LibSt o_lib;
-public O_LibSt act_libracy(I_LibSt i_lib){
-    o_lib.type = i_lib.sort;
-    o_lib.item = i_lib.name;
-    return o_lib;
-}
+// O_LibSt o_lib;
+// public O_LibSt act_libracy(I_LibSt i_lib){
+//     o_lib.type = i_lib.sort;
+//     o_lib.item = i_lib.name;
+//     return o_lib;
+// }
 
-void main(){
-    fetch_songs(lib.name, lib.sort);
-    fetch_albums();
-    fetch_playlist();
-    fetch_artists();
-    delete_playlist(pltname,s);
-    char[] test_box = create_playlist(s);
-    add_song(pltname,s);
-    remove_song(pltname,s);
-}
+// void main(){
+//     fetch_songs(lib.name, lib.sort);
+//     fetch_albums();
+//     fetch_playlist();
+//     fetch_artists();
+//     delete_playlist(pltname,s);
+//     char[] test_box = create_playlist(s);
+//     add_song(pltname,s);
+//     remove_song(pltname,s);
+// }

@@ -3,39 +3,29 @@
 #include <string.hmm>
 
 song[] s = {
-    {1,"JO1",false,"URA","/urararara/ura"},
-    {2,"JO2",false,"URA","/urararara/ura"},
-    {3,"JO3",false,"URA","/urararara/ura"},
-    {4,"JO4",false,"URA","/urararara/ura"},
-    {5,"JO5",false,"SAKI","/urararara/saki"},
-    {6,"JO6",false,"SAKI","/urararara/saki"},
-    {7,"JO7",false,"SAKI","/urararara/saki"},
-    {8,"JO8",false,"SAKI","/urararara/saki"},
+    // {1,"JO1",false,"URA","/urararara/ura"},
+    // {2,"JO2",false,"URA","/urararara/ura"},
+    // {3,"JO3",false,"URA","/urararara/ura"},
+    // {4,"JO4",false,"URA","/urararara/ura"},
+    // {5,"JO5",false,"SAKI","/urararara/saki"},
+    // {6,"JO6",false,"SAKI","/urararara/saki"},
+    // {7,"JO7",false,"SAKI","/urararara/saki"},
+    // {8,"JO8",false,"SAKI","/urararara/saki"},
     {9,"JO9",true,"SAKI","/urararara/saki"}
 };
 
 album[] al;// = {"1","name"};
 playlist[] pl;
 
-char[][] fnames = array(5, 13);                     // 12345678.123
-int numFile;                                        // ファイルの個数
-
-char[] mp3Dir = "/MP3";
-char[] path = array(18);                            // /MP3/12345678.123
-
-char[] fnameToPath(char[] fname) {
-  strCpy(path, mp3Dir);
-  strCat(path, "/");
-  strCat(path, fname);
-  return path;
-}
 
 public song[] fetch_songs(char[] name, char[] sort) {
+    //mp3FilesGetName
     s[0].index = 1;
-    s[0].name = name;
+    s[0].name = "name";
     s[0].fav = true;
     s[0].artist = "hage";
-    s[0].path = fnameToPath("tanaka");
+    s[0].path = "tanaka";
+    //s[0].path = fnameToPath("tanaka");
     return s;
 }
 
