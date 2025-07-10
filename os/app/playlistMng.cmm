@@ -2,9 +2,12 @@
 #include "playlistMng.hmm"
 #include <string.hmm>
 #include "util.hmm"
+#include "structures.hmm"
 #include "mp3Files.hmm"
 #include <stdio.hmm>
 #include <stdlib.hmm>
+#include <syslib.hmm>
+#include <fs.hmm>
 
 
 char[][] fnames = array(5, 13);                     // 12345678.123
@@ -20,56 +23,54 @@ char[] playlistToPath(char[] fname, char[] playlistDir) {
 }
 
 public void delete_playlist(char[] pltname, song[] songs) {
-    // for (int i=1; i<=5; i=i+1){
-    //     if(mp3FilesGetName(i) == pltname);
-    //         songs[i].index = 0;
-    //         songs[i].name = null;
-    //         songs[i].fav = false;
-    //         songs[i].artist = null;
-    //         songs[i].path = null;
-    // }
+    char[] filepath;
+    //filepath = malloc(18);
+    strCpy(filepath, "/MP3/");
+    strCat(filepath, pltname);
+    remove(filepath);
+    //free(filepath);
 }
-
-public char[] create_playlist(song[] songs){
-    playlistDir = malloc(10);
-    playlistDir = "/playlist1";
-    
-    playlistPath = playlistToPath(path, playlistDir);
-    //return char_test_create_playlist;
-    free(playlistDir);
-    
-    return playlistPath;
+//typedef FILE;
+public char[] create_playlist(song[] songs) {
+    char[] new_playlist_name;
+    new_playlist_name = "new_playlist.m3u";
+    char[] filepath;
+    int i = 0;
+    FILE fp;
+    strCpy(filepath, "/MP3/");
+    strCat(filepath, new_playlist_name);
+    fp = open(filepath, "w");
+    if (fp == null) {
+        return null;
+    }
+    while (songs[i].path != null) {
+        fprintf(fp, songs[i].path, strLen(songs[i].path));
+        fprintf(fp, "\n", 1);
+        i = i + 1;
+    }
+    fclose(fp);
+    return new_playlist_name;
 }
 
 public void add_song(char[] pltname, song[] songs){
-    playlistDir = malloc(10);
-    // playlistDir = pltname;
-    playlistDir = "/playlist";
-    strCat(playlistDir,"/");
-    path = malloc(13);
-    path = "playlist1.txt";
-    path = strCat(playlistDir,path);
-    //FILE file_pointer;
-    //file_pointer = fopen(path, "a");
-    int i = 0;  //どの音楽を入れるのか
+    char[] filepath;
+    //FILE fp;
+    playlistDir = "/playlist1";
+    strCat(filepath, pltname);
 
-    // if (file_pointer == null) {
-    //     dbgPutStr("error : can not open playlist file\n");
-    // }else {
-    //     fprintf(file_pointer, "%d\n", songs[i].index);
-    // }
-    free(path);
-    free(playlistDir);
+    FILE fp = fopen(filepath, "a");
+    if (fp == null) {
+        return;
+    }
+
+    fprintf(fp, songs[0].path, strLen(songs[0].path));
+    fprintf(fp, "\n", 1);
+
+    fclose(fp);
 }
 
 public void remove_song(char[] pltname, song[] songs){
-    playlistDir = malloc(10);
-    playlistDir = "/playlist";
-    path = malloc(18);
-    path = "playlist1.txt";
-    strCat(playlistDir,"/");
-    path = strCat(playlistDir,path);// playlist/playlist1_numbers.exe
-    //FILE file_pointer;
-    //file_pointer = fopen(path,"w");
-    free(playlistDir);
+    playlistDir = "/playlist1";
+    path = strCat(playlistDir,pltname);
+    remove(path);
 }
