@@ -39,14 +39,16 @@ public void delete_playlist(char[] pltname) {
     rmDir(filepath);
 }
 
+
+
 // public char[] create_playlist(char[] paths) {
-//     char[] new_playlist_name = "new_playlist.m3u";
+//     // char[] new_playlist_name = "new_playlist.m3u";
 //     char[] filepath;
 //     int i = 0;
 //     int fd;
 
 //     strCpy(filepath, "/MP3/");
-//     strCat(filepath, new_playlist_name);
+//     strCat(filepath, playlist_name[0]);
     
 //     fd = open(filepath, WRITE_MODE);
 //     if (fd < 0) {
@@ -61,6 +63,22 @@ public void delete_playlist(char[] pltname) {
 //     close(fd);
 //     return new_playlist_name;
 // }
+
+public void create_playlist(char[] paths) {
+    // char[] new_playlist_name = "new_playlist.m3u";
+    char[] filepath;
+    int i = 0;
+    int fd;
+
+    strCpy(filepath, "/MP3/");
+    strCat(filepath, paths);
+    strCat(filepath, ".txt");
+    fd = open(filepath,O_APPEND);
+    if(fd < 0){
+        creat(filepath);
+    }
+    close(fd);
+}
 
 public void add_song(char[] pltname, char[] song_num){
     char[] filepath;
