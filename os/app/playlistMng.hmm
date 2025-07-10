@@ -9,5 +9,5 @@
 
 public void delete_playlist(char[] pltname);
 public char[] create_playlist(char[] paths);
-public void add_song(char[] pltname,song[] songs);
+public void add_song(char[] pltname,char[] song_num);
 public void remove_song(char[] pltname,char[] path);

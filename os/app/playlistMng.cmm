@@ -1,4 +1,3 @@
-#include "fs.hmm"
 #include "playlistMng.hmm"
 #include <string.hmm>
 #include "util.hmm"
@@ -9,22 +8,27 @@
 #include <mm.hmm>
 #include <syslib.hmm>
 #include <fs.hmm>
+#include "lcd.hmm"
 
-// #define READ_MODE   0
-// #define WRITE_MODE  1
-// #define APPEND_MODE 2
+// char[] pltCat(char[] word){
+//     char[] filepath ;
+//     strCpy(filepath, "/MP3/pltname/");
+//     strCat(filepath, word);
+//     // strCat(filepath, "/");
+//     return filepath;
+// }
 
 //char[][] fnames = array(5, 13);                     // 12345678.123
 // int numFile;                                        // ファイルの個数
-char[] path = array(18);                            // /MP3/12345678.123
+// char[] path = array(18);                            // /MP3/12345678.123
 // char[] playlistDir = array(18);
 // char[] playlistPath = array(18);
-char[] playlistToPath(char[] fname, char[] playlistDir) {
-  strCpy(path, playlistDir);
-  strCat(path, "/");
-  strCat(path, fname);
-  return path;
-}
+// char[] playlistToPath(char[] fname, char[] playlistDir) {
+//   strCpy(path, playlistDir);
+//   strCat(path, "/");
+//   strCat(path, fname);
+//   return path;
+// }
 
 public void delete_playlist(char[] pltname) {
     char[] filepath;
@@ -35,43 +39,57 @@ public void delete_playlist(char[] pltname) {
     rmDir(filepath);
 }
 
-public char[] create_playlist(char[] paths) {
-    char[] new_playlist_name = "new_playlist.m3u";
-    char[] filepath;
-    int i = 0;
-    int fd;
+// public char[] create_playlist(char[] paths) {
+//     char[] new_playlist_name = "new_playlist.m3u";
+//     char[] filepath;
+//     int i = 0;
+//     int fd;
 
-    strCpy(filepath, "/MP3/");
-    strCat(filepath, new_playlist_name);
+//     strCpy(filepath, "/MP3/");
+//     strCat(filepath, new_playlist_name);
     
-    fd = open(filepath, WRITE_MODE);
-    if (fd < 0) {
-        return null;
-    }
+//     fd = open(filepath, WRITE_MODE);
+//     if (fd < 0) {
+//         return null;
+//     }
 
-    while (paths != null) {
-        write(fd, paths, strLen(paths));
-        write(fd, "\n", 1);
-        i = i + 1;
-    }
-    close(fd);
-    return new_playlist_name;
-}
+//     while (paths != null) {
+//         write(fd, paths, strLen(paths));
+//         write(fd, "\n", 1);
+//         i = i + 1;
+//     }
+//     close(fd);
+//     return new_playlist_name;
+// }
 
-public void add_song(char[] pltname, song[] songs){
+public void add_song(char[] pltname, char[] song_num){
     char[] filepath;
     int fd;
 
-    strCpy(filepath, "/MP3/");
-    strCat(filepath, pltname);
+    // strCpy(filepath, "/MP3/");
+    // strCat(filepath, pltname);
+    // strCat(filepath, "/");
+    // strCat(filepath, name);      cat使いすぎるとフリーズする
 
-    fd = open(filepath, APPEND_MODE);
+    
+
+    // fd = open(filepath, APPEND_MODE);
+    // pltname = pltCat(pltname);
+    dbgPutStr(pltname);
+    fd = open(pltname, O_APPEND);    //ここでフリーズ
+    dbgPutStr("file open\n");
     if (fd < 0) {
-        return;
+        creat(pltname);
+        dbgPutStr("not found file\n");
+        fd = open(pltname, O_APPEND);
+        //return;
     }
 
-    write(fd, songs[0].path, strLen(songs[0].path));
+    write(fd, song_num, 1);
     write(fd, "\n", 1);
+
+    locateXY(4,1);
+    putStr(song_num);                                 // 6番のスイッチ
 
     close(fd);
 }
@@ -87,3 +105,5 @@ public void remove_song(char[] pltname, char[] path){ //消したい曲のファ
     // dbgPutStr("\n");
     remove(path);
 }
+
+

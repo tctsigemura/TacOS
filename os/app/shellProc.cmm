@@ -160,10 +160,14 @@ public void shellMain() {
     char[] ppath = "MP3/pltname/pltname.mp3";
     delete_playlist(nname);
     remove_song(nname,ppath);
+    
+    // add_song("MP3/pltname/pltlis.txt","4");
+    // add_song("MP3/pltname/pltlis.txt","5");
+    
     // delete_playlist("pltname");
     // remove_song("pltname/","MP3/pltname/pltname.mp3");
   }
-  // add_song(pltname,s);
+  add_song("MP3/pltname/pltlis1.txt","3");
   // dbgPutStr("test_7\n");
   //s = malloc(23);
   // dbgPutStr("test_8\n");
