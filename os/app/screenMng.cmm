@@ -1,5 +1,5 @@
 /*
- * # 画面描画を担当するコンポーネント
+ * 画面描画を担当するコンポーネント
  *
  * 画面描画を担当する。基本的にたコンポーネントから見た時に直感的な使い方ができるように設計がしてある
 */
@@ -9,6 +9,7 @@
 #include "settingsMng.hmm"
 #include "spi.hmm"
 #include "structures.hmm"
+#include "font.hmm"
 
 
 //
@@ -35,28 +36,28 @@ playlist tmpplaylist;
 
 // --- ディスプレイの内部 ---
 // 最大3ページのため、保持しておく
-// 曲数を表示する数が最大50のため、50個用意しておく
+// 曲数を表示する数が最大50のため、50個用意しておく, 最後のnullは末尾チェック
 void[][][] internal_objs = {
     {
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null,
-        null,null,null,null,null,null,null,null,null,null
+        null,null,null,null,null,null,null,null,null,null, null
     },
     {
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null,
-        null,null,null,null,null,null,null,null,null,null
+        null,null,null,null,null,null,null,null,null,null, null
     },
     {
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null,
-        null,null,null,null,null,null,null,null,null,null
+        null,null,null,null,null,null,null,null,null,null, null
     }
 };
 
@@ -71,6 +72,13 @@ SelectedItem item = {null, null};
 // --- ディスプレイに影響を及ぼす操作 ---
 public SelectedItem select() {
     return item;
+}
+
+// --- 現在のページをクリアする
+public void clear() {
+    for (int i=0; i<8; i=i+1) {
+        screen[i] = "";
+    }
 }
 
 // ディスプレイに関する初期化処理
@@ -119,6 +127,7 @@ void display_items(void[][] items, char[] title) {
 
 
 // こんなかでページの遷移とかはやる
+// 一旦画面をクリアする, now_pageを更新する, now_pageに従ってinternal_objsとcursorを更新する
 public void back() {}
 
 
@@ -135,7 +144,14 @@ public void up_cursor() {
 public void down_cursor() {
     // カーソルが1番下にある?
     if (cursor_y[now_page] == 5) {
-        // if (internal_objs[now_page][page_top+7] != null)
+        if (internal_objs[now_page][page_top+7] != null) {
+            // 変数の更新
+            page_top = page_top + 1;
+            
+            // 画面の描画
+            clear();
+
+        }
 
     } else {
         cursor_y[now_page] = cursor_y[now_page] + 1;
@@ -143,20 +159,51 @@ public void down_cursor() {
 }
 
 
-public void clear() {}
-
+char[] locateCom = { '\xb0',   // page address
+                     '\x10',   // column address Hi = 0x00
+                     '\x00',   // column address Lo = 0x00
+                     '\xff' }; // EOF
 
 // --- ディスプレイの情報を取得する操作 ---
-public void _locateXY(int x, int y) {}
+public void _locateXY(int x, int y) {
+  int x8 = x * 8;
+  locateCom[0] = chr(0xb0 | y);             // page address
+  locateCom[1] = chr(0x10 | (x8>>4));       // column address Hi
+  locateCom[2] = chr(0x00 + (x8 & 0x0f));   // column address Lo
+  spiWriteLcdCom(locateCom);
+}
 
+// カーソル位置に１文字表示
+public void _putCh(char c) {
+  spiWriteLcdDat(font(c), 8);
+}
 
-public void _putCh(char c) {}
+// カーソル位置に文字列表示
+public void _putStr(char[] str) {
+  for (int i=0; str[i]!='\0'; i=i+1) {
+    _putCh(str[i]);
+  }
+}
 
-
-public void _putStr(char[] str) {}
-
-
-public void _putDec(int val, int width){}
-
+// カーソル位置に桁数を指定して右詰めで10進数を表示
+char[] decBuf = array(6);                   // 16bit int なら最大5桁
+public void _putDec(int val, int width) {
+  int v = val;
+  int w = 1;
+  if (v==0) {
+    decBuf[0]='0';
+  } else {
+    for (w=0; v!=0; w=w+1) {
+      decBuf[w]=chr((v % 10) + ord('0'));
+      v = v / 10;
+    }
+  }
+  for (int i=w; i<width; i=i+1) {           // 空白で桁数を合わせる
+    _putCh(' ');
+  }
+  for (w=w-1; w>=0; w=w-1) {
+    _putCh(decBuf[w]);
+  }
+}
 
 public void _show_psbar() {}

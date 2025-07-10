@@ -312,7 +312,7 @@ public void utilInit() {
   MEM = _ItoA(0);                                   // MEMは0x0000を指すchar型
   WMEM = _ItoA(0);
 #ifdef DEBUG
-  ftFlag = false;                                   // デバッグモードでは
+  ftFlag = true;                                   // デバッグモードでは
   rnFlag = ((in(0x2e) & 3)!=0);                     //   メッセージが多いので
                                                     //    bluetooth だけに出力
 #else
