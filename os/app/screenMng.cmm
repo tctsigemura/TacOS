@@ -250,32 +250,35 @@ public void display_items(void[][] items, char[] title, char[] move) {
         }
     }
     // ページが戻る処理の場合
-    else if (strCmp(move,"back") == 0) {
-        if (now_page == 0) {
-            return ;
-        } else {
-            now_page = now_page - 1;
-            clear();
-        }
-    }
+    // else if (strCmp(move,"back") == 0) {
+    //     if (now_page == 0) {
+    //        return ;
+    //    } else {
+    //        now_page = now_page - 1;
+    //        clear();
+    //    }
+    // }
 
     // 共通処理
     Title = title;
     display_screen();
 
     _locateXY(0, cursor[now_page] + 2); _putCh(CURSOR);
-
-    // ここ正体不明
-    if(screen[now_page][10] != null) {
-        dbgPutStr("dekiteruyo");
-    }
 }
 
 
 
 // こんなかでページの遷移とかはやる
-// 一旦画面をクリアする, now_pageを更新する, now_pageに従ってinternal_objsとcursorを更新する
-public void back() {}
+// 一旦画面をクリアする, now_pageを更新する, now_pageに従ってとcursorを更新する
+public void back() {
+    if (now_page != 0) {
+        init_screen(now_page);
+        now_page = now_page - 1;
+        clear();
+        _locateXY(0, cursor[now_page] + 2); _putCh(CURSOR);
+        display_screen();
+    }
+}
 
 
 // --- カーソル上移動入力 ---
