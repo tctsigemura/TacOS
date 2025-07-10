@@ -5,16 +5,20 @@
 #include "structures.hmm"
 #include "mp3Files.hmm"
 #include <stdio.hmm>
-#include <stdlib.hmm>
+//#include <stdlib.hmm>
+#include <mm.hmm>
 #include <syslib.hmm>
 #include <fs.hmm>
 
+// #define READ_MODE   0
+// #define WRITE_MODE  1
+// #define APPEND_MODE 2
 
-char[][] fnames = array(5, 13);                     // 12345678.123
-int numFile;                                        // ファイルの個数
+//char[][] fnames = array(5, 13);                     // 12345678.123
+// int numFile;                                        // ファイルの個数
 char[] path = array(18);                            // /MP3/12345678.123
-char[] playlistDir = array(18);
-char[] playlistPath = array(18);
+// char[] playlistDir = array(18);
+// char[] playlistPath = array(18);
 char[] playlistToPath(char[] fname, char[] playlistDir) {
   strCpy(path, playlistDir);
   strCat(path, "/");
@@ -22,55 +26,64 @@ char[] playlistToPath(char[] fname, char[] playlistDir) {
   return path;
 }
 
-public void delete_playlist(char[] pltname, song[] songs) {
+public void delete_playlist(char[] pltname) {
     char[] filepath;
-    //filepath = malloc(18);
     strCpy(filepath, "/MP3/");
     strCat(filepath, pltname);
-    remove(filepath);
-    //free(filepath);
+    dbgPutStr(filepath);
+    dbgPutStr("\n");
+    rmDir(filepath);
 }
-//typedef FILE;
-public char[] create_playlist(song[] songs) {
-    char[] new_playlist_name;
-    new_playlist_name = "new_playlist.m3u";
+
+public char[] create_playlist(char[] paths) {
+    char[] new_playlist_name = "new_playlist.m3u";
     char[] filepath;
     int i = 0;
-    FILE fp;
+    int fd;
+
     strCpy(filepath, "/MP3/");
     strCat(filepath, new_playlist_name);
-    fp = open(filepath, "w");
-    if (fp == null) {
+    
+    fd = open(filepath, WRITE_MODE);
+    if (fd < 0) {
         return null;
     }
-    while (songs[i].path != null) {
-        fprintf(fp, songs[i].path, strLen(songs[i].path));
-        fprintf(fp, "\n", 1);
+
+    while (paths != null) {
+        write(fd, paths, strLen(paths));
+        write(fd, "\n", 1);
         i = i + 1;
     }
-    fclose(fp);
+    close(fd);
     return new_playlist_name;
 }
 
 public void add_song(char[] pltname, song[] songs){
     char[] filepath;
-    //FILE fp;
-    playlistDir = "/playlist1";
+    int fd;
+
+    strCpy(filepath, "/MP3/");
     strCat(filepath, pltname);
 
-    FILE fp = fopen(filepath, "a");
-    if (fp == null) {
+    fd = open(filepath, APPEND_MODE);
+    if (fd < 0) {
         return;
     }
 
-    fprintf(fp, songs[0].path, strLen(songs[0].path));
-    fprintf(fp, "\n", 1);
+    write(fd, songs[0].path, strLen(songs[0].path));
+    write(fd, "\n", 1);
 
-    fclose(fp);
+    close(fd);
 }
 
-public void remove_song(char[] pltname, song[] songs){
-    playlistDir = "/playlist1";
-    path = strCat(playlistDir,pltname);
+public void remove_song(char[] pltname, char[] path){ //消したい曲のファイル指定と消したい曲を指定
+    // char[] filepath ;
+    // strCpy(filepath, "/MP3/");  //MP3/pltname/pltname.mp3
+    // strCat(filepath, pltname);
+    // //strCat(filepath, "/");
+    // strCat(name, ".mp3");
+    // strCat(filepath, name);
+    dbgPutStr(path);
+    // dbgPutStr("\n");
     remove(path);
 }

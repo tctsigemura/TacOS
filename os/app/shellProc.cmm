@@ -40,7 +40,8 @@
 #include "playlistMng.hmm"
 #include "libMng.hmm"
 #include "stdio.hmm"
-#include <stdlib.hmm>
+//#include <stdlib.hmm>
+#include <mm.hmm>
 
 //-----------------------------------------------------------------------------
 // スイッチの読み取り
@@ -109,41 +110,38 @@ void asta(int y) {
 
 
 
-I_LibSt lib = {"type","name","sort"};
-song[] s;
-// s = {
-//   {1,"JO1",false,"URA","/urararara/ura"},
-//   {2,"JO2",false,"URA","/urararara/ura"},
-//   {3,"JO3",false,"URA","/urararara/ura"},
-//   {4,"JO4",false,"URA","/urararara/ura"},
-//   {5,"JO5",false,"SAKI","/urararara/saki"},
-//   {6,"JO6",false,"SAKI","/urararara/saki"},
-//   {7,"JO7",false,"SAKI","/urararara/saki"},
-//   {8,"JO8",false,"SAKI","/urararara/saki"},
-//   {9,"JO9",true,"SAKI","/urararara/saki"}
-// };
-char[] pltname;// = "oota";
-playlist[] pl;
-album[] al;
+// I_LibSt lib;
+
+//  song[] s;
+
+// char[] pltname;// = "oota";
+// playlist[] pl;
+// album[] al;
 
 //-----------------------------------------------------------------------------
 // MP3 プレーヤのメインプロセス
 //-----------------------------------------------------------------------------
 // ここからプロセスの実行が始まる
 public void shellMain() {
-  dbgPutStr("test_1\n");
-  pltname = malloc(5);
-  s = malloc(10);
-  dbgPutStr("test_2\n");
+  // lib = malloc(1);
+  // pl = malloc(1);
+  // al = malloc(1);
+  // free(lib);
+  // free(pl);
+  // free(al);
+  // dbgPutStr("test_1\n");
+  // pltname = malloc(5);
+  // dbgPutStr("test_2\n");
   spiResetLcd();                                    // sleepを使用するので
   spiResetMp3();                                    //   プロセスが実行する
   mp3FilesInit();                                   // ファイル一覧を作る
-  dbgPutStr("test_3\n");
+  //dbgPutStr("test_3\n");
   demoScreen();                                     // 画面を初期化
-  dbgPutStr("test_4\n");
-  lib.name = "kento";
-  s = fetch_songs(lib.name, lib.sort);
-  dbgPutStr(s[0].name);
+  //dbgPutStr("test_4\n");
+  // lib.name = "kento";
+  // s = fetch_songs(lib.name, lib.sort);
+  // free(lib);
+  // dbgPutStr(s[0].name);
   // fetch_albums();           ここでフリーズする．
   // dbgPutStr(al[0].name);
   // fetch_playlist();
@@ -151,25 +149,36 @@ public void shellMain() {
   // char[][] art = malloc(10);
   // art = fetch_artists();
   // dbgPutStr(art[0]);
-  dbgPutStr("test_5\n");
+  // dbgPutStr("test_5\n");
   // free(art);
-  //delete_playlist(pltname,s);
-  //dbgPutStr(create_playlist(s));
-  dbgPutStr("test_6\n");
+  
+  //create_playlist("playlist");
+  // dbgPutStr("test_6\n");
   int flag = 0;
   if(flag == 1){
-    add_song(pltname,s);
+    char[] nname = "pltname";
+    char[] ppath = "MP3/pltname/pltname.mp3";
+    delete_playlist(nname);
+    remove_song(nname,ppath);
+    // delete_playlist("pltname");
+    // remove_song("pltname/","MP3/pltname/pltname.mp3");
   }
-  dbgPutStr("test_7\n");
-  //remove_song(pltname,s);
-  dbgPutStr("test_8\n");
+  // add_song(pltname,s);
+  // dbgPutStr("test_7\n");
+  //s = malloc(23);
+  // dbgPutStr("test_8\n");
+  //s[0].path = "MP3/pltname/pltname.mp3";//23
+  //char[] test_path = s[0].path;
+  
+  // remove_song("pltname/",test_path);
+  // free(s);
+  
   //free(pltname);
   //free(s);
-  dbgPutStr("test_9\n");
+  // dbgPutStr("test_9\n");
   for (;;) {    
-    //dbgPutStr(create_playlist(s));
+    //dbgPutStr("yahho");
     int sw = readSw();
-    //dbgPutStr(create_playlist(s));
     int num = swToNum(sw);
     if (num==6) {                                   // 6 番のスイッチが押された
       dbgPutStr("stop\n");
