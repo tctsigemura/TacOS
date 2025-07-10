@@ -29,11 +29,14 @@
  */
 #include <kernel.hmm>
 #include <util.hmm>
+#include <appUtil.hmm>
 #include "lcd.hmm"
 #include "mp3Proc.hmm"
 #include "spi.hmm"
 #include "mp3Files.hmm"
 #include "shellProc.hmm"
+#include "structures.hmm"
+#include "screenMng.hmm"
 
 //-----------------------------------------------------------------------------
 // スイッチの読み取り
@@ -97,30 +100,75 @@ void demoScreen() {
 void asta(int y) {
   demoScreen();
   locateXY(0, y+1);
-  putCh('*');
+  putCh('>');
 }
 
 //-----------------------------------------------------------------------------
 // MP3 プレーヤのメインプロセス
 //-----------------------------------------------------------------------------
 // ここからプロセスの実行が始まる
-public void shellMain() {
+
 #ifdef DEBUG
-    dbgPutStr("yala\n");
+
+void[] tmp;
+typeSt tmptype;
+modeSt tmpmode;
+song tmpsong;
+album tmpalbum;
+playlist tmpplaylist;
+
+void[][] v = {
+    null, null, null, null, null, null, null, null, null, null, null
+};
+
+modeSt mmm = {"mode", 0, "playlist"};
+modeSt mmm0 = {"mode", 0, "playlist0"};
+modeSt mmm1 = {"mode", 0, "playlist1"};
+modeSt mmm2 = {"mode", 0, "playlist2"};
+modeSt mmm3 = {"mode", 0, "playlist3"};
+modeSt mmm4 = {"mode", 0, "playlist4"};
+modeSt mmm5 = {"mode", 0, "playlist5"};
+album aaa = {"album", 5, "demo"};
+song sss = {"song", 2, "Michi", true, "Fujii Kaze", "Michi.mp3"};
+playlist ppp = {"playlist", 3, "hello"};
 
 #endif /* ifdef DEBUG */
+
+SelectedItem s;
+public void shellMain() {
+
   spiResetLcd();                                    // sleepを使用するので
   spiResetMp3();                                    //   プロセスが実行する
   mp3FilesInit();                                   // ファイル一覧を作る
   demoScreen();                                     // 画面を初期化
+  cls();
+  v[0] = mmm;
+  v[1] = mmm0;
+  v[2] = mmm1;
+  v[3] = mmm2;
+  v[4] = mmm3;
+  v[5] = mmm4;
+  v[6] = mmm5;
+  v[7] = aaa;
+  v[8] = sss;
+  v[9] = ppp;
+
+  display_items(v, "aiueo", "mode");
   for (;;) {
     int sw = readSw();
     int num = swToNum(sw);
     if (num==6) {                                   // 6 番のスイッチが押された
-      dbgPutStr("stop\n");
-      demoScreen();                                 // 画面を初期化
       stop();
-    } else if (num>0 && mp3FilesGetName(num)!=null) { // ファイルと対応するボタン
+      s = select();
+      tmp = s.item;
+      tmptype = tmp;
+      dbgPutStr(tmptype.type);
+    } else if (num == 1) {
+        up_cursor();
+    } else if (num == 5) {
+        down_cursor();
+    }
+    else if (num>0 && mp3FilesGetName(num)!=null) { // ファイルと対応するボタン
       demoScreen();                                 // 画面を初期化
       asta(num);                                    // 再生中の曲に印を表示
       play(mp3FilesGetPath(num));                   // 再生開始
