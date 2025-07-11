@@ -179,9 +179,15 @@ public void shellMain() {
     // remove_song("pltname/","MP3/pltname/pltname.mp3");
   }
   
-  delete_playlist(playlist_name[0]);
+  /*  remove_song　明日
+  delete_playlist(playlist_name[0]);//
+  create_playlist(playlist_name[0]);
   add_song(playlist_name[0],s,0); //第3引数，数字は曲のインデックスを入れる←選ばれた曲の番号が入る
   add_song(playlist_name[0],s,1);
+  remove_song(playlist_name[0],s[0].path);
+  */
+
+  fetch_songs("name","sort");
   // for (int i=0; i<9; i=i+1) {  
   //   create_playlist(playlist_name[i]);
   // }

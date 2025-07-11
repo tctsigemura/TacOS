@@ -7,6 +7,7 @@
 #include <string.hmm>
 #include "structures.hmm"
 #include <stdlib.hmm>
+#include <syslib.hmm>
 
 song[] s = {
     {1,"name",true,"art","tanaka"},
@@ -15,9 +16,43 @@ song[] s = {
 
 // album[] al;// = {"1","name"};
 // playlist[] pl;
+char[][] album_name = {"al1","al2","al3","al4","al5"};
+
+char[] pltCat(char[] word){
+    char[] filepath = "              ";
+    strCpy(filepath, "/Album/");
+    strCat(filepath, word);
+    strCat(filepath, ".txt");
+    return filepath;
+}
+
+void create_album(char[] paths) {
+    // char[] new_playlist_name = "new_playlist.m3u";
+    char[] filepath;
+    int i = 0;
+    int fd;
+    filepath = pltCat(paths);
+    // strCpy(filepath, "/Playlist/");
+    // strCat(filepath, paths);
+    // strCat(filepath, ".txt");
+    fd = open(filepath,0);
+    dbgPutStr("OK1\n");
+    if(fd < 0){
+        creat(filepath);
+    }
+    dbgPutStr("OK2\n");
+
+    close(fd);
+    dbgPutStr("OK3\n");
+
+}
 
 char[][] mp3path;
-public song[] fetch_songs(char[] name, char[] sort) {
+public song[] fetch_songs(char[] name, char[] sort) {//nameはアルバム名，プレイリスト名で
+    for(int i=0; i<5; i=i+1 ){
+        create_album(album_name[i]);
+    }
+    
     // if(sort == "artist"){
     //     // for(int i=0; i<strLen(name); i=i+1){
     //     for(int i=0; i<9; i=i+1){
@@ -27,12 +62,15 @@ public song[] fetch_songs(char[] name, char[] sort) {
     // }else if(sort == "day"){
 
     // }
-    // //mp3FilesGetName
-    s[0].index = 1;
-    s[0].name = "name";
-    s[0].fav = true;
-    s[0].artist = "hage";
-    s[0].path = "tanaka";
+    int num = 0;//←どうやって決定するかが問題
+    if(mp3FilesGetName(num)!=null) {
+// フェッチソング　ソング構造体を返し
+    }
+    // s[0].index = 1;
+    // s[0].name = "name";
+    // s[0].fav = true;
+    // s[0].artist = "hage";
+    // s[0].path = "tanaka";
     // s[0].path = fnameToPath("tanaka");
     return s;
 
