@@ -110,9 +110,12 @@ void asta(int y) {
 
 
 
-// I_LibSt lib;
+I_LibSt lib ;
 
-//  song[] s;
+  song[] s = {
+    {1,"name",true,"art","tanaka"},
+    {2,"name",true,"art","michikoo"}
+  };
 
 // char[] pltname;// = "oota";
 // playlist[] pl;
@@ -140,8 +143,10 @@ public void shellMain() {
   demoScreen();                                     // 画面を初期化
   //dbgPutStr("test_4\n");
   // lib.name = "kento";
-  // s = fetch_songs(lib.name, lib.sort);
+  
   // free(lib);
+  // dbgPutStr(s[0].name);
+  // s = fetch_songs(lib.name, lib.sort);
   // dbgPutStr(s[0].name);
   // fetch_albums();           ここでフリーズする．
   // dbgPutStr(al[0].name);
@@ -159,19 +164,27 @@ public void shellMain() {
   if(flag == 1){
     char[] nname = "pltname";
     char[] ppath = "MP3/pltname/pltname.mp3";
-    delete_playlist(nname);
+    
     remove_song(nname,ppath);
-  
-    add_song("MP3/pltname/pltlis1.txt","3");
+  // create_playlist(playlist_name[0]);
+  // delete_playlist(playlist_name[0]);
+  // create_playlist(playlist_name[0]);
+    
+
+    add_song(playlist_name[0],s,0);
     // add_song("MP3/pltname/pltlis.txt","4");
     // add_song("MP3/pltname/pltlis.txt","5");
     
     // delete_playlist("pltname");
     // remove_song("pltname/","MP3/pltname/pltname.mp3");
   }
-  for (int i=0; i<9; i=i+1) {  
-    create_playlist(playlist_name[i]);
-  }
+  
+  delete_playlist(playlist_name[0]);
+  add_song(playlist_name[0],s,0); //第3引数，数字は曲のインデックスを入れる←選ばれた曲の番号が入る
+  add_song(playlist_name[0],s,1);
+  // for (int i=0; i<9; i=i+1) {  
+  //   create_playlist(playlist_name[i]);
+  // }
   
   // dbgPutStr("test_7\n");
   //s = malloc(23);
