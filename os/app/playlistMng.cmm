@@ -31,8 +31,6 @@ char[] create_filepath = "               ";
 
 // プレイリストのパスにして返す
 char[] pltCat(char[] word){
-    // ここのdbgPutStrを消したらなぜか動かなくなる
-    // セマフォの関係？文字化けしていてエラーが読めない
     strCpy(pltcat_filepath, "/Playlist/");
     strCat(pltcat_filepath, word);
     strCat(pltcat_filepath, ".txt");
@@ -184,7 +182,6 @@ public void remove_songs(char[] pltname, song[] songs) {
         close(fd);
 
         // songs[i].nameとマッチするものを削除する
-        // ここがなかなかマッチしないんだけど?
         i = 0;
         while (songs[i] != null) {
             for (j=0; j<10; j=j+1) {
@@ -201,7 +198,6 @@ public void remove_songs(char[] pltname, song[] songs) {
 
         // 最後に残っている曲を書き直す
         fd = open(filepath, WRITE_MODE);
-        // ここおかしいな cmpがおもった挙動をしていない
         for (i=0; i<10; i=i+1) {
             if (strCmp(songlist[i], "") != 0) {
                 write(fd, songlist[i], strLen(songlist[i]));
