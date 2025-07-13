@@ -1,0 +1,170 @@
+#include "playlistMng.hmm"
+#include <util.hmm>
+#include "structures.hmm"
+#include "mp3Files.hmm"
+#include <stdio.hmm>
+#include <mm.hmm>
+#include <syslib.hmm>
+#include <fs.hmm>
+#include <string.hmm>
+#include <kernel.hmm>
+#include "lcd.hmm"
+
+
+// playlist file names
+char[][] files = {"pl0", "pl1", "pl2", "pl3", "pl4"};
+char[] writeText = array(120);
+char[] tmppath = "                                  ";
+char[] filepath = "                                  ";
+
+
+// プレイリストのパスにして返す
+char[] pltCat(char[] word){
+    // ここのコメントを消したらなぜか動かなくなる
+    // セマフォの関係？文字化けしていてエラーが読めない
+    tmppath = "";
+    dbgPutStr("");
+    strCpy(tmppath, "/Playlist/");
+    dbgPutStr("");
+    strCat(tmppath, word);
+    dbgPutStr("");
+    strCat(tmppath, ".txt");
+    dbgPutStr("");
+    return tmppath;
+}
+
+// 指定した名前のプレイリストを削除する
+public void delete_playlist(char[] pltname) {
+    char[] filepath = "               ";
+    filepath = pltCat(pltname);
+
+    remove(filepath);
+}
+
+
+/* 与えた曲を内容として持つプレイリストを作成する
+ *  - プレイリストの命名規則は、/Playlists/pli.txt
+ *  - 与える曲のリストには最後にnullを必ず挿入する
+ */
+public void create_playlist(song[] songs) {
+    dbgPutStr("create_playlist() call OK\n");
+    filepath = "";
+    for (int i=0; i<5; i=i+1) {
+        int fd;
+        boolean isCreate = false;
+
+        filepath = files[i];
+        dbgPutStr(filepath); dbgPutStr("\n");
+        filepath = pltCat(filepath);
+        dbgPutStr("file path: "); dbgPutStr(filepath); dbgPutStr("\n");
+        fd = open(filepath,O_APPEND);
+
+        // ファイルが非存在
+        if(fd < 0){
+            dbgPutStr("file is not found OK\n");
+            isCreate = true;
+            creat(filepath);
+
+            int j = 0;
+            while (true) { 
+                if (songs[j] != null) {
+                    write(fd, songs[j].name, strLen(songs[j].name));
+                    write(fd, "\n", 1);
+                } else {
+                    break;
+                }
+                j = j + 1;
+            }
+            break;
+        }
+        close(fd);
+    }
+}
+
+
+/* 与えた名前のプレイリストに与えた曲を挿入する
+ *   - 曲数は最大で10曲
+ *   - 与える曲のリストには最後にnullを必ず挿入する
+ */
+public void add_songs(char[] pltname, song[] songs){
+    char[] filepath = "               ";
+    writeText = "";
+    int fd;
+    filepath = pltCat(pltname);
+
+    fd = open(filepath, O_APPEND);
+    dbgPutStr("file open\n");
+    if (fd >= 0) {
+        int i = 0;
+        while (true) {
+            if (songs[i] != null) {
+                writeText = strCat(writeText, songs[i].name);
+                writeText = strCat(writeText, "\n");
+            }
+            else {
+                break;
+            }
+        }
+        write(fd, writeText, strLen(writeText));
+    }
+    close(fd);
+}
+
+
+// これだけできない
+public void remove_song(char[] pltname, song[] songs){ //消したい曲のファイル指定と消したい曲を指定
+    char[] filepath;
+    int fd;
+    char[] buffer = malloc(1024);
+    char[] new_content = malloc(1024);
+    int bytes_read;
+    
+    filepath = pltCat(pltname);
+
+    fd = open(filepath, 0);
+    if (fd < 0) {
+        dbgPutStr("can not open");    
+        return;
+    }
+    seek(fd, 0, 0);
+
+    bytes_read = read(fd, buffer, 1023);
+    close(fd);
+    if (bytes_read <= 0) {
+        return;
+    }
+    buffer[bytes_read] = '\0';
+
+    new_content[0] = '\0';
+    
+    int current_pos = 0;
+    while(current_pos < bytes_read) {
+        char[] line = "";
+        int line_len = 0;
+        while(current_pos < bytes_read && buffer[current_pos] != '\n') {
+            line[line_len] = buffer[current_pos];
+            line_len = line_len + 1;
+            current_pos = current_pos + 1;
+        }
+        current_pos = current_pos + 1; 
+        line[line_len] = '\0';
+        dbgPutStr("\n");
+        dbgPutStr(line);
+        dbgPutStr("\n");
+        dbgPutStr(filepath);
+        dbgPutStr("\n");
+        if(strCmp(line, filepath) != 0) {
+            strCat(new_content, line);
+            strCat(new_content, "\n");
+        }
+    }
+
+    fd = open(filepath, 1);
+    if (fd < 0) {
+        return;
+    }
+    write(fd, new_content, strLen(new_content));
+    close(fd);
+}
+
+

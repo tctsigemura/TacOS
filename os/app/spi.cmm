@@ -187,3 +187,4 @@ public void spiFlushMp3() {
   out(0x18, 0xfc);                     // xDCS='1', clk='0'
   semV(spiSem);
 }
+

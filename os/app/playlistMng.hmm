@@ -7,7 +7,9 @@
 #include "structures.hmm"
 
 
-public void delete_playlist(char[] pltname,song[] songs);
-public char[] create_playlist(song[] songs);
-public void add_song(char[] pltname,song[] songs);
-public void remove_song(char[] pltname,song[] songs);
+char[] pltCat(char[] word);
+public void delete_playlist(char[] pltname);
+public void create_playlist(song[] songs);
+public void add_songs(char[] pltname, song[] songs);
+public void remove_songs(char[] pltname, song[] songs);
+public int lenSongofPlt(char[] pltname);

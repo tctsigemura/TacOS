@@ -19,7 +19,7 @@
 // --- ページ ---
 // 遷移はselect, backによって行う
 int now_page = 0; // 現在のページ深度：w
-int page_top = 0; // 現在ページのトップはinternal_objsのどこを指すのか
+int[] page_top = {0, 0, 0}; // 現在ページのトップはinternal_objsのどこを指すのか
 // --- ディスプレイ ---
 int display_size = 6;
 int[] cursor = {0, 0, 0}; // 範囲は0~5
@@ -123,7 +123,7 @@ public void _show_psbar() {}
 //
 // --- 現在カーソルが選択中の要素を返す ---
 public SelectedItem select() {
-    item.item = screen[now_page][page_top+cursor[now_page]];
+    item.item = screen[now_page][page_top[now_page]+cursor[now_page]];
     return item;
 }
 
@@ -164,6 +164,14 @@ void init_cursor() {
     }
 }
 
+// ページトップのリセット
+// 1ページごとのリセットは手動で行ってください！
+void init_page_top() {
+    for (int i=0; i<3; i=i+1) {
+        page_top[i] = 0;
+    }
+}
+
 // 入力アイテムをオブジェクト配列に入れる
 void items_to_objs(void[][] items) {
     for (int i=0; i<50; i=i+1) {
@@ -192,12 +200,12 @@ void display_screen() {
     // 現在のページの1番上にオブジェクトを配置する
     // itemsの数を超えないように、6つループする
     for (int i=0; i<display_size; i=i+1) {
-        if (screen[now_page][i + page_top] == null) {
+        if (screen[now_page][i + page_top[now_page]] == null) {
             break;
         }
         
         // 型判定ができるようにする
-        tmptype = screen[now_page][i + page_top];
+        tmptype = screen[now_page][i + page_top[now_page]];
 
         // 描画する
         if (strCmp(tmptype.type, "mode") == 0) {
@@ -249,15 +257,6 @@ public void display_items(void[][] items, char[] title, char[] move) {
             items_to_objs(items);
         }
     }
-    // ページが戻る処理の場合
-    // else if (strCmp(move,"back") == 0) {
-    //     if (now_page == 0) {
-    //        return ;
-    //    } else {
-    //        now_page = now_page - 1;
-    //        clear();
-    //    }
-    // }
 
     // 共通処理
     Title = title;
@@ -273,10 +272,12 @@ public void display_items(void[][] items, char[] title, char[] move) {
 public void back() {
     if (now_page != 0) {
         init_screen(now_page);
+        cursor[now_page] = 0;
+        page_top[now_page] = 0;
         now_page = now_page - 1;
         clear();
-        _locateXY(0, cursor[now_page] + 2); _putCh(CURSOR);
         display_screen();
+        _locateXY(0, cursor[now_page] + 2); _putCh(CURSOR);
     }
 }
 
@@ -284,8 +285,8 @@ public void back() {
 // --- カーソル上移動入力 ---
 public void up_cursor() {
     // 上にスクロール
-    if (cursor[now_page] == 0 && page_top != 0) {
-        page_top = page_top - 1;
+    if (cursor[now_page] == 0 && page_top[now_page] != 0) {
+        page_top[now_page] = page_top[now_page]- 1;
         // ここでscreenの再描画
         display_screen();
         _locateXY(0, cursor[now_page] + 2); _putCh(CURSOR);
@@ -304,8 +305,8 @@ public void up_cursor() {
 // --- カーソル下移動入力 ---
 public void down_cursor() {
     // 下にスクロール
-    if (cursor[now_page] == 5 && screen[now_page][page_top + 6] != null) {
-        page_top = page_top + 1;
+    if (cursor[now_page] == 5 && screen[now_page][page_top[now_page] + 6] != null) {
+        page_top[now_page] = page_top[now_page] + 1;
         // スクリーンの再描画
         display_screen();
         // カーソルの再描画
@@ -313,7 +314,7 @@ public void down_cursor() {
     }
      
     // 下にカーソルを移動
-    else if(cursor[now_page] != 5 && screen[now_page][page_top + cursor[now_page] + 1] != null) {
+    else if(cursor[now_page] != 5 && screen[now_page][page_top[now_page] + cursor[now_page] + 1] != null) {
         cursor[now_page] = cursor[now_page] + 1;
 
         // スクリーンの再描画

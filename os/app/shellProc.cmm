@@ -30,6 +30,7 @@
 #include <kernel.hmm>
 #include <util.hmm>
 #include <appUtil.hmm>
+
 #include "lcd.hmm"
 #include "mp3Proc.hmm"
 #include "spi.hmm"
@@ -37,6 +38,7 @@
 #include "shellProc.hmm"
 #include "structures.hmm"
 #include "screenMng.hmm"
+#include "playlistMng.hmm"
 
 //-----------------------------------------------------------------------------
 // スイッチの読み取り
@@ -121,16 +123,27 @@ void[][] v = {
     null, null, null, null, null, null, null, null, null, null, null
 };
 
-modeSt mmm = {"mode", 0, "playlist"};
-modeSt mmm0 = {"mode", 0, "playlist0"};
-modeSt mmm1 = {"mode", 0, "playlist1"};
-modeSt mmm2 = {"mode", 0, "playlist2"};
-modeSt mmm3 = {"mode", 0, "playlist3"};
-modeSt mmm4 = {"mode", 0, "playlist4"};
-modeSt mmm5 = {"mode", 0, "playlist5"};
-album aaa = {"album", 5, "demo"};
-song sss = {"song", 2, "Michi", true, "Fujii Kaze", "Michi.mp3"};
-playlist ppp = {"playlist", 3, "hello"};
+
+modeSt mmm1 = {"mode", 0, "Fuji Kaze"};
+modeSt mmm0 = {"mode", 1, "Hirasawa Susumu"};
+modeSt mmm2 = {"mode", 2, "Misesu"};
+playlist ppp0 = {"playlist", 0, "playlist"};
+playlist ppp1 = {"playlist", 1, "playlist0"};
+playlist ppp2 = {"playlist", 2, "playlist1"};
+song sss0 = {"song", 0, "Michi", true, "Fuji Kaze", "Michi.mp3"};
+song sss1 = {"song", 1, "Kirari", true, "Fuji Kaze", "Kirari.mp3"};
+song sss2 = {"song", 2, "Workin' Hard", true, "Fuji Kaze", "Workin' Hard.mp3"};
+
+song[] songlist = {
+    {"song", 0, "Michi", true, "Fuji Kaze", "Michi.mp3"}, 
+    {"song", 1, "Kirari", true, "Fuji Kaze", "Kirari.mp3"}, 
+    {"song", 2, "Workin' Hard", true, "Fuji Kaze", "Workin' Hard.mp3"},
+    null};
+
+song[] deletesongs = {
+    {"song", 0, "Michi", true, "Fuji Kaze", "Michi.mp3"}, 
+    null
+};
 
 #endif /* ifdef DEBUG */
 
@@ -142,18 +155,20 @@ public void shellMain() {
   mp3FilesInit();                                   // ファイル一覧を作る
   demoScreen();                                     // 画面を初期化
   cls();
-  v[0] = mmm;
-  v[1] = mmm0;
-  v[2] = mmm1;
-  v[3] = mmm2;
-  v[4] = mmm3;
-  v[5] = mmm4;
-  v[6] = mmm5;
-  v[7] = aaa;
-  v[8] = sss;
-  v[9] = ppp;
+  v[0] = mmm0;
+  v[1] = mmm1;
+  v[2] = mmm2;
 
-  display_items(v, "aiueo", "mode");
+  display_items(v, "Artist", "mode");
+
+  // playlistMngのテスト
+  create_playlist(songlist);
+  create_playlist(songlist);
+  create_playlist(songlist);
+  add_songs("pl2", songlist);
+  add_songs("pl2", songlist);
+  remove_songs("pl2", deletesongs);
+
   for (;;) {
     int sw = readSw();
     int num = swToNum(sw);
@@ -162,11 +177,31 @@ public void shellMain() {
       s = select();
       tmp = s.item;
       tmptype = tmp;
-      dbgPutStr(tmptype.type);
+      if (strCmp(tmptype.type, "mode") == 0) {
+          tmp = tmptype;
+          tmpmode = tmp;
+          if (strCmp(tmpmode.name, "Fuji Kaze") == 0) {
+              v[0] = ppp0;
+              v[1] = ppp1;
+              v[2] = ppp2;
+              display_items(v, "Fuji Kaze", "straight");
+          }
+      } else if (strCmp(tmptype.type, "playlist") == 0) {
+          tmp = tmptype;
+          tmpplaylist = tmp;
+          if (strCmp(tmpplaylist.name, "playlist") == 0) {
+              v[0] = sss0;
+              v[1] = sss1;
+              v[2] = sss2;
+              display_items(v, "Fuji Kaze FAV", "straight");
+          }
+      }
     } else if (num == 1) {
         up_cursor();
     } else if (num == 5) {
         down_cursor();
+    } else if (num == 3) {
+        back();
     }
     else if (num>0 && mp3FilesGetName(num)!=null) { // ファイルと対応するボタン
       demoScreen();                                 // 画面を初期化
@@ -178,3 +213,4 @@ public void shellMain() {
     sleep(10);                                      // 10ms に一度
   }
 }
+

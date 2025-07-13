@@ -1,1 +1,269 @@
-#include "fs.hmm"
+#include <util.hmm>
+#include <fs.hmm>
+#include <fsDef.hmm>
+#include <kernel.hmm>
+#include "playlistMng.hmm"
+#include "structures.hmm"
+#include "appUtil.hmm"
+#include "lcd.hmm"
+
+
+// playlist file names
+char[][] files = {"pl0", "pl1", "pl2", "pl3", "pl4"};
+char[] context = array(76);
+char[] buffer = array(2048);
+char[] pltcat_filepath = "               ";
+char[] delete_filepath = "               ";
+char[] create_filepath = "               ";
+
+    char[][] songlist = {
+        "               ",
+        "               ",
+        "               ",
+        "               ",
+        "               ",
+        "               ",
+        "               ",
+        "               ",
+        "               ",
+        "               "
+    };
+
+// プレイリストのパスにして返す
+char[] pltCat(char[] word){
+    // ここのdbgPutStrを消したらなぜか動かなくなる
+    // セマフォの関係？文字化けしていてエラーが読めない
+    strCpy(pltcat_filepath, "/Playlist/");
+    strCat(pltcat_filepath, word);
+    strCat(pltcat_filepath, ".txt");
+    return pltcat_filepath;
+}
+
+// ファイルから読み込んだプレイリストの曲数を取得する
+public int lenSongofPlt(char[] pltname) {
+    int fd;
+    int file_num = 0;
+    char[] filepath = "               ";
+
+    filepath = pltCat(pltname);
+    fd = open(filepath, READ_MODE);
+
+    if (fd >= 0) {
+        read(fd, context, 1024);
+
+        for (int i=0; i<151; i=i+1) {
+            if (context[i] != '\0') {
+                if (context[i] == '\n') {
+                    file_num = file_num + 1;
+                }
+            }
+            else {
+                break;
+            }
+        }
+    }
+
+    close(fd);
+
+    return file_num;
+}
+
+// 指定した名前のプレイリストを削除する
+public void delete_playlist(char[] pltname) {
+    delete_filepath = pltCat(pltname);
+
+    remove(delete_filepath);
+}
+
+
+/* 与えた曲を内容として持つプレイリストを作成する
+ *  - プレイリストの命名規則は、/Playlists/pli.txt
+ *  - 与える曲のリストには最後にnullを必ず挿入する
+ */
+public void create_playlist(song[] songs) {
+    for (int i=0; i<5; i=i+1) {
+        int fd;
+        create_filepath = "";
+        boolean isCreate = false;
+
+        create_filepath = pltCat(files[i]);
+        fd = open(create_filepath, WRITE_MODE);
+
+        // ファイルが非存在
+        if(fd < 0){
+            isCreate = true;
+            creat(create_filepath);
+
+            fd = open(create_filepath, WRITE_MODE);
+
+            int j = 0;
+            while (true) { 
+                if (songs[j] != null) {
+                    write(fd, songs[j].name, strLen(songs[j].name));
+                    write(fd, "\n", 1);
+                } else {
+                    break;
+                }
+                j = j + 1;
+            }
+            // 生成終了
+            close(fd);
+            break;
+        }
+        close(fd);
+    }
+}
+
+
+/* 与えた名前のプレイリストに与えた曲を挿入する
+ *   - 曲数は最大で10曲
+ *   - 与える曲のリストには最後にnullを必ず挿入する
+ */
+public void add_songs(char[] pltname, song[] songs){
+    char[] filepath = "               ";
+    int fd;
+    filepath = pltCat(pltname);
+    int file_num = lenSongofPlt(pltname);
+
+    fd = open(filepath, APPEND_MODE);
+
+    if (fd >= 0) {
+        int i = 0;
+        while (true) {
+            if (songs[i] != null && file_num != 10) {
+                write(fd, songs[i].name, strLen(songs[i].name));
+                write(fd, "\n", 1);
+
+                file_num = file_num + 1;
+            }
+            else {
+                break;
+            }
+            i = i + 1;
+        }
+    }
+    close(fd);
+}
+
+
+/* 与えた名前のプレイリストに含む曲中の与えた曲を削除する
+ *   - 曲数は最大で10曲
+ *   - 与える曲のリストには最後にnullを必ず挿入する
+ */
+
+public void remove_songs(char[] pltname, song[] songs) {
+    int fd;
+    char[] filepath = "               ";
+    
+    filepath = pltCat(pltname);
+    fd = open(filepath, READ_MODE);
+
+    if (fd >= 0) {
+
+        // songlistのクリア
+        for (int i=0; i<10; i=i+1) {
+            strCpy(songlist[i], "");
+        }
+
+        // プレイリスト中の曲一覧を取得する 
+        read(fd, buffer, 2048);
+        int i = 0; int j = 0; int k = 0;
+
+        while (buffer[i] != '\0' && j < 10) {
+            if (buffer[i] == '\n') {
+                songlist[j][k] = '\0';
+                j = j + 1;
+                i = i + 1;
+                k = 0;
+            } else {
+                songlist[j][k] = buffer[i];
+                i = i + 1;
+                k = k + 1;
+            }
+        }
+        close(fd);
+
+        // songs[i].nameとマッチするものを削除する
+        // ここがなかなかマッチしないんだけど?
+        i = 0;
+        while (songs[i] != null) {
+            for (j=0; j<10; j=j+1) {
+                if (strCmp(songs[i].name, songlist[j]) == 0) {
+                    strCpy(songlist[j], "");
+                }
+            }
+            i = i + 1;
+        } 
+
+        // 一旦ファイルを作り直す
+        remove(filepath);
+        creat(filepath);
+
+        // 最後に残っている曲を書き直す
+        fd = open(filepath, WRITE_MODE);
+        // ここおかしいな cmpがおもった挙動をしていない
+        for (i=0; i<10; i=i+1) {
+            if (strCmp(songlist[i], "") != 0) {
+                write(fd, songlist[i], strLen(songlist[i]));
+                write(fd, "\n", 1);
+            }
+        }
+        close(fd);
+
+    }
+    
+//     char[] filepath;
+//     int fd;
+//     char[] buffer = malloc(1024);
+//     char[] new_content = malloc(1024);
+//     int bytes_read;
+//     
+//     filepath = pltCat(pltname);
+// 
+//     fd = open(filepath, 0);
+//     if (fd < 0) {
+//         dbgPutStr("can not open");    
+//         return;
+//     }
+//     seek(fd, 0, 0);
+// 
+//     bytes_read = read(fd, buffer, 1023);
+//     close(fd);
+//     if (bytes_read <= 0) {
+//         return;
+//     }
+//     buffer[bytes_read] = '\0';
+// 
+//     new_content[0] = '\0';
+//     
+//     int current_pos = 0;
+//     while(current_pos < bytes_read) {
+//         char[] line = "";
+//         int line_len = 0;
+//         while(current_pos < bytes_read && buffer[current_pos] != '\n') {
+//             line[line_len] = buffer[current_pos];
+//             line_len = line_len + 1;
+//             current_pos = current_pos + 1;
+//         }
+//         current_pos = current_pos + 1; 
+//         line[line_len] = '\0';
+//         dbgPutStr("\n");
+//         dbgPutStr(line);
+//         dbgPutStr("\n");
+//         dbgPutStr(filepath);
+//         dbgPutStr("\n");
+//         if(strCmp(line, filepath) != 0) {
+//             strCat(new_content, line);
+//             strCat(new_content, "\n");
+//         }
+//     }
+// 
+//     fd = open(filepath, 1);
+//     if (fd < 0) {
+//         return;
+//     }
+//     write(fd, new_content, strLen(new_content));
+//     close(fd);
+// }
+// 
+}
