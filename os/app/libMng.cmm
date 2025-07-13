@@ -18,6 +18,10 @@ song[] s = {
 
 
 char[][] sortWords(char[][] words, int n) {
+    // for(int j = 0 ; j < 10; j = j+1 ) {
+    //     dbgPutStr(words[j]);
+    //     dbgPutStr("\n");
+    // }
     for (int i = 0; i < n-1; i = i+1) {
         if (strLen(words[i]) == 0 || words[i][0] == ' ') continue;
         for (int j = i+1; j < n; j = j+1) {
@@ -30,11 +34,11 @@ char[][] sortWords(char[][] words, int n) {
             }
         }
     }
-    dbgPutStr("sort word\n");
-    for(int j = 0 ; j < 10; j = j+1 ) {
-        dbgPutStr(words[j]);
-        dbgPutStr("\n");
-    }
+    // dbgPutStr("sort word\n");
+    // for(int j = 0 ; j < 10; j = j+1 ) {
+    //     dbgPutStr(words[j]);
+    //     dbgPutStr("\n");
+    // }
     return words;
 }
 
@@ -76,18 +80,31 @@ void create_album(char[] paths) {
     close(fd);
 
 }
+// song[] songs ={
+//     {0,"          ",true,"          ","          "},
+//     {1,"          ",true,"          ","          "},
+//     {2,"          ",true,"          ","          "},
+//     {3,"          ",true,"          ","          "},
+//     {4,"          ",true,"          ","          "},
+//     {5,"          ",true,"          ","          "},
+//     {6,"          ",true,"          ","          "},
+//     {7,"          ",true,"          ","          "},
+//     {8,"          ",true,"          ","          "},
+//     {9,"          ",true,"          ","          "}
+// };
 song[] songs ={
-    {0,"          ",true,"          ","          "},
-    {1,"          ",true,"          ","          "},
-    {2,"          ",true,"          ","          "},
-    {3,"          ",true,"          ","          "},
-    {4,"          ",true,"          ","          "},
-    {5,"          ",true,"          ","          "},
-    {6,"          ",true,"          ","          "},
-    {7,"          ",true,"          ","          "},
+    {0,"          ",true,"          ","tanaka"},
+    {1,"          ",true,"          ","michikoo"},
+    {2,"          ",true,"          ","higuchi"},
+    {3,"          ",true,"          ","yamaguchi"},
+    {4,"          ",true,"          ","hiroshima"},
+    {5,"          ",true,"          ","oakayama"},
+    {6,"          ",true,"          ","simane"},
+    {7,"          ",true,"          ","tottori"},
     {8,"          ",true,"          ","          "},
     {9,"          ",true,"          ","          "}
 };
+
 song tmp_song = {1,"          ",true,"          ","          "};
 
 char[][] mp3path;
@@ -98,8 +115,8 @@ public song[] fetch_songs(char[] name, char[] sort) {//nameはアルバム名，
     for(int k=0;k<10;k=k+1){
         strCpy(word_box[k], "          ");
         strCpy(sort_word_box[k], "          ");
-        songs[k].index = 0;
-        songs[k].path = "          ";
+        // songs[k].index = 0;
+        // songs[k].path = "          ";
     }
     int fd;
     int read_box;
@@ -109,7 +126,7 @@ public song[] fetch_songs(char[] name, char[] sort) {//nameはアルバム名，
     
     char[] Al_filepath;
     char[] Pl_filepath;
-    char[] buffer;
+    char[] buffer = "                                                           ";
     char[] line;
     int bytes_read;
     int line_pos = 0;
@@ -127,25 +144,32 @@ public song[] fetch_songs(char[] name, char[] sort) {//nameはアルバム名，
     
     ////////////////プレイリスト////////////////
     fd = open(Pl_filepath,0);
+    putDec(fd,1);
     // FILE fp = fopen(Pl_filepath, "r");
     if(fd >= 0){
-        dbgPutStr("Playlist\n");
+        dbgPutStr("Playlist0\n");
         // read_box = read(fd,buffer,1024);
         // str = buffer;
         // str[read_box] = '\0';
         // putDec(read_box,1);
-        
         int i = 0;
-        while ((bytes_read = read(fd, buffer, 1024)) > 0) {
+        // putDec(read(fd, buffer, 1024),1);
+        bytes_read = read(fd, buffer, 1024);
+        // while ((bytes_read = read(fd, buffer, 1024)) > 0) {
+            dbgPutStr("test1");
             int buf_pos = 0;
             while (buf_pos < bytes_read) {
-                dbgPutStr("test1");
+                // dbgPutStr("test1");
                 if (buffer[buf_pos] == '\n' || buffer[buf_pos] == '\r') {
-                    dbgPutStr("test2\n");
+                    // dbgPutStr("test2\n");
                     line[line_pos] = '\0'; // 行終端
                     dbgPutStr(line); // 1行出力
                     dbgPutStr("\n");
                     strCpy(word_box[i], line);
+                    // dbgPutStr("word box");
+                    // dbgPutStr("\n");
+                    // dbgPutStr(word_box[i]);
+                    // dbgPutStr("\n");
                     i = i + 1;
                     line_pos = 0;
                 } else {
@@ -154,7 +178,7 @@ public song[] fetch_songs(char[] name, char[] sort) {//nameはアルバム名，
                 }
                 buf_pos = buf_pos + 1;
             }
-        }
+        // }
         if (line_pos > 0) {
             dbgPutStr("test3\n");
             line[line_pos] = '\0';
@@ -232,12 +256,28 @@ public song[] fetch_songs(char[] name, char[] sort) {//nameはアルバム名，
 
     close(fd);
     
+    // dbgPutStr("---word_box---\n");
+    // for(int j = 0 ; j < 10; j = j+1 ) {
+    //     dbgPutStr(word_box[j]);
+    //     dbgPutStr("\n");
+    // }
+    // dbgPutStr("---word_box---\n");
     sort_word_box = sortWords(word_box, 10);
+    
+    // dbgPutStr("---sort_word_box---\n");
+    // for(int j = 0 ; j < 10; j = j+1 ) {
+    //     dbgPutStr(sort_word_box[j]);
+    //     dbgPutStr("\n");
+    // }
+    // dbgPutStr("---sort_word_box---\n");
+    dbgPutStr("\n");
     //　追加じゅん　名前順　アルバムじゅん
+    int num = sizeof(song) ;
+    putDec(num,1);
     if(strCmp(sort, "music_name") == 0){         // アスキーコードで比較 
-        for (int i = 0; i < 10; i = i+1){
+        for (int i = 0; i < num; i = i+1){
             for(int k = 0; k < 10; k= k+1){
-                if(strCmp(songs[k].path,sort_word_box[i]) == 0){
+                if(strCmp(songs[i].path,sort_word_box[k]) == 0){
                     tmp_song = songs[i];
                     songs[i] = songs[k];
                     songs[k] = tmp_song;

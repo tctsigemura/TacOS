@@ -91,14 +91,6 @@ public void add_song(char[] pltname, song[] songs, int add_num){
     char[] filepath = "                    ";
     int fd;
     filepath = pltCat(pltname);
-    // strCpy(filepath, "/Playlist/");
-    // strCat(filepath, pltname);
-    // strCat(filepath, ".txt");
-    // strCat(filepath, "/");
-    // strCat(filepath, songs[0].path);     // cat使いすぎるとフリーズする
-    // fd = open(filepath, APPEND_MODE);
-    // pltname = pltCat(pltname);
-
     dbgPutStr(filepath);
     fd = open(filepath, O_APPEND);    //ここでフリーズ   /Playlist/pl1~pl9/曲のパスを書き込む
     dbgPutStr("file open\n");
@@ -106,7 +98,6 @@ public void add_song(char[] pltname, song[] songs, int add_num){
         creat(pltname);
         dbgPutStr("not found file\n");
         fd = open(pltname, O_APPEND);
-        //return;
     }
 
     write(fd, songs[add_num].path, strLen(songs[add_num].path));
