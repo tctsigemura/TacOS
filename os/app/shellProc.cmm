@@ -106,10 +106,54 @@ void asta(int y) {
 }
 
 //-----------------------------------------------------------------------------
+// スクリーン操作関係の処理
+//-----------------------------------------------------------------------------
+// ------ 変数群 ------
+// スクリーンに表示するためのオブジェクト群
+void[][] screen = {
+    null, null, null, null, null, null, null, null, null, null,
+    null, null, null, null, null, null, null, null, null, null,
+    null, null, null, null, null, null, null, null, null, null,
+    null, null, null, null, null, null, null, null, null, null,
+    null, null, null, null, null, null, null, null, null, null
+};
+
+// mode群
+modeSt[] modes = {
+    {"mode", 0, "Streaming"},
+    {"mode", 1, "Songs"},
+    {"mode", 2, "Playlists"},
+    {"mode", 3, "Settings"},
+    null
+};
+
+// スクリーンをリセットする
+void resetScreen() {
+    for (int i=0; i<50; i=i+1) {
+        screen[i] = null;
+    }
+}
+
+// ------ 関数群 ------
+// Homeスクリーンを描画
+void goHomeMode() {
+    // スクリーンのリセット
+    resetScreen();
+
+    // スクリーンにモードをセット
+    int i = 0;
+    while (modes[i] != null) {
+        screen[i] = modes[i];
+    }
+
+    // スクリーンに描画
+    display_items(screen, "Menu", "straight");
+}
+
+//-----------------------------------------------------------------------------
 // MP3 プレーヤのメインプロセス
 //-----------------------------------------------------------------------------
-// ここからプロセスの実行が始まる
-
+// select()によってリターンされたオブジェクトの型を判定するためのmeta変数
 void[] tmp;
 typeSt tmptype;
 modeSt tmpmode;
@@ -117,13 +161,8 @@ song tmpsong;
 album tmpalbum;
 playlist tmpplaylist;
 
-void[][] v = {
-    null, null, null, null, null, null, null, null, null, null, null
-};
-
-
-modeSt mmm1 = {"mode", 0, "Fuji Kaze"};
 modeSt mmm0 = {"mode", 1, "Hirasawa Susumu"};
+modeSt mmm1 = {"mode", 0, "Fuji Kaze"};
 modeSt mmm2 = {"mode", 2, "Misesu"};
 playlist ppp0 = {"playlist", 0, "playlist"};
 playlist ppp1 = {"playlist", 1, "playlist0"};
@@ -151,11 +190,11 @@ public void shellMain() {
   mp3FilesInit();                                   // ファイル一覧を作る
   demoScreen();                                     // 画面を初期化
   cls();
-  v[0] = mmm0;
-  v[1] = mmm1;
-  v[2] = mmm2;
+ // v[0] = mmm0;
+ // v[1] = mmm1;
+ // v[2] = mmm2;
 
-  display_items(v, "Artist", "mode");
+ // display_items(v, "Artist", "mode");
 
   // playlistMngのテスト
   create_playlist(songlist);
@@ -173,25 +212,25 @@ public void shellMain() {
       s = select();
       tmp = s.item;
       tmptype = tmp;
-      if (strCmp(tmptype.type, "mode") == 0) {
-          tmp = tmptype;
-          tmpmode = tmp;
-          if (strCmp(tmpmode.name, "Fuji Kaze") == 0) {
-              v[0] = ppp0;
-              v[1] = ppp1;
-              v[2] = ppp2;
-              display_items(v, "Fuji Kaze", "straight");
-          }
-      } else if (strCmp(tmptype.type, "playlist") == 0) {
-          tmp = tmptype;
-          tmpplaylist = tmp;
-          if (strCmp(tmpplaylist.name, "playlist") == 0) {
-              v[0] = sss0;
-              v[1] = sss1;
-              v[2] = sss2;
-              display_items(v, "Fuji Kaze FAV", "straight");
-          }
-      }
+ //     if (strCmp(tmptype.type, "mode") == 0) {
+ //         tmp = tmptype;
+ //         tmpmode = tmp;
+ //         if (strCmp(tmpmode.name, "Fuji Kaze") == 0) {
+ //             v[0] = ppp0;
+ //             v[1] = ppp1;
+ //             v[2] = ppp2;
+ //             display_items(v, "Fuji Kaze", "straight");
+ //         }
+ //     } else if (strCmp(tmptype.type, "playlist") == 0) {
+ //         tmp = tmptype;
+ //         tmpplaylist = tmp;
+ //         if (strCmp(tmpplaylist.name, "playlist") == 0) {
+ //             v[0] = sss0;
+ //             v[1] = sss1;
+ //             v[2] = sss2;
+ //             display_items(v, "Fuji Kaze FAV", "straight");
+ //         }
+ //     }
     } else if (num == 1) {
         up_cursor();
     } else if (num == 5) {

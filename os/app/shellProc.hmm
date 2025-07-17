@@ -26,4 +26,9 @@
  *
  */
 
+// ------ プライベート関数 ------
+void resetScreen();
+void goHomeScreen();
+
+// ------ パブリック関数 -------
 public void shellMain();
