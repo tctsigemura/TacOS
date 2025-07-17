@@ -26,6 +26,48 @@
  *
  */
 
+// デフォルト
 public boolean play(char[] path);
-public void stop();
+// public void stop();
+public void stop(boolean user); // ユーザーによる停止かどうかを引数で受け取る
+
 public void mp3Main();
+
+public void loop();
+public void repeat();
+public void shuffle();
+public void next();
+public void previous();
+// 中身書いてない
+public void get_history();
+
+
+// ↓新規追加した関数
+public void screen2();
+public void normal();
+public void onSongEnd();
+// プレイリスト管理
+public void initPlaylist();
+
+
+
+// 再生モード定義
+#define MODE_NORMAL  0    // 通常再生
+#define MODE_LOOP    1    // ループ（全曲順次再生後、最初に戻る）
+#define MODE_REPEAT  2    // リピート（同じ曲を繰り返し）
+#define MODE_SHUFFLE 3    // シャッフル（ランダム順序で全曲再生）
+
+
+// グローバル変数（外部からアクセス可能）
+public int playstatus;
+public int currentPlayMode;
+public int idx;
+public boolean wasStoppedByUser;
+
+// public int totalSongs;
+// public boolean is_loop;
+// public boolean is_repeat;
+// public boolean is_shuffle;
+// public boolean is_normal;
+// public boolean Upscreen;
+// public int getTotalSongs();

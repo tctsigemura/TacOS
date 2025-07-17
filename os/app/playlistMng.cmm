@@ -16,18 +16,18 @@ char[] pltcat_filepath = "               ";
 char[] delete_filepath = "               ";
 char[] create_filepath = "               ";
 
-    char[][] songlist = {
-        "               ",
-        "               ",
-        "               ",
-        "               ",
-        "               ",
-        "               ",
-        "               ",
-        "               ",
-        "               ",
-        "               "
-    };
+char[][] songlist = {
+    "               ",
+    "               ",
+    "               ",
+    "               ",
+    "               ",
+    "               ",
+    "               ",
+    "               ",
+    "               ",
+    "               "
+};
 
 // プレイリストのパスにして返す
 char[] pltCat(char[] word){

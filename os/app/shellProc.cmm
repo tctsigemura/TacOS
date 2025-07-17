@@ -110,8 +110,6 @@ void asta(int y) {
 //-----------------------------------------------------------------------------
 // ここからプロセスの実行が始まる
 
-#ifdef DEBUG
-
 void[] tmp;
 typeSt tmptype;
 modeSt tmpmode;
@@ -145,8 +143,6 @@ song[] deletesongs = {
     null
 };
 
-#endif /* ifdef DEBUG */
-
 SelectedItem s;
 public void shellMain() {
 
@@ -173,7 +169,7 @@ public void shellMain() {
     int sw = readSw();
     int num = swToNum(sw);
     if (num==6) {                                   // 6 番のスイッチが押された
-      stop();
+      stop(true);
       s = select();
       tmp = s.item;
       tmptype = tmp;

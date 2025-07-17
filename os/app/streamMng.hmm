@@ -8,13 +8,26 @@
 
 //  --- 関数 ---
 // 再生状態を操作する
-public void play(song[] songs, int idx);
+public boolean play(char[] path);
 public void stop();
+public int playstatus;
+
+
+
+// public void play(song[] songs, int idx);
+public void play_c(song[] songs, int idx); // 再生開始 (曲の配列とインデックスを指定)
+// public void stop();
+public void stop_c(); // 停止コマンド (同期用)
 public void loop(boolean is_loop);
 public void repeat(boolean is_repeat);
 public void shuffle(boolean is_shuffle);
-public void next();
-public void previous();
+// public void next();
+// public void previous();
+public void next(song[] queue);
+public void previous(song[] queue);
+
+
+
 
 // 状態の取得
 public void get_history();
