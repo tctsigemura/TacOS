@@ -133,6 +133,20 @@ I_LibSt lib ;
 // playlist[] pl;
 // album[] al;
 char[][] playlist_name = {"pl1","pl2","pl3","pl4","pl5","pl6","pl7","pl8","pl9"};
+album[] al1 = {
+  {1,"name"},
+  {2,"name"},
+  {3,"name"},
+  {4,"name"},
+  {5,"name"}
+};
+playlist[] pl1 = {
+  {1,"name"},
+  {2,"name"},
+  {3,"name"},
+  {4,"name"},
+  {5,"name"}
+};
 
 //-----------------------------------------------------------------------------
 // MP3 プレーヤのメインプロセス
@@ -198,22 +212,37 @@ public void shellMain() {
   add_song(playlist_name[0],s,1);
   remove_song(playlist_name[0],s[0].path);
   */
-  delete_playlist(playlist_name[0]);//
-  create_playlist(playlist_name[0]);
-  // add_song(playlist_name[0],s,0); //第3引数，数字は曲のインデックスを入れる←選ばれた曲の番号が入る
-  for(int j = 0; j< 10; j=j+1){
-    add_song(playlist_name[0],s,j);
-  }
+  // delete_playlist(playlist_name[0]);//
+  // create_playlist(playlist_name[0]);
+  // // add_song(playlist_name[0],s,0); //第3引数，数字は曲のインデックスを入れる←選ばれた曲の番号が入る
+  // for(int j = 0; j< 10; j=j+1){
+  //   add_song(playlist_name[0],s,j);
+  // }
 
-  s = fetch_songs(playlist_name[0],"music_name");
-  for(int j = 0; j<9; j=j+1){
-    dbgPutStr(s[j].path);
-    dbgPutStr("\n");
-  }
-  dbgPutStr("ok path1\n");
-  s = fetch_songs("al1","music_name");
-  for(int j = 0; j<9; j=j+1){
-    dbgPutStr(s[j].path);
+  // s = fetch_songs(playlist_name[0],"music_name");
+  // for(int j = 0; j<9; j=j+1){
+  //   dbgPutStr(s[j].path);
+  //   dbgPutStr("\n");
+  // }
+  // dbgPutStr("ok path1\n");
+  // s = fetch_songs("al1","music_name");
+  // for(int j = 0; j<9; j=j+1){
+  //   dbgPutStr(s[j].path);
+  //   dbgPutStr("\n");
+  // }
+
+  
+  // al1 = fetch_albums();
+  // for(int j = 0; j<5; j=j+1){
+  //   dbgPutStr(al1[j].name);
+  //   // dbgPutStr(al1[j].song_num);
+  //   dbgPutStr("\n");
+  // }
+
+  pl1 = fetch_playlist();
+  for(int j = 0; j<5; j=j+1){
+    dbgPutStr(pl1[j].name);
+    // dbgPutStr(al1[j].song_num);
     dbgPutStr("\n");
   }
   // dbgPutStr("ok path2\n");
