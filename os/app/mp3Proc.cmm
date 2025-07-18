@@ -85,12 +85,12 @@ public boolean play(char[] path) {
   int r = sndrec(link, START,
                   _AtoI(path), 0, 0);       // 再生開始メッセージ
 
-   // ---以下ついかした記述-----
+   // --- 追加記述 ---
   wasStoppedByUser = false;  // ユーザーによる停止
   playstatus = 1;
   // Upscreen = true;
   // screen2();
-  // -----------------------
+  // -----------------
 
   return r==OK;                             // 成功なら true を返す
 }
@@ -290,26 +290,6 @@ int getTotalSongs() {
     }
     return count;
 }
-
-
-// // 方法3: 配列の終端に番兵を追加
-// struct song queue_with_sentinel[] = {
-//     {1, "SongSongSong1", 0, "Artist1", "/path/to/song1.mp3"},
-//     {2, "SongSongSong2", 1, "Artist2", "/path/to/song2.mp3"},
-//     {3, "SongSongSongg3", 0, "Artist3", "/path/to/song3.mp3"},
-//     {4, "SongSongSong4", 0, "Artist4", "/path/to/song4.mp3"},
-//     {5, "SongSongSong5", 0, "Artist5", "/path/to/song5.mp3"},
-//     {-1, "", 0, "", ""}  // 終端マーカー
-// };
-
-// int getTotalSongsWithSentinel() {
-//     int count = 0;
-//     for (int i = 0; queue_with_sentinel[i].index != -1; i = i + 1) {
-//         count = count + 1;
-//     }
-//     return count;
-// }
-
 
 // プレイリスト初期化(ノーマル順、シャッフル順の初期化)
 public void initPlaylist() {
