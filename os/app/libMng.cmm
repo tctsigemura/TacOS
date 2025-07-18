@@ -77,16 +77,16 @@ song[] sort_songs ={
     {9,"          ",true,"          ","          "}
 };
 song[] songs ={
-    {0,"          ",true,"          ","tanaka"},
-    {1,"          ",true,"          ","michikoo"},
-    {2,"          ",true,"          ","higuchi"},
-    {3,"          ",true,"          ","yamaguchi"},
-    {4,"          ",true,"          ","hiroshima"},
-    {5,"          ",true,"          ","oakayama"},
-    {6,"          ",true,"          ","simane"},
-    {7,"          ",true,"          ","tottori"},
-    {8,"          ",true,"          ","          "},
-    {9,"          ",true,"          ","          "}
+    {0,"          ",true,"kitani","tanaka"},
+    {1,"          ",true,"Mrs Green","michikoo"},
+    {2,"          ",true,"Mrs Green","higuchi"},
+    {3,"          ",true,"mongol 80","yamaguchi"},
+    {4,"          ",true,"mongol 80","hiroshima"},
+    {5,"          ",true,"mongol 80","oakayama"},
+    {6,"          ",true,"mongol 80","simane"},
+    {7,"          ",true,"Mrs Green","tottori"},
+    {8,"          ",true,"kitani","okinawa"},
+    {9,"          ",true,"kitani","ooita"}
 };
 
 song tmp_song = {1,"          ",true,"          ","          "};
@@ -210,15 +210,11 @@ public song[] fetch_songs(char[] name, char[] sort) {//nameはアルバム名，
             }
         }
     }else if(sort == "day"){ //そのまま出力
+        return songs;
 
+    }else if(sort == "all"){
+        return songs;
     }
-    dbgPutStr("\n");
-    dbgPutStr("---song---\n");
-    for(int j = 0 ; j < 10; j = j+1 ) {
-        dbgPutStr(sort_songs[j].path);
-        dbgPutStr("\n");
-    }
-    dbgPutStr("---song---\n");
 
     return sort_songs;
 
@@ -293,10 +289,23 @@ public playlist[] fetch_playlist() {
     return pl;
 }
 
-// public char[][] fetch_artists() {
-//     char[][] art;
-//     art[0] = "niko chan";
-//     return art;
+char[][] art = {"          ","          ","          ","          ","          ","          ","          ","          ","          ","          "};
+// char[][] art ;
 
-// テキストファイルで管理したい→テキストファイルにアーティスト名を書き込む
-// }
+public char[][] fetch_artists() {
+    int unique_artist_count = 0;
+    for(int i = 0; i<sizeof(song); i = i+1){
+        boolean is_already_found = false;
+        for(int j=0; j<10; j = j+1){
+            if(strCmp(songs[i].artist,art[j]) == 0){
+                is_already_found = true;            
+                break;
+            }
+        }
+        if(!is_already_found){
+            art[unique_artist_count] = songs[i].artist;
+            unique_artist_count = unique_artist_count + 1;
+        }
+    }        
+    return art;
+}
