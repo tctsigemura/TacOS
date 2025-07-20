@@ -16,3 +16,4 @@ public song[] fetch_songs(char[] name, char[] sort);
 public album[] fetch_albums();
 public playlist[] fetch_playlist();
 public char[][] fetch_artists();
+public void fav_song(song[] songs, boolean is_favorite, int for_index);

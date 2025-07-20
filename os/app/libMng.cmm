@@ -260,6 +260,80 @@ int read_filer(int fd){
     return j;
 }
 
+char[][] favlist = {"          ","          ","          ","          ","          ","          ","          ","          ","          ","          "};
+// char[][] read_favlist(int fd){
+//     dbgPutStr("test");
+//     int bytes_read;
+//     char[] buffer = "                                                                                          ";
+//     char[] line;
+//     int line_pos = 0;
+//     int j = 0;
+    
+//     if(fd >= 0){
+//         dbgPutStr("test");
+        
+//         bytes_read = read(fd, buffer, 100);
+//         putDec(bytes_read,4);
+//         int buf_pos = 0;
+//         while (buf_pos < bytes_read) {
+//             dbgPutStr("test0");
+
+//             if (buffer[buf_pos] == ',' || buffer[buf_pos] == '\n') {
+//                 dbgPutStr("test1");
+//                 line[line_pos] = '\0'; // 行終端
+//                 line_pos = 0;
+//             } else {
+//                 line[line_pos] = buffer[buf_pos];
+//                 line_pos = line_pos + 1;
+//             }
+//             dbgPutStr(line);
+//             buf_pos = buf_pos + 1;
+//             if(strCmp(line, favlist[j]) != 0) { 
+//                 dbgPutStr("test2");
+//                 strCat(favlist[j], line);
+//                 strCat(favlist[j], "\n");
+//             }else{
+//                 j = j + 1;
+//             }
+//         }
+//     }
+//     return favlist;
+// }
+
+
+// char[][] read_favlist(int fd){
+//     dbgPutStr("test");
+//     int bytes_read;
+//     char[] extracted_path = "            " ;
+//     char[] buffer = "                                                                                          ";
+//     char[] line;
+//     int line_pos = 0;
+//     int path_count = 0;
+    
+//     if(fd >= 0){
+//         dbgPutStr("test1 ");    
+//         bytes_read = read(fd, buffer, 1024);
+//         putDec(bytes_read,4);
+//         int buf_pos = 0;
+//         while (buf_pos < bytes_read) {
+//             dbgPutStr("test2 ");
+//             int i = 0;
+//             while (buffer[i] != ',' && buffer[i] != '\0' && buffer[i] != '\n') {
+//                 extracted_path[i] = buffer[i];
+//                 i = i + 1;
+//                 dbgPutStr("test3 ");
+//             }
+//             extracted_path[i] = '\0';
+//             if (i > 0) {
+//                 dbgPutStr("test4 ");
+//                 strCpy(favlist[path_count], extracted_path);
+//                 path_count = path_count + 1;
+//             }
+//         }
+//     }
+//     return favlist;
+// }
+
 
 public album[] fetch_albums() {
     char[] filepath;
@@ -308,4 +382,36 @@ public char[][] fetch_artists() {
         }
     }        
     return art;
+}
+char[][] fav_box;
+public void fav_song(song[] songs, boolean is_favorite, int for_index){
+    char[] filepath = "/fav.txt";
+    int fd;
+    // remove(filepath);
+    fd = open(filepath, 2);
+    if(fd < 0) {
+        creat(filepath);
+        dbgPutStr("not found file\n");
+        fd = open(filepath, O_APPEND);
+    }
+    // fav_box = read_favlist(fd);
+    // close(fd);
+    // fd = open(filepath, 1);
+    // for(int j = 0 ; j < 10 ; j = j + 1){
+    //     dbgPutStr(favlist[0]);
+    //     dbgPutStr("\n");
+    // }
+    for(int i = 0 ; i < for_index ; i = i + 1){
+        if(strCmp(songs[i].path,"          ") != 0){//テキストファイルから取得するファイルパス
+            write(fd, songs[i].path, strLen(songs[i].path));
+        
+            if (is_favorite) {
+                write(fd, ",true\n", 6);
+            } else {
+                write(fd, ",false\n", 7);
+            }
+        }
+    }
+    
+    close(fd);
 }

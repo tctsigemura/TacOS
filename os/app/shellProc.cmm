@@ -28,6 +28,7 @@
  *
  */
 #include <kernel.hmm>
+#include "fs.hmm"
 #include <util.hmm>
 #include "lcd.hmm"
 #include "mp3Proc.hmm"
@@ -112,10 +113,11 @@ void asta(int y) {
 
 I_LibSt lib ;
 
-  // song[] s = {
-  //   {1,"name",true,"art","tanaka"},
-  //   {2,"name",true,"art","michikoo"}
-  // };
+  song[] son = {
+    {1,"name",true,"art","tanaka"},
+    {2,"name",true,"art","michikoo"}
+  };
+
   song[] s ={
     {0,"          ",true,"          ","tanaka"},
     {1,"          ",true,"          ","michikoo"},
@@ -246,11 +248,15 @@ public void shellMain() {
   //   dbgPutStr("\n");
   // }
 
-  char[][] art;
-  art = fetch_artists();
-  for (int i = 0; i<5; i=i+1){
-    dbgPutStr(art[i]);
-  }
+  // char[][] art;
+  // art = fetch_artists();
+  // for (int i = 0; i<5; i=i+1){
+  //   dbgPutStr(art[i]);
+  // }
+  remove("/fav.txt");
+  fav_song(s,true,10);
+  fav_song(son,false,2);
+  // fav_song(s,false);
 
   // dbgPutStr("ok path2\n");
   // for (int i=0; i<9; i=i+1) {  
