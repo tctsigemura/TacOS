@@ -119,15 +119,15 @@ I_LibSt lib ;
   };
 
   song[] s ={
-    {0,"          ",true,"          ","tanaka"},
+    {0,"          ",false,"          ","tanaka"},
     {1,"          ",true,"          ","michikoo"},
-    {2,"          ",true,"          ","higuchi"},
+    {2,"          ",false,"          ","higuchi"},
     {3,"          ",true,"          ","yamaguchi"},
     {4,"          ",true,"          ","hiroshima"},
     {5,"          ",true,"          ","oakayama"},
-    {6,"          ",true,"          ","simane"},
+    {6,"          ",false,"          ","simane"},
     {7,"          ",true,"          ","tottori"},
-    {8,"          ",true,"          ","          "},
+    {8,"          ",false,"          ","          "},
     {9,"          ",true,"          ","          "}
 };
 
@@ -253,9 +253,8 @@ public void shellMain() {
   // for (int i = 0; i<5; i=i+1){
   //   dbgPutStr(art[i]);
   // }
-  remove("/fav.txt");
-  fav_song(s,true,10);
-  fav_song(son,false,2);
+
+  fav_song(s);
   // fav_song(s,false);
 
   // dbgPutStr("ok path2\n");

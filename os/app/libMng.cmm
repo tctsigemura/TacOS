@@ -384,16 +384,43 @@ public char[][] fetch_artists() {
     return art;
 }
 char[][] fav_box;
-public void fav_song(song[] songs, boolean is_favorite, int for_index){
+// public void fav_song(song[] songs, boolean is_favorite, int for_index){
+//     char[] filepath = "/fav.txt";
+//     int fd;
+//     // remove(filepath);
+//     fd = open(filepath, 2);
+//     if(fd < 0) {
+//         creat(filepath);
+//         dbgPutStr("not found file\n");
+//         fd = open(filepath, O_APPEND);
+//     }
+//     // fav_box = read_favlist(fd);
+//     // close(fd);
+//     // fd = open(filepath, 1);
+//     // for(int j = 0 ; j < 10 ; j = j + 1){
+//     //     dbgPutStr(favlist[0]);
+//     //     dbgPutStr("\n");
+//     // }
+//     for(int i = 0 ; i < for_index ; i = i + 1){
+//         if(strCmp(songs[i].path,"          ") != 0){//テキストファイルから取得するファイルパス
+//             write(fd, songs[i].path, strLen(songs[i].path));
+        
+//             if (is_favorite) {
+//                 write(fd, ",true\n", 6);
+//             } else {
+//                 write(fd, ",false\n", 7);
+//             }
+//         }
+//     }
+//     close(fd);
+// }
+
+public void fav_song(song[] songs){
     char[] filepath = "/fav.txt";
     int fd;
-    // remove(filepath);
-    fd = open(filepath, 2);
-    if(fd < 0) {
-        creat(filepath);
-        dbgPutStr("not found file\n");
-        fd = open(filepath, O_APPEND);
-    }
+    remove(filepath);
+    creat(filepath);
+    fd = open(filepath, O_APPEND);
     // fav_box = read_favlist(fd);
     // close(fd);
     // fd = open(filepath, 1);
@@ -401,17 +428,16 @@ public void fav_song(song[] songs, boolean is_favorite, int for_index){
     //     dbgPutStr(favlist[0]);
     //     dbgPutStr("\n");
     // }
-    for(int i = 0 ; i < for_index ; i = i + 1){
+    for(int i = 0 ; i < sizeof(song) ; i = i + 1){
         if(strCmp(songs[i].path,"          ") != 0){//テキストファイルから取得するファイルパス
             write(fd, songs[i].path, strLen(songs[i].path));
         
-            if (is_favorite) {
+            if (songs[i].fav) {
                 write(fd, ",true\n", 6);
             } else {
                 write(fd, ",false\n", 7);
             }
         }
     }
-    
     close(fd);
 }
