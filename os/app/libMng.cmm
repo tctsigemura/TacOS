@@ -1,1 +1,57 @@
 #include "fs.hmm"
+#include <kernel.hmm>
+#include <util.hmm>
+#include "mp3Proc.hmm"
+#include "mp3Files.hmm"
+#include "libMng.hmm"
+#include <string.hmm>
+#include "structures.hmm"
+#include <stdlib.hmm>
+#include <syslib.hmm>
+#include "lcd.hmm"
+#include <stdio.hmm>
+
+
+char[][] sortWords(char[][] words, int n) {
+    for (int i = 0; i < n-1; i = i+1) {
+        if (strLen(words[i]) == 0 || words[i][0] == ' ') continue;
+        for (int j = i+1; j < n; j = j+1) {
+            if (strLen(words[j]) == 0 || words[j][0] == ' ') continue;
+            if (strCmp(words[i], words[j]) > 0) {
+                char[] tmp = "          ";
+                strCpy(tmp, words[i]);
+                strCpy(words[i], words[j]);
+                strCpy(words[j], tmp);
+            }
+        }
+    }
+    return words;
+}
+
+song[] songs;
+album[] albums;
+playlist[] playlists;
+
+
+// 曲のリストを取得する
+//   nameにプレイリスト名,アルバム名,"all"
+//   sortにabc,artist
+public song[] fetch_songs(char[] name, char[] sort) {
+    return songs;
+}
+
+
+public album[] fetch_albums() {
+    return albums;
+}
+
+
+public playlist[] fetch_playlists() {
+    return playlists;
+}
+
+
+public char[][] fetch_artists() {
+    return null;
+}
+

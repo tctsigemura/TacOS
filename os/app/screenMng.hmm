@@ -18,6 +18,7 @@ public void up_cursor();
 public void down_cursor();
 public void clear();
 public void display_items(void[][] items, char[] title, char[] move);
+public void streamScreen(DisplaySongInfo info);
 
 // 位置とかの取り出し
 public void _locateXY(int x, int y);

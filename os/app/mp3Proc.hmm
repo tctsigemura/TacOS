@@ -26,8 +26,11 @@
  *
  */
 
+#include "structures.hmm"
+
+
 // デフォルト
-public boolean play(char[] path);
+public boolean play(song[] songs, int idx);
 // public void stop();
 public void stop(boolean user); // ユーザーによる停止かどうかを引数で受け取る
 
@@ -38,9 +41,19 @@ public void repeat();
 public void shuffle();
 public void next();
 public void previous();
+public song get_song();
 // 中身書いてない
 public void get_history();
 
+// アクセサ
+public song get_playingsong();
+public int get_idx();
+public boolean get_is_normal();
+public boolean get_is_loop();
+public boolean get_is_repeat();
+public boolean get_is_shuffle();
+public int get_playstatus();
+public int get_totalsongs();
 
 // ↓新規追加した関数
 public void screen2();

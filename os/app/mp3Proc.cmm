@@ -62,37 +62,45 @@ boolean syncFlag = false;                   // クライアントが同期待ち
 //-----------------------------------------------------------------------------
 // クライアントプロセスが呼び出す
 //-----------------------------------------------------------------------------
-public boolean Upscreen = false;
-public boolean wasStoppedByUser = false;
+public boolean wasStoppedByUser = false; // ユーザによる停止
+public boolean wasStartedByUser = false; // ユーザによる開始
 
+// 再生中の曲を保持する 末尾はnullであること
+song[] queue;
 
 // 音楽再生停止
 public void stop(boolean user) {
-  syncFlag = true;                          // データ転送プロセスをコマンド待にする
-  sndrec(link, STOP, 0, 0, 0);              // 同期要求メッセージ
+  syncFlag = true;
+  sndrec(link, STOP, 0, 0, 0);
 
-  // ---以下ついかした記述-----
+  // --- 追加記述 ---
   wasStoppedByUser = user;  // ユーザーによる停止
   playstatus = 0;
-  // Upscreen = true;
-  // -----------------------
+  // ----------------
 }
 
 // 音楽再生
-public boolean play(char[] path) {
+// song構造体配列とインデックスを指定することによって再生する
+public boolean play(song[] songs, int index) {
 
-  syncFlag = true;                          // データ転送プロセスをコマンド待にする
-  int r = sndrec(link, START,
-                  _AtoI(path), 0, 0);       // 再生開始メッセージ
+    syncFlag = true;
 
-   // --- 追加記述 ---
-  wasStoppedByUser = false;  // ユーザーによる停止
-  playstatus = 1;
-  // Upscreen = true;
-  // screen2();
-  // -----------------
+    queue = songs;
 
-  return r==OK;                             // 成功なら true を返す
+    dbgPutStr("play: "); dbgPutStr(songs[index].path); dbgPutStr("\n");
+
+    int r = sndrec(link, START, _AtoI(songs[index].path), 0, 0);
+
+    // --- 追加記述 ---
+    wasStoppedByUser = false;  // ユーザーによる停止 ユーザによって曲が変更されたのか、勝手に次に進んだのか
+    //wasStartedByUser = user;
+    playstatus = 1; // 再生中
+    idx = index;
+
+    // ここでqueueの初期化と代入を行う
+    // -----------------
+
+    return r==OK;                             // 成功なら true を返す
 }
 
 //-----------------------------------------------------------------------------
@@ -118,9 +126,7 @@ void trans(char[] path) {
   close(fd);                                // ファイルをクローズ
 
   // ★ 再生終了を通知（新しく追加）
-  // send(link, -1);
   playstatus = -1;                     // 再生終了状態を設定
-
 }
 
 // mp3Main は，プロセスのメインルーチンとしてカーネルに登録しておく．
@@ -128,6 +134,8 @@ void trans(char[] path) {
 public void mp3Main() {
   link = newLink();                         // クライアント待受用のリンク
   for (;;) {
+
+    // 曲再生処理 [default]
     Link l=receive(link);                   // クライアントから受信待ち
     syncFlag = false;                       // クライアント停止中にフラグ操作
     if (l.op==STOP) {
@@ -145,12 +153,13 @@ public void mp3Main() {
 // グローバル変数
 //-----------------------------------------------------------------------------
 public int currentPlayMode = MODE_NORMAL;
-public int idx = 0;
+public int idx = 0; // 多分これ現在位置なんだろうな
 public int totalSongs = 0;
 public boolean is_normal = true;
 public boolean is_loop = false;
 public boolean is_repeat = false;
 public boolean is_shuffle = false;
+
 
 
 int[] originalOrder;      // 元の曲順を保持
@@ -184,7 +193,7 @@ void generateShuffleOrder() {
     shufflePlayedCount = 0;
 }
 
-// 曲番号から配列インデックスを取得
+// 曲番号から配列インデックスを取得 なんだこれ
 int getSongIndex(int songNumber) {
     for (int i = 0; i < totalSongs; i = i + 1) {
         if (originalOrder[i] == songNumber) {
@@ -271,6 +280,11 @@ public void shuffle() {
 }
 
 
+// 再生中 または現在のキュー中の本インデックスの曲を返す
+public song get_song() {
+    return queue[idx];
+}
+
 // 履歴取得（プレースホルダー）
 public void get_history() {
   // 履歴機能の実装はここに追加
@@ -283,8 +297,8 @@ public void get_history() {
 // 曲の合計数
 int getTotalSongs() {
     int count = 0;
-    for (int i = 1; i <= 5; i = i + 1) {
-        if (mp3FilesGetName(i) != null) {
+    for (int i = 0; i < 50; i = i + 1) {
+        if (queue[i] != null) {
             count = count + 1;
         }
     }
@@ -292,6 +306,9 @@ int getTotalSongs() {
 }
 
 // プレイリスト初期化(ノーマル順、シャッフル順の初期化)
+//   original order   : 
+//   shuffle order    : 
+//   played in shuffle:
 public void initPlaylist() {
     totalSongs = getTotalSongs();
     if (totalSongs == 0) return;
@@ -301,8 +318,8 @@ public void initPlaylist() {
     playedInShuffle = malloc(sizeof(boolean) * totalSongs);
     
     int index = 0;
-    for (int i = 1; i <= 5; i = i + 1) {
-        if (mp3FilesGetName(i) != null) {
+    for (int i = 1; i < 50; i = i + 1) {
+        if (queue[i] != null) {
             originalOrder[index] = i;
             shuffleOrder[index] = i;
             playedInShuffle[index] = false;
@@ -315,29 +332,44 @@ public void initPlaylist() {
 //-----------------------------------------------------------------------------
 // 再生制御関数
 //-----------------------------------------------------------------------------
-
+// 次の曲へ
 public void next() {
-    if (totalSongs == 0) return;
-    if (currentPlayMode == MODE_REPEAT) {
+    totalSongs = getTotalSongs();
+    dbgPutStr("called next()\n");
+
+    // キューに曲が入っていない時
+    if (totalSongs == 0) {
+        dbgPutStr("total songs is 0\n");
         return;
     }
-    boolean wasPlaying = ((playstatus == 1)||(playstatus == -1));
+    // リピートモードの時
+    if (currentPlayMode == MODE_REPEAT) {
+        dbgPutStr("repeat mode is true\n");
+        return;
+    }
+    // 再生中またはなら一旦止めてから次の曲を再生する
+    boolean wasPlaying = ((playstatus == 1) || (playstatus == -1));
     if (wasPlaying) {
-        // stopPlay();
-        stop(false); // 再生停止
+        // stop(false); // 再生停止 これ呼んだら次が呼ばれない
+        dbgPutStr("stop play\n");
     }
     
-    // switch文をif-else文に変更
+    // play modeが普通なら次の曲へ
     if (currentPlayMode == MODE_NORMAL) {
         idx = idx + 1;
+        dbgPutStr("OK1\n");
         if (idx >= totalSongs) {
             idx = totalSongs - 1;
             return;
         }
-    } else if (currentPlayMode == MODE_LOOP) {
+    }
+    // ループモードなら次、または最初の曲へ
+    else if (currentPlayMode == MODE_LOOP) {
         // 全曲を順に再生し、最後まで行ったら最初に戻る
         idx = (idx + 1) % totalSongs;
-    } else if (currentPlayMode == MODE_SHUFFLE) {
+    }
+    //  シャッフルモードなら次へ
+    else if (currentPlayMode == MODE_SHUFFLE) {
         shuffleIndex = shuffleIndex + 1;
         if (shuffleIndex >= totalSongs) {
             generateShuffleOrder();
@@ -345,20 +377,22 @@ public void next() {
         idx = getSongIndex(shuffleOrder[shuffleIndex]);
     }
     
-    // startPlay(); // 再生を開始
-    play(mp3FilesGetPath(idx+1)); // 再生開始
+    // ここ何してるのかわかんない
+    dbgPutStr("OK2\n");
+    play(queue, idx);
 }
 
+// 以前の曲に
 public void previous() {
     if (totalSongs == 0) return;
     if (currentPlayMode == MODE_REPEAT) {
         return;
     }
-    // boolean wasPlaying = (playstatus == 1);
-    boolean wasPlaying = ((playstatus == 1)|| (playstatus == -1));
+    // 再生中なら一旦止めてから次に進む
+    boolean wasPlaying = (playstatus == 1);
     if (wasPlaying) {
         // stopPlay();
-        stop(false); // 再生停止
+        // stop(false); // 再生停止
     }
     
     // switch文をif-else文に変更
@@ -380,33 +414,64 @@ public void previous() {
     }
     
     // startPlay(); // 再生を開始
-    play(mp3FilesGetPath(idx+1)); // 再生開始
+    play(queue, idx);
 }
 
 
-
+// 曲の最後に到達した際に呼ばれる関数
+//
 public void onSongEnd() {
     if (currentPlayMode == MODE_NORMAL) {
-      dbgPutStr("Normal End");
-      stop(false);
-        // if (idx + 1 < totalSongs) {
-        //     next();
-        // } else {
-        //     // stopPlay();
-        //   stop(); // 再生停止
-        // }
+      dbgPutStr("Normal End\n");
+      next();
     } else if (currentPlayMode == MODE_LOOP) {
-      dbgPutStr("Loop End");
+      dbgPutStr("Loop End\n");
       next();
     } else if (currentPlayMode == MODE_REPEAT) {
-      dbgPutStr("Repeat End");
-      play(mp3FilesGetPath(idx+1)); // 再生開始
+      dbgPutStr("Repeat End\n");
+      play(queue, idx); // 再生開始
     } else if (currentPlayMode == MODE_SHUFFLE) {
-      dbgPutStr("Shuffle End");
+      dbgPutStr("Shuffle End\n");
       next();
     }
 }
 
+
+//-----------------------------------------------------------------------------
+// アクセサ
+//-----------------------------------------------------------------------------
+// 曲取得、インデックス取得、再生モード取得、再生状態取得
+public song get_playingsong() {
+    return queue[idx];
+}
+
+public int get_idx() {
+    return idx;
+}
+
+public boolean get_is_normal() {
+    return is_normal;
+}
+
+public boolean get_is_loop() {
+    return is_loop;
+}
+
+public boolean get_is_repeat() {
+    return is_repeat;
+}
+
+public boolean get_is_shuffle() {
+    return is_shuffle;
+}
+
+public int get_playstatus() {
+    return playstatus;
+}
+
+public int get_totalsongs() {
+    return totalSongs;
+}
 
 //================================================================================
 // 2: 再生処理
@@ -446,8 +511,7 @@ public void screen2() {
 
 
     // ファイル名取得（idx + 1）を使って screen1 と一致
-    int songNum = idx + 1; 
-    char[] fname = mp3FilesGetName(songNum); 
+    char[] fname = queue[idx].name; 
     if (fname != null) {
         locateXY(2, 3);
         putStr(fname);

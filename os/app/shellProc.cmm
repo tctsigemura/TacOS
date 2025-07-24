@@ -39,6 +39,7 @@
 #include "structures.hmm"
 #include "screenMng.hmm"
 #include "playlistMng.hmm"
+#include "libMng.hmm"
 
 //-----------------------------------------------------------------------------
 // スイッチの読み取り
@@ -127,6 +128,8 @@ modeSt[] modes = {
     null
 };
 
+
+
 // song群 これはテスト用です！
 song[] songs = {
     {"song", 0, "Darkroom", true, "Dios", "/MP3/Darkroom.mp3"},
@@ -152,7 +155,7 @@ void resetScreen() {
 
 // ------ 関数群 ------
 // Homeスクリーンを描画
-void goHomeMode() {
+void goHomeScreen() {
     // スクリーンのリセット
     resetScreen();
 
@@ -169,7 +172,33 @@ void goHomeMode() {
 }
 
 // 選曲スクリーンを描画
-void goSongsMode() {
+void goSelectScreen(playlist[] playlists, album[] albums) {
+    // スクリーンのリセット
+    resetScreen();
+
+    // ここでヒストリーとかの情報を取得できるようにしたいよね
+
+
+    // スクリーンにプレイリストをセット
+    int i = 0;
+    while (playlists[i] != null) {
+        screen[i] = playlists[i];
+
+        i = i + 1;
+    }
+
+    // スクリーンにアルバムをセット
+    while (albums[i] != null) {
+        screen[i] = albums[i];
+
+        i = i + 1;
+    }
+    
+    display_items(screen, "Select Songs", "mode");
+}
+
+// 選曲スクリーンを描画
+void goSongsScreen() {
     // スクリーンのリセット
     resetScreen();
 
@@ -213,6 +242,18 @@ int mode = 0;
 
 SelectedItem s;
 
+// 再生画面に送る情報
+DisplaySongInfo info = {
+    null,
+    0,
+    0,
+    false,
+    false,
+    false,
+    false,
+    0
+};
+
 public void shellMain() {
     spiResetLcd();                                    // sleepを使用するので
     spiResetMp3();                                    //   プロセスが実行する
@@ -220,12 +261,21 @@ public void shellMain() {
     demoScreen();                                     // 画面を初期化
     cls();
 
+    // mp3Proc init
+    initPlaylist();
+
     // 初回起動時はホーム画面
-    goHomeMode();
+    goHomeScreen();
 
     for (;;) {
         int sw = readSw();
         int num = swToNum(sw);
+
+        // --- 強制メニューモード移動 ---
+        if (num == 1) {
+            mode = MENU;
+            goHomeScreen();
+        }
 
         // --- モードごとに処理を分ける ---
         // メニューモード
@@ -243,10 +293,12 @@ public void shellMain() {
                 tmpmode = tmp;
 
                 if (tmpmode.id == STREAMING) {
+                    mode = STREAMING;
                 }
                 else if (tmpmode.id == SONGS) {
                     mode = SONGS;
-                    goSongsMode();
+                    //goSelectScreen(fetch_playlists(), fetch_albums());
+                    goSongsScreen();
                 }
                 else if (tmpmode.id == PLAYLISTS) {}
                 else if (tmpmode.id == SETTINGS) {}
@@ -254,7 +306,16 @@ public void shellMain() {
         }
         // 再生モード (画面設定が面倒臭いので後回し)
         else if (mode == STREAMING) {
-            if (num == 1) {}
+            info.playingsong = get_playingsong();
+            info.idx = get_idx();
+            info.is_normal = get_is_normal();
+            info.is_loop = get_is_loop();
+            info.is_repeat = get_is_repeat();
+            info.is_shuffle = get_is_shuffle();
+            info.playstatus = get_playstatus();
+            info.totalsongs = get_totalsongs();
+
+            streamScreen(info); 
             else if (num == 2) {}
             else if (num == 3) {}
             else if (num == 4) {}
@@ -282,12 +343,21 @@ public void shellMain() {
                 tmp = s.item;
                 tmptype = tmp;
 
-                if (strCmp(tmptype.type, "album") == 0) {}
-                else if (strCmp(tmptype.type, "playlist") == 0) {}
+                if (strCmp(tmptype.type, "album") == 0) {
+                    tmpalbum = tmp;
+
+                    // アルバムから曲をとる
+                }
+                else if (strCmp(tmptype.type, "playlist") == 0) {
+                    tmpplaylist = tmp;
+
+                    // プレイリストから曲をとる
+                }
                 else if (strCmp(tmptype.type, "song") == 0) {
                     tmpsong = tmp;
-                    boolean isplay = play(tmpsong.path);
-                    if (!isplay) {dbgPutStr("untiunti!");}
+
+                    // 曲を流す
+                    play(songs, tmpsong.index);
                 }
             }
         }
@@ -320,6 +390,17 @@ public void shellMain() {
             }
             else if (num == 5) {}
             else if (num == 6) {}
+        }
+
+
+        /*
+         * 曲がひとりでに終わった時の処理
+         */
+        //   [Warning]
+        //   この別プロセス内で呼ばなければ、stop(), play()で
+        //   フリーズして止まってしまうためここで呼ぶ
+        if (playstatus == -1 && !wasStoppedByUser) {
+            onSongEnd();
         }
 
         sleep(10);  // 10ms に一度

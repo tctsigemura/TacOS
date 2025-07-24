@@ -40,6 +40,17 @@ struct SelectedItem {
     void[] item;
 };
 
+struct DisplaySongInfo {
+    song playingsong;
+    int totalsongs;
+    int idx;
+    boolean is_normal;
+    boolean is_loop;
+    boolean is_repeat;
+    boolean is_shuffle;
+    int playstatus;
+};
+
 struct I_ScrnSt {
     int mode;
     int sw;

@@ -324,5 +324,78 @@ public void down_cursor() {
     }
 }
 
+//-----------------------------------------------------------------------------
+// streamScreen: 再生画面
+//-----------------------------------------------------------------------------
+// 再生画面のみ特別に別で用意する
+public void streamScreen(DisplaySongInfo info) {
+    clear();
+    // タイトル
+    _locateXY(0, 0);
+    _putStr("Play Mode");
+    _locateXY(10, 0);    // 右側に曲番号を表示
+    _putDec(info.idx + 1, 1); // 現在の曲番号（1から始まる）
+    _putStr("/");
+    _putDec(info.totalsongs, 1); // 総曲数
+    
+    // N/L/R/S モード表示(全部で16文字)
+    _locateXY(8,1);
+    if (info.is_normal) _putStr("N");
+    else _putStr("-");
+    _putStr("/");    
+    if (info.is_loop) _putStr("L");
+    else _putStr("-");
+    _putStr("/");
+    if (info.is_repeat) _putStr("R");
+    else _putStr("-");
+    _putStr("/");
+    if (info.is_shuffle) _putStr("S");
+    else _putStr("-");
+    
+    // // お気に入り表示
+    // if (queue[idx].fav) {
+    //   locateXY(0, 1);    // ハートを表示する位置（例：画面右上）
+    //   putStr("♥");
+    // }; // 現在の曲のお気に入り状態
 
+
+    // ファイル名取得（idx + 1）を使って screen1 と一致
+    char[] fname = info.playingsong.name; 
+    if (fname != null) {
+        _locateXY(2, 3);
+        _putStr(fname);
+    }
+    
+    // パス表示（あれば）
+    char[] path = info.playingsong.path;
+    if (path != null) {
+        _locateXY(2, 4);
+        _putStr(path);
+    } else {
+        _locateXY(2, 4);
+        _putStr("N/A");
+    }
+    
+    // 再生状態
+    _locateXY(6, 5);
+    if (info.playstatus == 1) {
+        _putStr("||");
+        _locateXY(6, 6);
+        _putStr("再生中");
+    } else {
+        _putStr(">|");
+        _locateXY(6, 6);
+        _putStr("停止中");
+    }
+    
+    // 前/次
+    _locateXY(2, 5);
+    _putStr("<");
+    _locateXY(10, 5);
+    _putStr(">");
+    
+    // 操作説明
+    //_locateXY(0, 7);
+    //_putStr("1:戻る 2/4:↑↓ 3:mode 4:next 5:決定 6:prev");
+}
 
