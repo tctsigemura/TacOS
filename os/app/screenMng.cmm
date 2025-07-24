@@ -378,24 +378,19 @@ public void streamScreen(DisplaySongInfo info) {
     
     // 再生状態
     _locateXY(6, 5);
-    if (info.playstatus == 1) {
-        _putStr("||");
-        _locateXY(6, 6);
-        _putStr("再生中");
+    // 再生中
+    if (info.is_paused) {
+        _putCh(chr(0x7f)); // 再生中のアイコン
+    // 停止中
     } else {
-        _putStr(">|");
-        _locateXY(6, 6);
-        _putStr("停止中");
+        _putCh(chr(0x80)); //停止中のアイコン
     }
     
     // 前/次
     _locateXY(2, 5);
-    _putStr("<");
+    _putCh(chr(0x85));
     _locateXY(10, 5);
-    _putStr(">");
+    _putCh(chr(0x84));
     
-    // 操作説明
-    //_locateXY(0, 7);
-    //_putStr("1:戻る 2/4:↑↓ 3:mode 4:next 5:決定 6:prev");
 }
 

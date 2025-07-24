@@ -36,6 +36,8 @@ public void stop(boolean user); // ユーザーによる停止かどうかを引
 
 public void mp3Main();
 
+public void mp3pause();
+public void mp3resume();
 public void loop();
 public void repeat();
 public void shuffle();
@@ -54,6 +56,8 @@ public boolean get_is_repeat();
 public boolean get_is_shuffle();
 public int get_playstatus();
 public int get_totalsongs();
+public boolean get_wasStoppedByUser();
+public boolean get_ispaused();
 
 // ↓新規追加した関数
 public void screen2();
@@ -72,10 +76,7 @@ public void initPlaylist();
 
 
 // グローバル変数（外部からアクセス可能）
-public int playstatus;
-public int currentPlayMode;
-public int idx;
-public boolean wasStoppedByUser;
+// なしとした
 
 // public int totalSongs;
 // public boolean is_loop;

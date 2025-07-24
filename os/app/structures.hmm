@@ -49,6 +49,7 @@ struct DisplaySongInfo {
     boolean is_repeat;
     boolean is_shuffle;
     int playstatus;
+    boolean is_paused;
 };
 
 struct I_ScrnSt {

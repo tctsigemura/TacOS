@@ -48,6 +48,12 @@
 // メッセージ
 #define STOP  1                             // 再生停止要求メッセージ
 #define START 2                             // 再生開始要求メッセージ
+#define PAUSE 3
+#define RESUME 4
+
+int estimatedTotalSeconds;
+int playbackSeconds = 0;  // 再生時間（秒単位）
+public boolean isPaused = false;  // 一時停止フラグ
 
 // レスポンス
 #define OK  0
@@ -57,50 +63,123 @@
 int link;                                   // メッセージ通信用のリンク
 boolean syncFlag = false;                   // クライアントが同期待ちである
 
+//-----------------------------------------------------------------------------
+// 新規変数
+//-----------------------------------------------------------------------------
+int currentPlayMode = MODE_NORMAL;
+int idx = 0; // 多分これ現在位置なんだろうな
+int totalSongs = 0;
+int playstatus;
+boolean is_normal = true;
+boolean is_loop = false;
+boolean is_repeat = false;
+boolean is_shuffle = false;
 
+// 再生状態管理
+int currentFd = -1;                         // 現在のファイルディスクリプタ
+char[] currentPath = null;                  // 現在再生中のファイルパス
 
 //-----------------------------------------------------------------------------
 // クライアントプロセスが呼び出す
 //-----------------------------------------------------------------------------
-public boolean wasStoppedByUser = false; // ユーザによる停止
-public boolean wasStartedByUser = false; // ユーザによる開始
+
+
+void updatePlaybackTime() {
+  // SCI_DECODE_TIME は 0x04
+  playbackSeconds = spiReadMp3Reg(0x04);
+}
+
+void debugPlaybackTime() {
+  updatePlaybackTime();  // 現在の秒数を取得
+  int total = estimatedTotalSeconds;
+  int current = playbackSeconds;
+  int steps = 10;
+  int filled;
+  if (total > 0) {
+    filled = (current * steps) / total;
+  } else {
+    filled = 0;
+  }
+  char[] bar = malloc(12);
+  for (int i = 0; i < steps; i = i + 1) {
+    if (i < filled) {
+      bar[i] = '#';
+    } else {
+      bar[i] = '-';
+    }
+  }
+  bar[10] = '\0';
+  printF("----------------------------\n");
+  printF("再生時間: %d / %d 秒\n", current, total);
+  printF("進行度  : [%s] %d/10\n", bar, filled);
+  printF("----------------------------\n");
+  free(bar);
+}
+
+boolean wasStoppedByUser = false; // ユーザによる停止
 
 // 再生中の曲を保持する 末尾はnullであること
 song[] queue;
 
 // 音楽再生停止
 public void stop(boolean user) {
-  syncFlag = true;
-  sndrec(link, STOP, 0, 0, 0);
+    syncFlag = true;
 
-  // --- 追加記述 ---
-  wasStoppedByUser = user;  // ユーザーによる停止
-  playstatus = 0;
-  // ----------------
+    // --- 追加記述 ---
+    debugPlaybackTime();
+    sndrec(link, STOP, 0, 0, 0);
+    wasStoppedByUser = user;  // ユーザーによる停止
+    playstatus = 0;
+    // ----------------
+}
+
+// 曲の合計数
+int getTotalSongs() {
+    int count = 0;
+    for (int i = 0; i < 50; i = i + 1) {
+        if (queue[i] != null) {
+            count = count + 1;
+        }
+    }
+    return count;
 }
 
 // 音楽再生
 // song構造体配列とインデックスを指定することによって再生する
 public boolean play(song[] songs, int index) {
-
     syncFlag = true;
-
-    queue = songs;
-
-    dbgPutStr("play: "); dbgPutStr(songs[index].path); dbgPutStr("\n");
-
     int r = sndrec(link, START, _AtoI(songs[index].path), 0, 0);
 
     // --- 追加記述 ---
-    wasStoppedByUser = false;  // ユーザーによる停止 ユーザによって曲が変更されたのか、勝手に次に進んだのか
-    //wasStartedByUser = user;
+    wasStoppedByUser = false;
     playstatus = 1; // 再生中
     idx = index;
-
-    // ここでqueueの初期化と代入を行う
+    queue = songs;
+    totalSongs = getTotalSongs();
+    dbgPutStr("play: "); dbgPutStr(songs[index].path); dbgPutStr("\n");
     // -----------------
 
     return r==OK;                             // 成功なら true を返す
+}
+
+// 一時停止
+public void mp3pause() {
+  isPaused = true;
+
+  int r = sndrec(link, PAUSE, 0, 0, 0); // またここでエラーでとる
+  if (r != OK) {
+    dbgPutStr("Pause IPC failed\n");
+  }
+}
+
+// 再開
+public void mp3resume() {
+  isPaused = false;
+
+  int r = sndrec(link, RESUME, 0, 0, 0);
+  if (r != OK) {
+    dbgPutStr("Resume IPC failed\n");
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -109,24 +188,65 @@ public boolean play(song[] songs, int index) {
 // MP3 データ用のバッファ
 char[] buf = array(BUFSIZ);
 
+void calculateEstimatedDuration(char[] path) {
+  Stat s;
+  if (stat(path, s) < 0) {
+    estimatedTotalSeconds = 0;
+    return;
+  }
+  int h = s.lenH;  // 上位
+  int l = s.lenL;  // 下位
+  int kb = h * 64 + (l >> 10);
+  int audata = spiReadMp3Reg(0x05);
+  int sampleRate = (audata >> 1) & 0x7FFF;
+  if (sampleRate == 0) sampleRate = 44100;
+  int estimatedBitrateKBps = 16;
+  estimatedTotalSeconds = kb / estimatedBitrateKBps;
+}
+
 // 音楽データをデコーダに送る
 void trans(char[] path) {
-  int fd = open(path, READ_MODE);           // ファイルをオープン
-  if (fd<0) {                               // オープンできない
-    send(link, ERR);                        //   クライアントにエラーを通知
-    return;                                 //   コマンド待に戻る
+  int fd = open(path, READ_MODE);
+  if (fd < 0) {
+    send(link, ERR);
+    return;
   }
-  send(link, OK);                           // クライアントに成功を通知
-  int len;
-  while ((len=read(fd, buf, BUFSIZ))>0) {   // データをファイルから読み
-    spiWriteMp3Dat(buf, len);               //   MP3デコーダにデータを送る
-    if (syncFlag) break;                    //   クライアントが待っている
-  }
-  spiFlushMp3();                            // デコーダLSIのバッファをクリアし
-  close(fd);                                // ファイルをクローズ
+  send(link, OK);
 
-  // ★ 再生終了を通知（新しく追加）
-  playstatus = -1;                     // 再生終了状態を設定
+  calculateEstimatedDuration(path);  // 再生前に再生時間見積もり
+
+  int len;
+  while (true) {
+    if (syncFlag) break;
+
+    // 🔁 pause中は read すらしない
+    if (isPaused) {
+        // for pause
+        send(link,OK);
+
+        while (isPaused) { 
+            if (syncFlag) break;
+            sleep(100);
+        }
+
+        // for resume
+        send(link, OK);
+    }
+
+    if (syncFlag) break;
+
+    len = read(fd, buf, BUFSIZ);
+    if (len <= 0) break;
+
+    if (syncFlag) break;
+
+    spiWriteMp3Dat(buf, len);
+    updatePlaybackTime();
+  }
+
+  spiFlushMp3();
+  close(fd);
+  playstatus = -1;
 }
 
 // mp3Main は，プロセスのメインルーチンとしてカーネルに登録しておく．
@@ -134,34 +254,26 @@ void trans(char[] path) {
 public void mp3Main() {
   link = newLink();                         // クライアント待受用のリンク
   for (;;) {
-
-    // 曲再生処理 [default]
-    Link l=receive(link);                   // クライアントから受信待ち
+    Link l = receive(link);                 // クライアントから受信待ち
     syncFlag = false;                       // クライアント停止中にフラグ操作
-    if (l.op==STOP) {
+    if (l.op == STOP) {
       send(link, OK);                       // クライアントを再開する
-    } else if (l.op==START) {
+    } else if (l.op == START) {
       trans(_ItoA(l.prm1));                 // ファイルからデータ転送
+    } else if (l.op == PAUSE) {
+      isPaused = true;
+      dbgPutStr("MP3: Received PAUSE command\n");
+      send(link,OK);
+    } else if (l.op == RESUME) {
+      isPaused = false;
+      dbgPutStr("MP3: Received RESUME command\n");
+      send(link, OK);
     }
   }
 }
 
 
 // ------------ 以下新規追加 ----------------------------
-
-//-----------------------------------------------------------------------------
-// グローバル変数
-//-----------------------------------------------------------------------------
-public int currentPlayMode = MODE_NORMAL;
-public int idx = 0; // 多分これ現在位置なんだろうな
-public int totalSongs = 0;
-public boolean is_normal = true;
-public boolean is_loop = false;
-public boolean is_repeat = false;
-public boolean is_shuffle = false;
-
-
-
 int[] originalOrder;      // 元の曲順を保持
 int[] shuffleOrder;       // シャッフル順序を保持
 int shuffleIndex = 0;     // シャッフル再生での現在位置
@@ -294,16 +406,6 @@ public void get_history() {
 //-----------------------------------------------------------------------------
 // プレイリスト管理関数
 //-----------------------------------------------------------------------------
-// 曲の合計数
-int getTotalSongs() {
-    int count = 0;
-    for (int i = 0; i < 50; i = i + 1) {
-        if (queue[i] != null) {
-            count = count + 1;
-        }
-    }
-    return count;
-}
 
 // プレイリスト初期化(ノーマル順、シャッフル順の初期化)
 //   original order   : 
@@ -335,7 +437,6 @@ public void initPlaylist() {
 // 次の曲へ
 public void next() {
     totalSongs = getTotalSongs();
-    dbgPutStr("called next()\n");
 
     // キューに曲が入っていない時
     if (totalSongs == 0) {
@@ -350,14 +451,13 @@ public void next() {
     // 再生中またはなら一旦止めてから次の曲を再生する
     boolean wasPlaying = ((playstatus == 1) || (playstatus == -1));
     if (wasPlaying) {
-        // stop(false); // 再生停止 これ呼んだら次が呼ばれない
+        // stop(false);
         dbgPutStr("stop play\n");
     }
     
     // play modeが普通なら次の曲へ
     if (currentPlayMode == MODE_NORMAL) {
         idx = idx + 1;
-        dbgPutStr("OK1\n");
         if (idx >= totalSongs) {
             idx = totalSongs - 1;
             return;
@@ -378,7 +478,6 @@ public void next() {
     }
     
     // ここ何してるのかわかんない
-    dbgPutStr("OK2\n");
     play(queue, idx);
 }
 
@@ -471,6 +570,14 @@ public int get_playstatus() {
 
 public int get_totalsongs() {
     return totalSongs;
+}
+
+public boolean get_wasStoppedByUser() {
+    return wasStoppedByUser;
+}
+
+public boolean get_ispaused() {
+    return isPaused;
 }
 
 //================================================================================

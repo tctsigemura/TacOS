@@ -128,7 +128,17 @@ modeSt[] modes = {
     null
 };
 
+// 選択肢
+modeSt[] choises = {
+    {"mode", -1, "YES"},
+    {"mode", -1, "NO"}
+};
 
+// 設定モード群
+modeSt[] settings = {
+    {"mode", -1, "volume"},
+    {"mode", -1, "power off"}
+};
 
 // song群 これはテスト用です！
 song[] songs = {
@@ -218,6 +228,17 @@ void goSongsScreen() {
     display_items(screen, "Select Songs", "mode");
 }
 
+void goChoiseScreen() {
+    // スクリーンのリセット
+    resetScreen();
+
+    screen[0] = choises[0];
+    screen[1] = choises[1];
+
+    // スクリーンに描画
+    display_items(screen, "YES or NO", "straight");
+}
+
 
 //-----------------------------------------------------------------------------
 // MP3 プレーヤのメインプロセス
@@ -251,7 +272,8 @@ DisplaySongInfo info = {
     false,
     false,
     false,
-    0
+    0,
+    false
 };
 
 public void shellMain() {
@@ -304,7 +326,7 @@ public void shellMain() {
                 else if (tmpmode.id == SETTINGS) {}
             }
         }
-        // 再生モード (画面設定が面倒臭いので後回し)
+        // 再生モード
         else if (mode == STREAMING) {
             info.playingsong = get_playingsong();
             info.idx = get_idx();
@@ -314,16 +336,34 @@ public void shellMain() {
             info.is_shuffle = get_is_shuffle();
             info.playstatus = get_playstatus();
             info.totalsongs = get_totalsongs();
+            info.is_paused = get_ispaused();
 
             streamScreen(info); 
-            else if (num == 2) {}
-            else if (num == 3) {}
-            else if (num == 4) {}
-            else if (num == 5) {}
-            else if (num == 6) {}
+            if (num == 2) {
+                ;
+            }
+            else if (num == 3) {
+                if (get_is_normal()) loop();
+                else if (get_is_loop()) repeat();
+                else if (get_is_repeat()) shuffle();
+                else if (get_is_shuffle()) normal();
+            }
+            else if (num == 4) {
+                previous();
+            }
+            else if (num == 5) {
+                if (get_playstatus() == 1) {
+                    if (get_ispaused()) mp3resume();
+                    else mp3pause();
+                }
+            }
+            else if (num == 6) {
+                next();
+            }
         }
-        // 選曲モード (浦崎待ちだが、曲のみでやる)
+        // 選曲モード 
         else if (mode == SONGS) {
+            // 本当はここでファイルとディレクトリを読み出してくる
             if (num == 1) {}
             else if (num == 2) {
                 up_cursor();
@@ -399,7 +439,7 @@ public void shellMain() {
         //   [Warning]
         //   この別プロセス内で呼ばなければ、stop(), play()で
         //   フリーズして止まってしまうためここで呼ぶ
-        if (playstatus == -1 && !wasStoppedByUser) {
+        if (get_playstatus() == -1 && !get_wasStoppedByUser()) {
             onSongEnd();
         }
 
