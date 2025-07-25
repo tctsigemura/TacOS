@@ -97,7 +97,7 @@ public void create_playlist(song[] songs) {
             int j = 0;
             while (true) { 
                 if (songs[j] != null) {
-                    write(fd, songs[j].name, strLen(songs[j].name));
+                    write(fd, songs[j].path, strLen(songs[j].path));
                     write(fd, "\n", 1);
                 } else {
                     break;
@@ -129,7 +129,7 @@ public void add_songs(char[] pltname, song[] songs){
         int i = 0;
         while (true) {
             if (songs[i] != null && file_num != 10) {
-                write(fd, songs[i].name, strLen(songs[i].name));
+                write(fd, songs[i].path, strLen(songs[i].path));
                 write(fd, "\n", 1);
 
                 file_num = file_num + 1;
@@ -185,7 +185,7 @@ public void remove_songs(char[] pltname, song[] songs) {
         i = 0;
         while (songs[i] != null) {
             for (j=0; j<10; j=j+1) {
-                if (strCmp(songs[i].name, songlist[j]) == 0) {
+                if (strCmp(songs[i].path, songlist[j]) == 0) {
                     strCpy(songlist[j], "");
                 }
             }

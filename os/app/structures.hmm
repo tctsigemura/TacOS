@@ -37,7 +37,14 @@ struct playlist {
 
 struct SelectedItem {
     char[] type;
+    int idx;
     void[] item;
+};
+
+struct SelectingItem {
+    char[] type;
+    char[] name;
+    boolean[] is_selecting;
 };
 
 struct DisplaySongInfo {

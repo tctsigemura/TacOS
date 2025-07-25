@@ -18,13 +18,17 @@
 //
 // --- ページ ---
 // 遷移はselect, backによって行う
-int now_page = 0; // 現在のページ深度：w
-int[] page_top = {0, 0, 0}; // 現在ページのトップはinternal_objsのどこを指すのか
+int now_page = 0; // 現在のページ深度 0~3
+int[] page_top = {0, 0, 0, 0}; // 現在ページのトップはinternal_objsのどこを指すのか
 // --- ディスプレイ ---
 int display_size = 6;
-int[] cursor = {0, 0, 0}; // 範囲は0~5
+int[] cursor = {0, 0, 0, 0}; // 範囲は0~5
 char[] Title = "          ";
 char CURSOR = '>';
+
+boolean[] selecting_idx = {
+    false, false, false, false, false, false, false, false, false, false
+};
 
 // 構造体型確認用
 void[] tmp;
@@ -59,12 +63,19 @@ void[][][] screen = {
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null,
         null,null,null,null,null,null,null,null,null,null, null
+    },
+    {
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null,
+        null,null,null,null,null,null,null,null,null,null, null
     }
 };
 
 
 // --- 関数の戻り値 ---
-SelectedItem item = {"aiueo", null};
+SelectedItem item = {"aiueo", 0, null};
 
 //
 // 先生が元々作っていた関数
@@ -121,9 +132,15 @@ public void _show_psbar() {}
 //
 // 自作関数
 //
+// 現在のページ数を返す
+public int get_page() {
+    return now_page;
+}
+
 // --- 現在カーソルが選択中の要素を返す ---
 public SelectedItem select() {
     item.item = screen[now_page][page_top[now_page]+cursor[now_page]];
+    item.idx = page_top[now_page] + cursor[now_page];
     return item;
 }
 
@@ -189,6 +206,7 @@ void draw_title() {
     _locateXY(0, 0); _putStr(Title);
 }
 
+
 // screen配列に入っているものを描画する
 void display_screen() {
     // クリア
@@ -215,7 +233,19 @@ void display_screen() {
         } else if(strCmp(tmptype.type, "song") == 0) {
             tmp = tmptype;
             tmpsong = tmp;
-            _locateXY(1, i + 2); _putStr(tmpsong.name);
+
+            // selecting_idxに応じて*を描画する
+            if (selecting_idx[i + page_top[now_page]])  {
+                _locateXY(1, i + 2); _putStr("*");
+                _locateXY(3, i + 2); _putStr(tmpsong.name);
+            }
+            else {
+                _locateXY(1, i + 2); _putStr(tmpsong.name);
+            }
+
+            if (tmpsong.fav) {
+                _locateXY(15, i + 2); _putCh(chr(0x86));
+            }
         } else if(strCmp(tmptype.type, "album") == 0) {
             tmp = tmptype;
             tmpalbum = tmp;
@@ -228,10 +258,28 @@ void display_screen() {
     }
 }
 
+public boolean check_item(int idx) {
+    if (idx == -1) {
+        for (int i = 0; i < 10; i = i + 1) {
+            selecting_idx[i] = false;
+        }
+        return false;
+    }
+    else
+        selecting_idx[idx] = !selecting_idx[idx];
+
+    display_screen();
+
+    _locateXY(0, cursor[now_page] + 2); _putCh(CURSOR);
+
+    return selecting_idx[idx];
+}
+
 // 与えたアイテムを画面に並べる, またその初期化
 public void display_items(void[][] items, char[] title, char[] move) {
     // モード遷移の場合 (状態完全リセット)
     if (strCmp(move,"mode") == 0) {
+        init_page_top();
         init_screen(-1);
         clear();
         init_cursor();
@@ -392,5 +440,45 @@ public void streamScreen(DisplaySongInfo info) {
     _locateXY(10, 5);
     _putCh(chr(0x84));
     
+}
+
+
+//-----------------------------------------------------------------------------
+// 音量画面
+//-----------------------------------------------------------------------------
+public void volumeScreen(int vol) {
+  clear();
+  _locateXY(0,0); _putStr("Volume Setting");
+  
+  // volume行
+  _locateXY(0,2);
+  _putStr(" "); // 初期状態では空白
+  _locateXY(2,2);
+  _putStr("volume: ");
+
+  int disp_level;
+  disp_level = vol;   // 現在の音量
+
+  _putDec(disp_level, 2);  // 「1〜10」の値を表示
+  _putStr("/10");          // 最大値の表示
+
+  // ------- 音量バーの表示 ---------------------------
+
+  _locateXY(1,6);
+  _putCh(chr(0x87)); // メガホン
+  _locateXY(2,6);
+  _putCh(chr(0x88));  // Wi-Fi
+  _locateXY(4,6); 
+  int vol_bar;
+  vol_bar = vol;  // 通常時の音量
+
+  // バーの表示
+  for (int i = 1; i <= 10; i = i + 1) {
+      if (i <= vol_bar) {
+          _putCh(chr(0x89));  // 音量あり部分
+      } else {
+          _putCh(chr(0x8a));  // 空き部分
+      }
+  }
 }
 

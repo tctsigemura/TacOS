@@ -17,15 +17,20 @@ public void back();
 public void up_cursor();
 public void down_cursor();
 public void clear();
+public boolean check_item(int idx);
 public void display_items(void[][] items, char[] title, char[] move);
 public void streamScreen(DisplaySongInfo info);
+public void volumeScreen(int vol);
+
+// アクセサ
+public int get_page();
 
 // 位置とかの取り出し
-public void _locateXY(int x, int y);
-public void _putCh(char c);
-public void _putStr(char[] str);
-public void _putDec(int val, int width);
-public void _show_psbar();
+void _locateXY(int x, int y);
+void _putCh(char c);
+void _putStr(char[] str);
+void _putDec(int val, int width);
+void _show_psbar();
 
 // 内部関数
 void init_screen(int page);

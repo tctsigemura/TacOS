@@ -215,6 +215,8 @@ void trans(char[] path) {
 
   calculateEstimatedDuration(path);  // 再生前に再生時間見積もり
 
+  debugPlaybackTime();
+
   int len;
   while (true) {
     if (syncFlag) break;

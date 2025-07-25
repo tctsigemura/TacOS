@@ -136,7 +136,6 @@ char[][] fontDat = {
 
     // 8a(音量なし)　■
     { '\xff','\xff','\xff','\xff','\xff','\xff','\xff','\xff' }
-
   };
 
 
@@ -147,4 +146,3 @@ public char[] font(char code) {
   if (ord(code) >= 0x7f + 12) return fontDat[0];  // ← 拡張
   return fontDat[ord(code)-0x20];
 }
-
