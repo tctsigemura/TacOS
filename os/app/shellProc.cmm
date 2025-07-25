@@ -30,6 +30,7 @@
 #include <kernel.hmm>
 #include <util.hmm>
 #include <appUtil.hmm>
+#include <fs.hmm>
 
 #include "lcd.hmm"
 #include "mp3Proc.hmm"
@@ -412,6 +413,24 @@ DisplaySongInfo info = {
     false
 };
 
+Stat st = {0, 0, 0, 0};
+
+/*
+ * 実験用
+ */
+
+/*
+ *
+ */
+
+int[] file_size = {0, 0};
+int[] file_dis = {0, 128};
+int[] tag_pos = {0, 0};
+
+char[] buf = array(1024);
+
+int[] lengths = {3, 30, 30, 30, 4, 30, 1};
+
 public void shellMain() {
     spiResetLcd();                                    // sleepを使用するので
     spiResetMp3();                                    //   プロセスが実行する
@@ -426,6 +445,46 @@ public void shellMain() {
     goHomeScreen();
 
     init_selectingItems();
+
+    /*
+     *
+     * mp3の情報をとってきてみよう実験
+     *
+     */
+    
+    // ファイルサイズの取得
+    stat("/MP3/Moonian.mp3", st);
+    file_size[0] = st.lenH; file_size[1] = st.lenL;
+
+    tag_pos = _sub32(file_size, file_dis);
+
+    printF("H: %d, L: %d\n", tag_pos[0], tag_pos[1]);
+
+    int fd = open("/MP3/Moonian.mp3", READ_MODE);
+    if (fd >= 0) {
+        if (seek(fd, tag_pos[0], tag_pos[1]) == 0) {
+            for (int i=0; i<7; i=i+1) {
+                read(fd, buf, lengths[i]);
+                int j = 0;
+                while (lengths[i] > j) {
+                    printF("%c", buf[j]);
+
+                    j = j + 1;
+                }
+                printF("\n");
+            }
+        } else printF("seek失敗\n");
+
+    } else printF("ファイル開けない\n");
+        
+
+    // 
+
+    /*
+     *
+     *
+     *
+     */
 
     for (;;) {
         int sw = readSw();

@@ -12,6 +12,9 @@
 #include <stdio.hmm>
 
 
+#define PATH "/MP3/"
+
+
 char[][] sortWords(char[][] words, int n) {
     for (int i = 0; i < n-1; i = i+1) {
         if (strLen(words[i]) == 0 || words[i][0] == ' ') continue;
@@ -54,4 +57,5 @@ public playlist[] fetch_playlists() {
 public char[][] fetch_artists() {
     return null;
 }
+
 

@@ -18,4 +18,4 @@ public playlist[] fetch_playlists();
 public char[][] fetch_artists();
 
 // 曲をいいねする
-public void fav_song(song, boolean is_fav);
+public void fav_song(song s, boolean is_fav);

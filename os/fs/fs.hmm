@@ -138,3 +138,4 @@ public int seek(int fd, int ptrh, int ptrl);
  *   解説   : ファイルの情報を取得する
  */
 public int stat(char[] path, Stat stat);
+
