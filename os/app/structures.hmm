@@ -16,7 +16,7 @@ struct modeSt {
 
 struct album {
     char[] type;
-    int song_num;
+    int num;
     char[] name;
 };
 
@@ -31,8 +31,13 @@ struct song {
 
 struct playlist {
     char[] type;
-    int song_num;
+    int num;
     char[] name;
+};
+
+struct Mp3Tag {
+    char[] song_name;
+    char[] artist_name;
 };
 
 struct SelectedItem {

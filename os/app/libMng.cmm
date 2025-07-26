@@ -1,20 +1,98 @@
-#include "fs.hmm"
 #include <kernel.hmm>
 #include <util.hmm>
-#include "mp3Proc.hmm"
-#include "mp3Files.hmm"
+#include <fs.hmm>
+#include "appUtil.hmm"
 #include "libMng.hmm"
-#include <string.hmm>
 #include "structures.hmm"
-#include <stdlib.hmm>
-#include <syslib.hmm>
-#include "lcd.hmm"
-#include <stdio.hmm>
 
 
-#define PATH "/MP3/"
+// ----------------------------------------------------------------------
+// アルバムのパス/プレイリストのパス/いいねのパス
+// ----------------------------------------------------------------------
+#define ALBUM_PATH "/MP3/"
+#define PLAYLIST_PATH "/PLAYLIST/"
+#define FAV_PATH "/FAV.TXT"
 
 
+// ----------------------------------------------------------------------
+// リターン時の実体宣言
+// ----------------------------------------------------------------------
+// song構造体配列 最大50曲 idx=-1によって末尾を表現する.
+song[] songs = {
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
+    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "}
+};
+// アルバム構造体配列 num=0によって末尾を表現する
+album[] albums = {
+    {"album", -1, "          "},  {"album", -1, "          "},
+    {"album", -1, "          "},  {"album", -1, "          "},
+    {"album", -1, "          "}
+};
+// プレイリスト構造体配列 num=0によって末尾を表現する
+playlist[] playlists = {
+    {"playlist", -1, "          "}, {"playlist", -1, "          "},
+    {"playlist", -1, "          "}, {"playlist", -1, "          "},
+    {"playlist", -1, "          "}
+};
+
+
+// ----------------------------------------------------------------------
+// 処理に使う一時変数
+// ----------------------------------------------------------------------
+Dir dir;
+char[] context = array(2048);
+char[] file_path = array(128);
+char[][] playlist_names = {"pl0", "pl1", "pl2", "pl3", "pl4"};
+char[][] fav_paths = {
+    array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), 
+    array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), 
+    array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), 
+    array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), 
+    array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30)
+};
+boolean[] is_favs = {
+    false, false, false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false, false, false,
+    false, false, false, false, false, false, false, false, false, false
+};
+
+int[] file_size = array(2);
+int[] tag_pos = array(2);
+int[] file_dis = {0, 128};
+
+Mp3Tag tag = {"                              ", "                              "};
+char[] buf = array(1024);
+
+
+// ----------------------------------------------------------------------
+// 内部関数
+// ----------------------------------------------------------------------
+//
 char[][] sortWords(char[][] words, int n) {
     for (int i = 0; i < n-1; i = i+1) {
         if (strLen(words[i]) == 0 || words[i][0] == ' ') continue;
@@ -31,31 +109,299 @@ char[][] sortWords(char[][] words, int n) {
     return words;
 }
 
-song[] songs;
-album[] albums;
-playlist[] playlists;
+// ソング配列の初期化を行う
+void init_songs() {
+    for (int i=0; i<50; i=i+1) {
+        songs[i].index = -1;
+        songs[i].fav = false;
+        strCpy(songs[i].artist, "");
+        strCpy(songs[i].name, "");
+    }
+}
+
+// アルバム配列の初期化を行う
+void init_albums() {
+    for (int i=0; i<5; i=i+1) { 
+        albums[i].num = -1;
+        strCpy(albums[i].name, "");
+    }
+}
+
+// プレイリスト配列の初期化を行う
+void init_playlists() {
+    for (int i=0; i<5; i=i+1) { 
+        playlists[i].num = -1;
+        strCpy(playlists[i].name, "");
+    }
+}
+
+// いいね配列の初期化を行う
+void init_favs() {
+    for (int i=0; i<50; i=i+1) {
+        strCpy(fav_paths[i], "");
+        is_favs[i] = false;
+    }
+}
+
+// ファイルから読み込んだプレイリストの曲数を取得する
+int lenSongofPlt(char[] pltname) {
+    int fd;
+    int file_num = 0;
+
+    fd = open(pltname, READ_MODE);
+
+    if (fd >= 0) {
+        read(fd, context, 2048);
+
+        int i = 0;
+        while (context[i] != '\0') {
+            if (context[i] == '\n') {
+                file_num = file_num + 1;
+            }
+        
+            i = i + 1;
+        }
+    }
+
+    close(fd);
+
+    return file_num;
+}
 
 
-// 曲のリストを取得する
-//   nameにプレイリスト名,アルバム名,"all"
-//   sortにabc,artist
+Mp3Tag getMp3Tag(char[] file_path) {
+    Stat st;
+
+    stat(file_path, st);
+    file_size[0] = st.lenH; file_size[1] = st.lenL;
+
+    tag_pos = _sub32(file_size, file_dis);
+
+    int fd = open(file_path, READ_MODE);
+    if (fd >= 0) {
+        if (seek(fd, tag_pos[0], tag_pos[1]) == 0) {
+            read(fd, buf, 3);
+            read(fd, buf, 30);
+            for (int i=0; i<30; i=i+1) {
+                tag.song_name[i] = buf[i];
+            }
+            read(fd, buf, 30);
+            for (int i=0; i<30; i=i+1) {
+                tag.artist_name[i] = buf[i];
+            }
+        }
+    }
+    close(fd);
+
+    return tag;
+}
+
+void attach_attr_song(song s, char[] path) {
+    Mp3Tag t = getMp3Tag(path);
+                              
+    s.index = i;
+    strCpy(s.artist, t.artis_name);
+    strCpy(s.path, path);
+    strCpy(s.name, t.song_name);
+}
+
+
+
+// ----------------------------------------------------------------------
+// グローバル関数
+// ----------------------------------------------------------------------
 public song[] fetch_songs(char[] name, char[] sort) {
+    init_songs();
+
+    // --- song構造体配列を取ってくる ---
+    // プレイリストだった場合 
+    if (strCmp(name, "pl0") == 0) {}
+    else if (strCmp(name, "pl1") == 0) {}
+    else if (strCmp(name, "pl2") == 0) {}
+    else if (strCmp(name, "pl3") == 0) {}
+    else if (strCmp(name, "pl4") == 0) {}
+    else if (strCmp(name, "history") == 0) {}
+    else if (strCmp(name, "fav") == 0) {}
+    else if (strCmp(name, "All") == 0) {
+        albums = fetch_albums();
+
+        strCpy(file_path, ALBUM_PATH); strCat(file_path, albums.name); strCat(file_path, "/");
+
+
+    }
+    // アルバムを取ってくる
+    else {
+        strCpy(file_path, ALBUM_PATH); strCat(file_path, name); strCat(file_path, "/");
+
+        int fd = open(file_path, READ_MODE);
+
+        int i = 0;
+        while (true) {
+            dir = readDir(fd, "MP3");
+
+            if (dir == null) break;
+
+            strCpy(buf, file_path); strCat(buf, dir.name);
+
+            attach_attr_song(song[i], buf);
+        
+            i = i + 1;
+        }
+    }
+
+    // --- ここからソート ---
+
     return songs;
 }
 
-
 public album[] fetch_albums() {
+    init_albums();
+
+    int fd = open(ALBUM_PATH, READ_MODE);
+
+    if (fd >= 0) {
+        int i = 0;
+        while (true) {
+            dir = readDir(fd, null);
+
+            if (dir == null) break;
+
+            strCpy(albums[i].name, dir.name);
+            strCpy(file_path, ALBUM_PATH); strCat(file_path, dir.name); strCat(file_path, "/");
+
+            int album_fd = open(file_path, READ_MODE);
+            int file_num = 0;
+            while (true) {
+                dir = readDir(album_fd, "MP3");
+
+                if (dir == null) break;
+
+                file_num = file_num + 1;
+            }
+
+            albums[i].num = file_num;
+            close(album_fd);
+
+            i = i + 1;
+        }
+    }
+
+    close(fd);
+
     return albums;
 }
 
-
 public playlist[] fetch_playlists() {
+    init_playlists();
+
+    int fd;
+
+    int j = 0;
+    for (int i=0; i<10; i=i+1) {
+        strCpy(file_path, PLAYLIST_PATH); strCat(file_path, playlist_names[i]); strCat(file_path, ".txt");
+        fd = open(file_path, READ_MODE);
+
+        if (fd < 0) {
+            close(fd);
+            continue;
+        }
+
+        close(fd);
+
+        strCpy(playlists[j].name, playlist_names[i]);
+        playlists[j].num = lenSongofPlt(file_path);
+
+        j = j + 1;
+
+
+    }
+
     return playlists;
 }
-
 
 public char[][] fetch_artists() {
     return null;
 }
 
+// /MP3/HOGE/hoge.mp3
+// ↑とヒットするような/FAV.TXTを取得し、path, t/fでやればいい
+// /FAV.TXTが存在しなければ作る。path, t/fがなければ新しく作成する。
+public void fav_song(song s) {
+    printF("called fav_song()\n");
+
+    init_favs();
+
+    int fd;
+
+    // 存在していないなら作る
+    fd = open(FAV_PATH, READ_MODE);
+
+    if (fd < 0) {
+        creat("FAV_PATH");
+    }
+
+    close(fd);
+
+    // 現在のfav情報を読み込む
+    fd = open(FAV_PATH, READ_MODE);
+
+    if (fd >= 0) {
+        read(fd, context, 2048);
+
+        int i = 0; int j = 0; int k = 0;
+        while (context[i] != '\0') {
+            if (context[i] == '\n') {
+                j = j + 1;
+                k = 0;
+            } else if (context[i] == ',') {
+                if (context[i + 1] == 't')
+                    is_favs[j] = true;
+                i = i + 1;
+            } else {
+                fav_paths[j][k] = context[i];
+                k = k + 1;
+            }
+
+            printF("%c",fav_paths[j][k]);
+            i = i + 1;
+        }
+    }
+
+    close(fd);
+
+    // favファイルの初期化
+    remove(FAV_PATH);
+    creat(FAV_PATH);
+    
+    // fav情報を新たに書き込み
+    fd = open(FAV_PATH, WRITE_MODE);
+
+    int i = 0;
+    boolean is_fav = false;
+    while (strCmp(fav_paths[i], "") != 0) {
+        write(fd, fav_paths[i], strLen(fav_paths[i]));
+        write(fd, ",", 1);
+
+        if (strCmp(fav_paths[i], s.path) == 0) {
+            is_fav = true;
+            if (s.fav) write(fd, "t\n", 2);
+            else write(fd, "f\n", 2);
+        } else {
+            if (is_favs[i]) write(fd, "t\n", 2);
+            else write(fd, "f\n", 2);
+        }
+
+        i = i + 1;
+    }
+
+    if (!is_fav) {
+        write(fd, s.path, strLen(s.path));
+        write(fd, ",", 1);
+
+        if (s.fav) write(fd, "t\n", 2);
+        else write(fd, "f\n", 2);
+    }
+
+    close(fd);
+}
 

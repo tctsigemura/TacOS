@@ -86,29 +86,6 @@ int swToNum(int sw) {
 }
 
 //-----------------------------------------------------------------------------
-// 画面表示
-//-----------------------------------------------------------------------------
-void demoScreen() {
-  cls();                                            // LCDをクリアする
-  locateXY(0,0); putStr("MP3 Player demo");
-  for (int i=1; i<=5; i=i+1) {                      // スイッチ1〜5に付いて
-    locateXY(2,i+1);
-    putCh(chr(ord('0')+i));                         // スイッチの番号
-    putStr(":");
-    char[] fname = mp3FilesGetName(i);              // 対応するファイル名
-    if (fname!=null) putStr(fname);
-  }
-  locateXY(2,7);
-  putStr("6:stop");                                 // 6番のスイッチ
-}
-
-void asta(int y) {
-  demoScreen();
-  locateXY(0, y+1);
-  putCh('>');
-}
-
-//-----------------------------------------------------------------------------
 // スクリーン操作関係の処理
 //-----------------------------------------------------------------------------
 // ------ 変数群 ------
@@ -150,34 +127,6 @@ modeSt[] playlistSettings = {
     {"mode", -1, "Delete Playlist"},
     {"mode", -1, "Add Songs"},
     {"mode", -1, "Remove Songs"},
-    null
-};
-
-// album群 これはテスト用です！
-album[] albums = {
-    {"album", 10, "fav"},
-    {"album", 2, "fav2"},
-    null
-};
-
-// song群 これはテスト用です！
-song[] songs = {
-    {"song", 0, "Darkroom", true, "Dios", "/MP3/Darkroom.mp3"},
-    {"song", 1, "Moonian", true, "EOC", "/MP3/Moonian.mp3"},
-    {"song", 2, "Seishunbyou", true, "Fujii Kaze", "/MP3/Seishun.mp3"},
-    {"song", 3, "Kaidenwa", true, "r-906", "/MP3/Kaidenwa.mp3"},
-    {"song", 4, "Uso", true, "Shido", "/MP3/Uso.mp3"},
-    {"song", 5, "Shokuzai", true, "Shido", "/MP3/Shokuzai.mp3"},
-    {"song", 6, "=LOVE", true, "ikorabu", "/MP3/Tokubetu.mp3"},
-    {"song", 7, "Seigi", true, "Chevon", "/MP3/Seigi.mp3"},
-    {"song", 8, "AotoNatsu", true, "Misesu", "/MP3/AoNatsu.mp3"},
-    {"song", 9, "Ruru", true, "r-906", "/MP3/Ruru.mp3"},
-    null
-};
-
-song[] songs2 = {
-    {"song", 0, "Shokuzai", true, "Shido", "/MP3/Shokuzai.mp3"},
-    {"song", 1, "Ruru", true, "r-906", "/MP3/Ruru.mp3"},
     null
 };
 
@@ -233,9 +182,8 @@ void resetScreen() {
 
 // selecting itemsをリセットする
 void init_selectingItems() {
-    for (int i=0; i<10; i=i+1) selectingItems[i].is_selecting = is_selectings[i];
-
     for (int i=0; i<10; i=i+1) {
+        selectingItems[i].is_selecting = is_selectings[i];
         strCpy(selectingItems[i].name, "");
         
         for (int j=0; j<10; j=j+1)
@@ -413,7 +361,6 @@ DisplaySongInfo info = {
     false
 };
 
-Stat st = {0, 0, 0, 0};
 
 /*
  * 実験用
@@ -423,20 +370,11 @@ Stat st = {0, 0, 0, 0};
  *
  */
 
-int[] file_size = {0, 0};
-int[] file_dis = {0, 128};
-int[] tag_pos = {0, 0};
-
-char[] buf = array(1024);
-
-int[] lengths = {3, 30, 30, 30, 4, 30, 1};
 
 public void shellMain() {
     spiResetLcd();                                    // sleepを使用するので
     spiResetMp3();                                    //   プロセスが実行する
     mp3FilesInit();                                   // ファイル一覧を作る
-    demoScreen();                                     // 画面を初期化
-    cls();
 
     // mp3Proc init
     initPlaylist();
@@ -452,33 +390,6 @@ public void shellMain() {
      *
      */
     
-    // ファイルサイズの取得
-    stat("/MP3/Moonian.mp3", st);
-    file_size[0] = st.lenH; file_size[1] = st.lenL;
-
-    tag_pos = _sub32(file_size, file_dis);
-
-    printF("H: %d, L: %d\n", tag_pos[0], tag_pos[1]);
-
-    int fd = open("/MP3/Moonian.mp3", READ_MODE);
-    if (fd >= 0) {
-        if (seek(fd, tag_pos[0], tag_pos[1]) == 0) {
-            for (int i=0; i<7; i=i+1) {
-                read(fd, buf, lengths[i]);
-                int j = 0;
-                while (lengths[i] > j) {
-                    printF("%c", buf[j]);
-
-                    j = j + 1;
-                }
-                printF("\n");
-            }
-        } else printF("seek失敗\n");
-
-    } else printF("ファイル開けない\n");
-        
-
-    // 
 
     /*
      *
@@ -499,7 +410,7 @@ public void shellMain() {
             init_selectingItems();
         }
 
-        // --- モードごとに処理を分ける ---
+ // --- モードごとに処理を分ける ---
         // メニューモード
         if (mode == MENU) {
             if (num == 2) {
