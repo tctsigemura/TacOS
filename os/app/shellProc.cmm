@@ -205,10 +205,11 @@ char[][] chii_font_list = {
 };
 
 public void disp_chii(int x, int y) {
+  
   for (int row = 0; row < 7; row=row + 1) {  // 2行分ループ
     for (int col = 0; col < 6; col= col + 1) {  // 6列分ループ
       int index = row * 6 + col;  // 現在のマスのインデックス（0〜41）
-      locateXY(x + col, y + row);  // 座標に描画（x:列方向, y:行方向）
+      locateXY(x + col + 5, y + row);  // 座標に描画（x:列方向, y:行方向）
       spiWriteLcdDat(chii_font_list[index], 8);  // 1マス = 8バイト
     }
   }
@@ -220,11 +221,10 @@ void initialScreen() {
   cls();
   // 列行
   locateXY(0, 0);
-  putStr("Welcome to MP3 Player");
-
+  putStr("     Welcome");
   disp_chii(0, 1);  // (0,3) から 6×7 マスのビットパターンを描画
-  sleep(10000);            // アニメーションっぽく少し待つ
-  cls();
+  // sleep(10000);            // アニメーションっぽく少し待つ
+  // cls();
 }
 
 //-----------------------------------------------------------------------------
@@ -232,129 +232,34 @@ void initialScreen() {
 //-----------------------------------------------------------------------------
 // ここからプロセスの実行が始まる
 public void shellMain() {
-  
-  // lib = malloc(1);
-  // pl = malloc(1);
-  // al = malloc(1);
-  // free(lib);
-  // free(pl);
-  // free(al);
-  // dbgPutStr("test_1\n");
-  // pltname = malloc(5);
-  // dbgPutStr("test_2\n");
+  int initial = 0;
   spiResetLcd();                                    // sleepを使用するので
   spiResetMp3();                                    //   プロセスが実行する
   mp3FilesInit();                                   // ファイル一覧を作る
 
-  initialScreen();
   //dbgPutStr("test_3\n");
   demoScreen();                                     // 画面を初期化
-  //dbgPutStr("test_4\n");
-  // lib.name = "kento";
-  
-  // free(lib);
-  // dbgPutStr(s[0].name);
-  // s = fetch_songs(lib.name, lib.sort);
-  // dbgPutStr(s[0].name);
-  // fetch_albums();           ここでフリーズする．
-  // dbgPutStr(al[0].name);
-  // fetch_playlist();
-  // dbgPutStr(pl[0].name);
-  // char[][] art = malloc(10);
-  // art = fetch_artists();
-  // dbgPutStr(art[0]);
-  // dbgPutStr("test_5\n");
-  // free(art);
-  
-  
-  // dbgPutStr("test_6\n");
-  int flag = 0;
-  if(flag == 1){
-    char[] nname = "pltname";
-    char[] ppath = "MP3/pltname/pltname.mp3";
-    
-    remove_song(nname,ppath);
-  // create_playlist(playlist_name[0]);
-  // delete_playlist(playlist_name[0]);
-  // create_playlist(playlist_name[0]);
-    
 
-    add_song(playlist_name[0],s,0);
-    // add_song("MP3/pltname/pltlis.txt","4");
-    // add_song("MP3/pltname/pltlis.txt","5");
-    
-    // delete_playlist("pltname");
-    // remove_song("pltname/","MP3/pltname/pltname.mp3");
+  // --------------------------------------オープニング
+  sleep(200);
+  char[] filepath = "/MP3/PAJAMA.MP3";
+  play(filepath);  
+  while(true){
+    int sw = readSw();
+    int num = swToNum(sw);
+    initialScreen();
+    if(num == 1||num == 2||num == 3||num == 4||num == 5||num == 6){
+      cls();
+      demoScreen();
+      stop();
+      break;
+    }
+    sleep(10);
   }
-  
-  /*  remove_song　明日
-  delete_playlist(playlist_name[0]);//
-  create_playlist(playlist_name[0]);
-  add_song(playlist_name[0],s,0); //第3引数，数字は曲のインデックスを入れる←選ばれた曲の番号が入る
-  add_song(playlist_name[0],s,1);
-  remove_song(playlist_name[0],s[0].path);
-  */
-  // delete_playlist(playlist_name[0]);//
-  // create_playlist(playlist_name[0]);
-  // // add_song(playlist_name[0],s,0); //第3引数，数字は曲のインデックスを入れる←選ばれた曲の番号が入る
-  // for(int j = 0; j< 10; j=j+1){
-  //   add_song(playlist_name[0],s,j);
-  // }
+// --------------------------------------オープニング
 
-  // s = fetch_songs(playlist_name[0],"music_name");
-  // for(int j = 0; j<9; j=j+1){
-  //   dbgPutStr(s[j].path);
-  //   dbgPutStr("\n");
-  // }
-  // dbgPutStr("ok path1\n");
-  // s = fetch_songs("al1","music_name");
-  // for(int j = 0; j<9; j=j+1){
-  //   dbgPutStr(s[j].path);
-  //   dbgPutStr("\n");
-  // }
-
-  
-  // al1 = fetch_albums();
-  // for(int j = 0; j<5; j=j+1){
-  //   dbgPutStr(al1[j].name);
-  //   // dbgPutStr(al1[j].song_num);
-  //   dbgPutStr("\n");
-  // }
-
-  // pl1 = fetch_playlist();
-  // for(int j = 0; j<5; j=j+1){
-  //   dbgPutStr(pl1[j].name);
-  //   // dbgPutStr(al1[j].song_num);
-  //   dbgPutStr("\n");
-  // }
-
-  // char[][] art;
-  // art = fetch_artists();
-  // for (int i = 0; i<5; i=i+1){
-  //   dbgPutStr(art[i]);
-  // }
-
-  // fav_song(s);
-  // fav_song(s,false);
-
-  // dbgPutStr("ok path2\n");
-  // for (int i=0; i<9; i=i+1) {  
-  //   create_playlist(playlist_name[i]);
-  // }
-  
-  // dbgPutStr("test_7\n");
-  //s = malloc(23);
-  // dbgPutStr("test_8\n");
-  //s[0].path = "MP3/pltname/pltname.mp3";//23
-  //char[] test_path = s[0].path;
-  
-  // remove_song("pltname/",test_path);
-  // free(s);
-  
-  //free(pltname);
-  //free(s);
-  // dbgPutStr("test_9\n");
   for (;;) {    
+
     //dbgPutStr("yahho");
     int sw = readSw();
     int num = swToNum(sw);
