@@ -208,7 +208,7 @@ void draw_title() {
 
 
 // screen配列に入っているものを描画する
-void display_screen() {
+public void display_screen() {
     // クリア
     clear();
 

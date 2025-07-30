@@ -23,6 +23,7 @@ public void streamScreen(DisplaySongInfo info);
 public void volumeScreen(int vol);
 public void powerScreen(int val);
 public void poweroffScreen();
+public void display_screen();
 
 // アクセサ
 public int get_page();
@@ -37,6 +38,5 @@ void _show_psbar();
 // 内部関数
 void init_screen(int page);
 void init_cursor();
-void display_screen();
 void items_to_objs(void[][] items);
 void draw_title();
