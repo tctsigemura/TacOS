@@ -215,6 +215,7 @@ void goHomeScreen() {
     display_items(screen, "Menu", "mode");
 }
 
+playlist favPL = {"playlist", 0, "fav"};
 // 選曲スクリーンを描画
 void goSelectScreen() {
     // スクリーンのリセット
@@ -231,6 +232,11 @@ void goSelectScreen() {
 
         i = i + 1;
     }
+
+    screen[i] = favPL;
+
+    i = i + 1;
+
 
     int j = 0;
     // スクリーンにアルバムをセット

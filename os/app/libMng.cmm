@@ -171,15 +171,19 @@ int lenSongofPlt(char[] pltname) {
     return file_num;
 }
 
-
+Stat st = {0, 0, 0, 0};
 Mp3Tag getMp3Tag(char[] path) {
-    Stat st;
+    //Stat st;
 
+    printF("OKK1: %s\n", path);
     stat(path, st);
+    printF("OKK1? \n", path);
     file_size[0] = st.lenH; file_size[1] = st.lenL;
 
+    printF("OKK2\n");
     tag_pos = _sub32(file_size, file_dis);
 
+    printF("OKK3\n");
     int fd = open(path, READ_MODE);
     if (fd >= 0) {
         if (seek(fd, tag_pos[0], tag_pos[1]) == 0) {
@@ -195,6 +199,7 @@ Mp3Tag getMp3Tag(char[] path) {
         }
     }
 
+    printF("OKK4\n");
     close(fd);
 
     return tag;
@@ -204,6 +209,8 @@ void load_favs() {
     init_favs();
 
     int fd = open(FAV_PATH, READ_MODE);
+
+    strCpy(context, "");
 
     if (fd >= 0) {
         read(fd, context, 2048);
@@ -230,15 +237,19 @@ void load_favs() {
 }
 
 void attach_attr_song(song s, char[] path, int idx) {
+    printF("OK1\n");
     strCpy(s.path, path);
 
+    printF("OK2\n");
     Mp3Tag t = getMp3Tag(path);
                               
+    printF("OK3\n");
 
     s.index = idx;
     strCpy(s.artist, t.artist_name); // おかしい、最初と最後だけDiosが入っている
     strCpy(s.name, t.song_name); // 正常
 
+    printF("OK4\n");
 
     // 現在のfav情報を読み込む
     load_favs();
@@ -248,6 +259,7 @@ void attach_attr_song(song s, char[] path, int idx) {
         else if (strCmp(fav_paths[i], s.path) == 0)
             if (is_favs[i]) s.fav = true;
     }
+    printF("OK5\n");
 }
 
 
@@ -286,17 +298,18 @@ public song[] fetch_songs(char[] name, char[] sort) {
         close(fd);
 
     }
-    // > HISTORY.TXTからとってくる
-    else if (strCmp(name, "history") == 0) {}
     else if (strCmp(name, "fav") == 0) {
         load_favs();
+        init_songs();
 
         int j = 0;
         for (int i=0; i<50; i=i+1) {
+            printF("%s\n", fav_paths[i]);
             if (strCmp(fav_paths[i], "") == 0) break;
             else if (is_favs[i]) {
                 attach_attr_song(songs[j], fav_paths[i], j);
 
+                printF("attached\n");
                 j = j + 1;
             }
         }
