@@ -414,8 +414,8 @@ public void streamScreen(DisplaySongInfo info) {
         _putStr(fname);
     }
     
-    // パス表示（あれば）
-    char[] path = info.playingsong.path;
+    // artist表示（あれば）
+    char[] path = info.playingsong.artist;
     if (path != null) {
         _locateXY(2, 4);
         _putStr(path);
@@ -482,3 +482,32 @@ public void volumeScreen(int vol) {
   }
 }
 
+//-----------------------------------------------------------------------------
+// 電源画面
+//-----------------------------------------------------------------------------
+public void powerScreen(int pos) {
+    // 0なら電源オフ、1なら電源オンを指す
+    if (pos == 0) {
+        _locateXY(3,5);
+    }
+    else {
+        _locateXY(9,5);
+    }
+    _putCh(chr(0x7f));
+
+    // 空の電池
+    _locateXY(4,5); _putCh(chr(0x8b)); _putCh(chr(0x8c));
+    // 満タン電池
+    _locateXY(10,5); _putCh(chr(0x8d)); _putCh(chr(0x8e));
+}
+
+//-----------------------------------------------------------------------------
+// シャットダウン画面
+//-----------------------------------------------------------------------------
+public void poweroffScreen() {
+    clear();
+
+    _locateXY(1,4);
+
+    _putStr("Shutting Down...");
+}

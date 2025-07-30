@@ -12,6 +12,7 @@
 #define ALBUM_PATH "/MP3/"
 #define PLAYLIST_PATH "/PLAYLIST/"
 #define FAV_PATH "/FAV.TXT"
+#define HISTORY_PATH "/HISTORY.TXT"
 
 
 // ----------------------------------------------------------------------
@@ -19,31 +20,31 @@
 // ----------------------------------------------------------------------
 // song構造体配列 最大50曲 idx=-1によって末尾を表現する.
 song[] songs = {
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "},
-    {"song", -1, "          ",  false, "          ", "                    "}, {"song", -1, "          ",  false, "          ", "                    "}
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "},
+    {"song", -1, "          ",  false, "          ", "                                   "}, {"song", -1, "          ",  false, "          ", "                                   "}
 };
 // アルバム構造体配列 num=0によって末尾を表現する
 album[] albums = {
@@ -67,11 +68,11 @@ char[] context = array(2048);
 char[] file_path = array(128);
 char[][] playlist_names = {"pl0", "pl1", "pl2", "pl3", "pl4"};
 char[][] fav_paths = {
-    array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), 
-    array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), 
-    array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), 
-    array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), 
-    array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30), array(30)
+    array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), 
+    array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), 
+    array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), 
+    array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), 
+    array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28), array(28)
 };
 boolean[] is_favs = {
     false, false, false, false, false, false, false, false, false, false,
@@ -85,7 +86,8 @@ int[] file_size = array(2);
 int[] tag_pos = array(2);
 int[] file_dis = {0, 128};
 
-Mp3Tag tag = {"                              ", "                              "};
+Mp3Tag tag = {"                              ", "                             "};
+char[] tag_path = array(35);
 char[] buf = array(1024);
 
 
@@ -116,6 +118,7 @@ void init_songs() {
         songs[i].fav = false;
         strCpy(songs[i].artist, "");
         strCpy(songs[i].name, "");
+        strCpy(songs[i].path, "");
     }
 }
 
@@ -169,42 +172,83 @@ int lenSongofPlt(char[] pltname) {
 }
 
 
-Mp3Tag getMp3Tag(char[] file_path) {
+Mp3Tag getMp3Tag(char[] path) {
     Stat st;
 
-    stat(file_path, st);
+    stat(path, st);
     file_size[0] = st.lenH; file_size[1] = st.lenL;
 
     tag_pos = _sub32(file_size, file_dis);
 
-    int fd = open(file_path, READ_MODE);
+    int fd = open(path, READ_MODE);
     if (fd >= 0) {
         if (seek(fd, tag_pos[0], tag_pos[1]) == 0) {
             read(fd, buf, 3);
             read(fd, buf, 30);
-            for (int i=0; i<30; i=i+1) {
+            for (int i=0; i<20; i=i+1) {
                 tag.song_name[i] = buf[i];
             }
             read(fd, buf, 30);
-            for (int i=0; i<30; i=i+1) {
+            for (int i=0; i<20; i=i+1) {
                 tag.artist_name[i] = buf[i];
             }
         }
     }
+
     close(fd);
 
     return tag;
 }
 
-void attach_attr_song(song s, char[] path) {
-    Mp3Tag t = getMp3Tag(path);
-                              
-    s.index = i;
-    strCpy(s.artist, t.artis_name);
-    strCpy(s.path, path);
-    strCpy(s.name, t.song_name);
+void load_favs() {
+    init_favs();
+
+    int fd = open(FAV_PATH, READ_MODE);
+
+    if (fd >= 0) {
+        read(fd, context, 2048);
+
+        int i = 0; int j = 0; int k = 0;
+        while (context[i] != '\0') {
+            if (context[i] == '\n') {
+                j = j + 1;
+                k = 0;
+            } else if (context[i] == ',') {
+                if (context[i + 1] == 't')
+                    is_favs[j] = true;
+                i = i + 1;
+            } else {
+                fav_paths[j][k] = context[i];
+                k = k + 1;
+            }
+
+            i = i + 1;
+        }
+    }
+
+    close(fd);
 }
 
+void attach_attr_song(song s, char[] path, int idx) {
+    strCpy(s.path, path);
+
+    Mp3Tag t = getMp3Tag(path);
+                              
+
+    s.index = idx;
+    strCpy(s.artist, t.artist_name); // おかしい、最初と最後だけDiosが入っている
+    strCpy(s.name, t.song_name); // 正常
+
+
+    // 現在のfav情報を読み込む
+    load_favs();
+
+    for (int i=0; i<50; i=i+1) {
+        if (strCmp(fav_paths[i], "") == 0) break;
+        else if (strCmp(fav_paths[i], s.path) == 0)
+            if (is_favs[i]) s.fav = true;
+    }
+}
 
 
 // ----------------------------------------------------------------------
@@ -215,21 +259,75 @@ public song[] fetch_songs(char[] name, char[] sort) {
 
     // --- song構造体配列を取ってくる ---
     // プレイリストだった場合 
-    if (strCmp(name, "pl0") == 0) {}
-    else if (strCmp(name, "pl1") == 0) {}
-    else if (strCmp(name, "pl2") == 0) {}
-    else if (strCmp(name, "pl3") == 0) {}
-    else if (strCmp(name, "pl4") == 0) {}
+    if (strCmp(name, "pl0") == 0 || strCmp(name, "pl1") == 0 || strCmp(name, "pl2") == 0 || strCmp(name, "pl3") == 0 || strCmp(name, "pl4") == 0) {
+        strCpy(file_path, PLAYLIST_PATH); strCat(file_path, name); strCat(file_path, ".TXT");
+        strCpy(buf, "");
+
+      int fd = open(file_path, READ_MODE);
+
+        if (fd >= 0) {
+            read(fd, context, 2048);
+
+            int i = 0; int j = 0; int k = 0;
+            while (context[i] != '\0') {
+                if (context[i] == '\n') {
+                    dbgPutStr(buf);
+                    attach_attr_song(songs[k], buf, k);
+                    dbgPutStr(songs[k].path);
+                    j = 0;
+                    k = k + 1;
+                } else {
+                    buf[j] = context[i];
+                    j = j + 1;
+                }
+                i = i + 1;
+            }
+        }
+        close(fd);
+
+    }
+    // > HISTORY.TXTからとってくる
     else if (strCmp(name, "history") == 0) {}
-    else if (strCmp(name, "fav") == 0) {}
+    else if (strCmp(name, "fav") == 0) {
+        load_favs();
+
+        int j = 0;
+        for (int i=0; i<50; i=i+1) {
+            if (strCmp(fav_paths[i], "") == 0) break;
+            else if (is_favs[i]) {
+                attach_attr_song(songs[j], fav_paths[i], j);
+
+                j = j + 1;
+            }
+        }
+    }
+    // > 存在する全ての曲を取得する
     else if (strCmp(name, "All") == 0) {
         albums = fetch_albums();
 
-        strCpy(file_path, ALBUM_PATH); strCat(file_path, albums.name); strCat(file_path, "/");
+        int i = 0; int k = 0;
+        while (i < 5 && albums[i].num != -1) {
+            strCpy(file_path, ALBUM_PATH); strCat(file_path, albums[i].name); strCat(file_path, "/");
 
+            int album_fd = open(file_path, READ_MODE);
 
+            while (true) {
+                dir = readDir(album_fd, "MP3");
+
+                if (dir == null) break;
+
+                strCpy(buf, file_path); strCat(buf, dir.name);
+
+                attach_attr_song(songs[k], buf, k);
+
+                k = k + 1;
+            }
+            i = i + 1;
+
+            close(album_fd);
+        }
     }
-    // アルバムを取ってくる
+    // > nameで指定されたalbum内の曲をとってくる
     else {
         strCpy(file_path, ALBUM_PATH); strCat(file_path, name); strCat(file_path, "/");
 
@@ -243,10 +341,12 @@ public song[] fetch_songs(char[] name, char[] sort) {
 
             strCpy(buf, file_path); strCat(buf, dir.name);
 
-            attach_attr_song(song[i], buf);
+            attach_attr_song(songs[i], buf, i);
         
             i = i + 1;
         }
+
+        close(fd);
     }
 
     // --- ここからソート ---
@@ -337,37 +437,12 @@ public void fav_song(song s) {
     fd = open(FAV_PATH, READ_MODE);
 
     if (fd < 0) {
-        creat("FAV_PATH");
+        creat(FAV_PATH);
     }
 
     close(fd);
 
-    // 現在のfav情報を読み込む
-    fd = open(FAV_PATH, READ_MODE);
-
-    if (fd >= 0) {
-        read(fd, context, 2048);
-
-        int i = 0; int j = 0; int k = 0;
-        while (context[i] != '\0') {
-            if (context[i] == '\n') {
-                j = j + 1;
-                k = 0;
-            } else if (context[i] == ',') {
-                if (context[i + 1] == 't')
-                    is_favs[j] = true;
-                i = i + 1;
-            } else {
-                fav_paths[j][k] = context[i];
-                k = k + 1;
-            }
-
-            printF("%c",fav_paths[j][k]);
-            i = i + 1;
-        }
-    }
-
-    close(fd);
+    load_favs();
 
     // favファイルの初期化
     remove(FAV_PATH);
@@ -405,3 +480,7 @@ public void fav_song(song s) {
     close(fd);
 }
 
+public void history_song(song s) {
+    // fav_pathsの0~9までをhistoryとして使う
+    init_favs();
+}

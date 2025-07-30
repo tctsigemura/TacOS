@@ -21,6 +21,8 @@ public boolean check_item(int idx);
 public void display_items(void[][] items, char[] title, char[] move);
 public void streamScreen(DisplaySongInfo info);
 public void volumeScreen(int vol);
+public void powerScreen(int val);
+public void poweroffScreen();
 
 // アクセサ
 public int get_page();
