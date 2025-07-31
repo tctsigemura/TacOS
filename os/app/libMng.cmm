@@ -213,8 +213,8 @@ void load_favs() {
         read(fd, concontext, 1024);
 
         int i = 0; int j = 0; int k = 0;
-        while (context[i] != '\0') {
-            if (context[i] == '\n') {
+        while (concontext[i] != '\0') {
+            if (concontext[i] == '\n') {
                 j = j + 1;
                 k = 0;
             } else if (concontext[i] == ',') {
@@ -246,6 +246,7 @@ void attach_attr_song(song s, char[] path, int idx) {
     load_favs();
 
     for (int i=0; i<50; i=i+1) {
+        dbgPutStr(fav_paths[i]); dbgPutStr("\n");
         if (strCmp(fav_paths[i], "") == 0) break;
         else if (strCmp(fav_paths[i], s.path) == 0)
             if (is_favs[i]) s.fav = true;
@@ -414,8 +415,6 @@ public playlist[] fetch_playlists() {
         playlists[j].num = lenSongofPlt(file_path);
 
         j = j + 1;
-
-
     }
 
     return playlists;
@@ -430,6 +429,7 @@ public char[][] fetch_artists() {
 // /FAV.TXTが存在しなければ作る。path, t/fがなければ新しく作成する。
 public void fav_song(song s) {
     init_favs();
+    dbgPutStr(s.path); printF("\n");
 
     int fd;
 

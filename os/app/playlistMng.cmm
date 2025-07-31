@@ -13,9 +13,7 @@ int song_num = 10;
 char[][] files = {"pl0", "pl1", "pl2", "pl3", "pl4"};
 char[] context = array(76);
 char[] buffer = array(2048);
-char[] pltcat_filepath = "                    ";
-char[] delete_filepath = "                    ";
-char[] create_filepath = "                    ";
+char[] pltcat_filepath = "                              ";
 
 char[][] songlist = {
     "                    ",
@@ -67,9 +65,9 @@ int lenSongofPlt(char[] pltname) {
 
 // 指定した名前のプレイリストを削除する
 public void delete_playlist(char[] pltname) {
-    delete_filepath = pltCat(pltname);
+    pltcat_filepath = pltCat(pltname);
 
-    remove(delete_filepath);
+    remove(pltcat_filepath);
 }
 
 
@@ -82,18 +80,18 @@ public void delete_playlist(char[] pltname) {
 public void create_playlist(song[] songs) {
     for (int i=0; i<playlist_num; i=i+1) {
         int fd;
-        strCpy(create_filepath, "");
+        strCpy(pltcat_filepath, "");
         boolean isCreate = false;
 
-        create_filepath = pltCat(files[i]);
-        fd = open(create_filepath, WRITE_MODE);
+        pltcat_filepath = pltCat(files[i]);
+        fd = open(pltcat_filepath, WRITE_MODE);
 
         // ファイルが非存在
         if(fd < 0){
             isCreate = true;
-            creat(create_filepath);
+            creat(pltcat_filepath);
 
-            fd = open(create_filepath, WRITE_MODE);
+            fd = open(pltcat_filepath, WRITE_MODE);
 
             int j = 0;
             while (songs[j] != null && j < song_num) { 
@@ -151,20 +149,20 @@ public void add_songs(char[] pltname, song[] songs){
 
 public void remove_songs(char[] pltname, song[] songs) {
     int fd;
-    char[] filepath = "               ";
-    
-    filepath = pltCat(pltname);
-    fd = open(filepath, READ_MODE);
+
+    strCpy(pltcat_filepath, "/PLAYLIST/"); strCat(pltcat_filepath, pltname); strCat(pltcat_filepath, ".TXT");
+    fd = open(pltcat_filepath, READ_MODE);
 
     if (fd >= 0) {
 
         // songlistのクリア
         for (int i=0; i<10; i=i+1) {
             strCpy(songlist[i], "");
+            printF("%s\n", songs[i].name);
         }
 
         // プレイリスト中の曲一覧を取得する 
-        read(fd, buffer, 2048);
+        read(fd, buffer, 1024);
         int i = 0; int j = 0; int k = 0;
 
         while (buffer[i] != '\0' && j < 10) {
@@ -193,13 +191,14 @@ public void remove_songs(char[] pltname, song[] songs) {
         } 
 
         // 一旦ファイルを作り直す
-        remove(filepath);
-        creat(filepath);
+        remove(pltcat_filepath);
+        creat(pltcat_filepath);
 
         // 最後に残っている曲を書き直す
-        fd = open(filepath, WRITE_MODE);
+        fd = open(pltcat_filepath, WRITE_MODE);
         for (i=0; i<song_num; i=i+1) {
             if (strCmp(songlist[i], "") != 0) {
+                dbgPutStr(songlist[i]); dbgPutStr("\n");
                 write(fd, songlist[i], strLen(songlist[i]));
                 write(fd, "\n", 1);
             }

@@ -720,6 +720,7 @@ sleep(200);
 
                 song tmpsong = s.item;
                 tmpsong.fav = !tmpsong.fav;
+                printF("faved %s\n", tmpsong.path);
 
                 fav_song(tmpsong);
                 display_screen();
@@ -808,6 +809,7 @@ sleep(200);
             }
             else if (num == 5) {
                 if (selecting_num != 0) {
+                    for (int i=0;i<10;i=i+1) dbgPutStr(playlistSongs[i].name);
                     create_playlist(playlistSongs);
                 }
             }
@@ -868,7 +870,6 @@ sleep(200);
             }
             else if (num == 5) {
                 playlist[] playlists = fetch_playlists();
-                printF("aiueo!!!!!!wwwwwwwwwwwww\n");
 
                 resetScreen();
 
@@ -879,7 +880,6 @@ sleep(200);
                 }
 
                 display_items(screen, "Select Display", "straight");
-
             }
             else if (num == 6) {
                 SelectedItem s = select();
@@ -929,6 +929,10 @@ sleep(200);
                 // そのままcreate-playlistで書き込む
                 //
                 if (selecting_num != 0) {
+                    printF("playlist name: %s\n", now_dir);
+                    printF("remove songs:\n");
+
+                    for (int i=0; i<10; i=i+1) printF("    %s\n",playlistSongs[i].name);
                     remove_songs(now_dir, playlistSongs);
 
                     mode = PLAYLISTS;
