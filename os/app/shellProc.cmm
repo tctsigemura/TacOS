@@ -262,7 +262,6 @@ song[] goSongsScreen(char[] name, char[] sort) {
     int i = 0;
     while (songs[i].index != -1) {
         screen[i] = songs[i];
-        printF("%s, ", songs[i].path);
 
         i = i + 1;
     }
@@ -355,11 +354,11 @@ void goAddScreen() {
     // スクリーンのリセット
     resetScreen();
 
-    playlist[] playlists = fetch_playlists();
+    album[] albums = fetch_albums();
 
     int i = 0;
-    while (playlists[i].num != -1) {
-        screen[i] = playlists[i];
+    while (albums[i].num != -1) {
+        screen[i] = albums[i];
 
         i = i + 1;
     }
@@ -808,11 +807,6 @@ sleep(200);
                 down_cursor();
             }
             else if (num == 5) {
-                // 選択されている曲数が1曲以上
-                // selectingItems[i]のnameのアルバム曲一覧を取ってきて、
-                // is_selecting[j]がtrueのsongs[j]を溜め込んで
-                // そのままcreate-playlistで書き込む
-                //
                 if (selecting_num != 0) {
                     create_playlist(playlistSongs);
                 }
@@ -852,6 +846,7 @@ sleep(200);
                 }
             }
         }
+        // --- プレイリストに曲を追加する ---
         else if (mode == ADD) {
             if (num == 2) {
                 up_cursor();
@@ -872,12 +867,8 @@ sleep(200);
                 down_cursor();
             }
             else if (num == 5) {
-                // 選択されている曲数が1曲以上
-                // selectingItems[i]のnameのアルバム曲一覧を取ってきて、
-                // is_selecting[j]がtrueのsongs[j]を溜め込んで
-                // そのままcreate-playlistで書き込む
-                //
                 playlist[] playlists = fetch_playlists();
+                printF("aiueo!!!!!!wwwwwwwwwwwww\n");
 
                 resetScreen();
 
@@ -911,6 +902,7 @@ sleep(200);
                 }
             }
         }
+        // --- プレイリストから曲を削除する ---
         else if (mode == REMOVE) {
             if (num == 2) {
                 up_cursor();

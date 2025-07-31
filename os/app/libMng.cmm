@@ -64,7 +64,7 @@ playlist[] playlists = {
 // 処理に使う一時変数
 // ----------------------------------------------------------------------
 Dir dir;
-char[] context = array(2048);
+char[] context = array(1024);
 char[] file_path = array(128);
 char[][] playlist_names = {"pl0", "pl1", "pl2", "pl3", "pl4"};
 char[][] fav_paths = {
@@ -154,7 +154,7 @@ int lenSongofPlt(char[] pltname) {
     fd = open(pltname, READ_MODE);
 
     if (fd >= 0) {
-        read(fd, context, 2048);
+        read(fd, context, 1024);
 
         int i = 0;
         while (context[i] != '\0') {
@@ -172,60 +172,57 @@ int lenSongofPlt(char[] pltname) {
 }
 
 Stat st = {0, 0, 0, 0};
+char[] bufbuf = array(100);
 Mp3Tag getMp3Tag(char[] path) {
+    strCpy(bufbuf, "");
     //Stat st;
-
-    printF("OKK1: %s\n", path);
     stat(path, st);
-    printF("OKK1? \n", path);
     file_size[0] = st.lenH; file_size[1] = st.lenL;
 
-    printF("OKK2\n");
     tag_pos = _sub32(file_size, file_dis);
 
-    printF("OKK3\n");
     int fd = open(path, READ_MODE);
     if (fd >= 0) {
         if (seek(fd, tag_pos[0], tag_pos[1]) == 0) {
-            read(fd, buf, 3);
-            read(fd, buf, 30);
+            read(fd, bufbuf, 3);
+            strCpy(bufbuf, "");
+            read(fd, bufbuf, 30);
             for (int i=0; i<20; i=i+1) {
-                tag.song_name[i] = buf[i];
+                tag.song_name[i] = bufbuf[i];
             }
-            read(fd, buf, 30);
+            strCpy(bufbuf, "");
+            read(fd, bufbuf, 30);
             for (int i=0; i<20; i=i+1) {
-                tag.artist_name[i] = buf[i];
+                tag.artist_name[i] = bufbuf[i];
             }
         }
     }
-
-    printF("OKK4\n");
     close(fd);
 
     return tag;
 }
 
+char[] concontext = array(1024);
 void load_favs() {
     init_favs();
+    strCpy(concontext, "");
 
     int fd = open(FAV_PATH, READ_MODE);
 
-    strCpy(context, "");
-
     if (fd >= 0) {
-        read(fd, context, 2048);
+        read(fd, concontext, 1024);
 
         int i = 0; int j = 0; int k = 0;
         while (context[i] != '\0') {
             if (context[i] == '\n') {
                 j = j + 1;
                 k = 0;
-            } else if (context[i] == ',') {
-                if (context[i + 1] == 't')
+            } else if (concontext[i] == ',') {
+                if (concontext[i + 1] == 't')
                     is_favs[j] = true;
                 i = i + 1;
             } else {
-                fav_paths[j][k] = context[i];
+                fav_paths[j][k] = concontext[i];
                 k = k + 1;
             }
 
@@ -237,19 +234,13 @@ void load_favs() {
 }
 
 void attach_attr_song(song s, char[] path, int idx) {
-    printF("OK1\n");
     strCpy(s.path, path);
 
-    printF("OK2\n");
     Mp3Tag t = getMp3Tag(path);
                               
-    printF("OK3\n");
-
     s.index = idx;
     strCpy(s.artist, t.artist_name); // おかしい、最初と最後だけDiosが入っている
     strCpy(s.name, t.song_name); // 正常
-
-    printF("OK4\n");
 
     // 現在のfav情報を読み込む
     load_favs();
@@ -259,7 +250,6 @@ void attach_attr_song(song s, char[] path, int idx) {
         else if (strCmp(fav_paths[i], s.path) == 0)
             if (is_favs[i]) s.fav = true;
     }
-    printF("OK5\n");
 }
 
 
@@ -278,16 +268,17 @@ public song[] fetch_songs(char[] name, char[] sort) {
       int fd = open(file_path, READ_MODE);
 
         if (fd >= 0) {
-            read(fd, context, 2048);
+            read(fd, context, 1024);
 
             int i = 0; int j = 0; int k = 0;
             while (context[i] != '\0') {
                 if (context[i] == '\n') {
-                    dbgPutStr(buf);
+                    dbgPutStr("buf: "); dbgPutStr(buf); dbgPutStr("\n");
                     attach_attr_song(songs[k], buf, k);
-                    dbgPutStr(songs[k].path);
+                    dbgPutStr("path: "); dbgPutStr(songs[k].path); dbgPutStr("\n");
                     j = 0;
                     k = k + 1;
+                    strCpy(buf, "");
                 } else {
                     buf[j] = context[i];
                     j = j + 1;
@@ -304,12 +295,10 @@ public song[] fetch_songs(char[] name, char[] sort) {
 
         int j = 0;
         for (int i=0; i<50; i=i+1) {
-            printF("%s\n", fav_paths[i]);
             if (strCmp(fav_paths[i], "") == 0) break;
             else if (is_favs[i]) {
                 attach_attr_song(songs[j], fav_paths[i], j);
 
-                printF("attached\n");
                 j = j + 1;
             }
         }
@@ -440,8 +429,6 @@ public char[][] fetch_artists() {
 // ↑とヒットするような/FAV.TXTを取得し、path, t/fでやればいい
 // /FAV.TXTが存在しなければ作る。path, t/fがなければ新しく作成する。
 public void fav_song(song s) {
-    printF("called fav_song()\n");
-
     init_favs();
 
     int fd;

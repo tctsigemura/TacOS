@@ -295,7 +295,7 @@ public void display_items(void[][] items, char[] title, char[] move) {
     }
     // ページが進む処理の場合
     else if (strCmp(move,"straight") == 0) {
-        if (now_page == 2) {
+        if (now_page == 3) {
             return ;
         } else {
             now_page = now_page + 1;
