@@ -31,6 +31,9 @@
 # 2011.11.27 : MacOS X に対応(cpp 問題)
 # 2011.05.11 : 初期バージョン
 
+# デバッグモードをONにしてデバッグメッセージがをシリアルに出力したいときは
+#   util/util.cmm の最後にある utilInit 関数内で "ftFlag = true;" とすること
+#   標準では Bluetooth だけにデバッグメッセージが出力される．
 # デバッグモードをOFFにするときは
 #   kernel/dispatcher.s 中のprintFを呼び出す部分をコメントアウトすること
 #DEBUG=DEBUG=1
